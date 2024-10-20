@@ -1,0 +1,23 @@
+{
+  "OrdersManagement": "Orders Management",
+  "TotalAmount": "Total Amount (All Orders)",
+  "FilterOrders": "Filter Orders",
+  "CreateNewOrder": "Create New Order",
+  "OrderNumber": "Order Number",
+  "FullName": "Full Name",
+  "Status": "Status",
+  "Amount": "Amount",
+  "CreatedAt": "Created At",
+  "Actions": "Actions",
+  "Details": "Details",
+  "Edit": "Edit",
+  "Delete": "Delete",
+  "DeliveryMethod": "Delivery Method",
+  "DeliveryPostNumber": "Number of delivery post",
+  "PhoneNumber": "Phone Number",
+  "Products": "Products",
+  "NumberOfItems": "Number of Items",
+  "PaymentMethod": "Payment Method",
+  "Source": "Source",
+  "UpdateOrder": "Update Order"
+}
