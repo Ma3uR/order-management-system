@@ -125,88 +125,87 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   }
 
   return (
-    <div className="space-y-4 p-8 bg-white text-black">
-      <h1 className="text-4xl font-bold mb-8">{translations.title}</h1>
-      
-      <div className="grid gap-8 mb-8 md:grid-cols-3">
-        <Card className="border border-gray-200 shadow-md">
+    <div className="min-h-screen bg-white text-black p-8">
+      <h1 className="text-3xl font-bold mb-6">{translations.title}</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">{translations.totalAmount}</CardTitle>
+            <CardTitle>{translations.totalAmount}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">${totalAmount.toFixed(2)}</p>
+            <p className="text-2xl font-bold">${totalAmount.toFixed(2)}</p>
           </CardContent>
         </Card>
-        
-        <Card className="border border-gray-200 shadow-md">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">{translations.filterOrders}</CardTitle>
+            <CardTitle>{translations.filterOrders}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Input 
+            <Input
               placeholder={translations.filterOrdersPlaceholder}
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
-              className="bg-white text-black border-gray-300 focus:border-black focus:ring-black"
+              className="bg-white text-black border-gray-300"
             />
           </CardContent>
         </Card>
-
-        <Card className="border border-gray-200 shadow-md">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">{translations.createNewOrder}</CardTitle>
+            <CardTitle>{translations.createNewOrder}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => setIsCreateModalOpen(true)} className="w-full">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
               {translations.createNewOrder}
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border border-gray-200 shadow-md">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">{translations.orders}</CardTitle>
+          <CardTitle>{translations.orders}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-100">
-                <TableHead className="font-semibold">{translations.orderNumber}</TableHead>
-                <TableHead className="font-semibold">{translations.fullName}</TableHead>
-                <TableHead className="font-semibold">{translations.status}</TableHead>
-                <TableHead className="font-semibold">{translations.amount}</TableHead>
-                <TableHead className="font-semibold">{translations.createdAt}</TableHead>
-                <TableHead className="font-semibold">{translations.actions}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrders.map((order) => (
-                <TableRow key={order.id} className="border-b border-gray-200">
-                  <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                  <TableCell>{order.fullName}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-gray-100 text-black border-gray-300">
-                      {translateStatus(order.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>${order.amount.toFixed(2)}</TableCell>
-                  <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Button onClick={() => { setSelectedOrder(order); setIsDetailsModalOpen(true); }} className="mr-2">
-                      {translations.details}
-                    </Button>
-                    <Button onClick={() => { setSelectedOrder(order); setIsEditModalOpen(true); }} className="mr-2">
-                      {translations.edit}
-                    </Button>
-                    <Button onClick={() => handleDeleteOrder(order.id)} variant="destructive">
-                      {translations.delete}
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100">
+                  <TableHead className="font-semibold">{translations.orderNumber}</TableHead>
+                  <TableHead className="font-semibold">{translations.fullName}</TableHead>
+                  <TableHead className="font-semibold">{translations.status}</TableHead>
+                  <TableHead className="font-semibold">{translations.amount}</TableHead>
+                  <TableHead className="font-semibold">{translations.createdAt}</TableHead>
+                  <TableHead className="font-semibold">{translations.actions}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.map((order) => (
+                  <TableRow key={order.id} className="border-b border-gray-200">
+                    <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                    <TableCell>{order.fullName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-gray-100 text-black border-gray-300">
+                        {translateStatus(order.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>${order.amount.toFixed(2)}</TableCell>
+                    <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Button onClick={() => { setSelectedOrder(order); setIsDetailsModalOpen(true); }} className="mr-2">
+                        {translations.details}
+                      </Button>
+                      <Button onClick={() => { setSelectedOrder(order); setIsEditModalOpen(true); }} className="mr-2">
+                        {translations.edit}
+                      </Button>
+                      <Button onClick={() => handleDeleteOrder(order.id)} variant="destructive">
+                        {translations.delete}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

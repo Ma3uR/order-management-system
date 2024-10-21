@@ -50,16 +50,14 @@ export default async function OrdersPage() {
   };
 
   return (
-    <div>
-      <OrdersManagement 
-        translations={translations} 
-        initialOrders={orders.map(order => ({
-          ...order,
-          createdAt: order.createdAt.toISOString(),
-          updatedAt: order.updatedAt.toISOString(),
-          products: JSON.stringify(order.products)
-        }))} 
-      />
-    </div>
+    <OrdersManagement 
+      translations={translations} 
+      initialOrders={orders.map(order => ({
+        ...order,
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString(),
+        products: JSON.stringify(order.products)
+      }))} 
+    />
   );
 }
