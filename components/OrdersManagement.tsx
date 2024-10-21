@@ -79,6 +79,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 

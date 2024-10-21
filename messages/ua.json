@@ -1,10 +1,11 @@
 {
-  "OrdersManagement": {
+  "Orders": {
     "title": "Управління замовленнями",
-    "totalAmount": "Загальна сума (всі замовлення)",
+    "totalAmount": "Загальна сума",
     "filterOrders": "Фільтрувати замовлення",
-    "filterOrdersPlaceholder": "Фільтрувати замовлення...",
+    "filterOrdersPlaceholder": "Пошук за номером замовлення, ім'ям або статусом",
     "createNewOrder": "Створити нове замовлення",
+    "orders": "Замовлення",
     "orderNumber": "Номер замовлення",
     "fullName": "Повне ім'я",
     "status": "Статус",
@@ -14,20 +15,30 @@
     "details": "Деталі",
     "edit": "Редагувати",
     "delete": "Видалити",
+    "deleteConfirmation": "Ви впевнені, що хочете видалити це замовлення?",
+    "orderDetails": "Деталі замовлення",
+    "source": "Джерело",
     "deliveryMethod": "Спосіб доставки",
-    "deliveryPostNumber": "Номер відділення доставки",
+    "deliveryPostNumber": "Номер відділення пошти",
     "phoneNumber": "Номер телефону",
     "products": "Товари",
     "numberOfItems": "Кількість товарів",
     "paymentMethod": "Спосіб оплати",
-    "source": "Джерело",
+    "editOrder": "Редагувати замовлення",
+    "selectStatus": "Виберіть статус",
     "updateOrder": "Оновити замовлення",
-    "orders": "Замовлення",
     "statuses": {
-      "beingprocessedbymanager": "Обробляється менеджером",
+      "beingProcessed": "Обробляється менеджером",
       "shipped": "Відправлено",
       "delivered": "Доставлено",
       "cancelled": "Скасовано"
+    },
+    "deliveryMethods": {
+      "ukrposhta": "Укрпошта",
+      "novaPoshta": "Нова Пошта",
+      "parcelLocker": "Поштомат",
+      "rozetka": "Розетка",
+      "mistExpress": "Міст Експрес"
     }
   }
 }
