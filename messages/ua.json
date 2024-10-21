@@ -1,0 +1,33 @@
+{
+  "OrdersManagement": {
+    "title": "Управління замовленнями",
+    "totalAmount": "Загальна сума (всі замовлення)",
+    "filterOrders": "Фільтрувати замовлення",
+    "filterOrdersPlaceholder": "Фільтрувати замовлення...",
+    "createNewOrder": "Створити нове замовлення",
+    "orderNumber": "Номер замовлення",
+    "fullName": "Повне ім'я",
+    "status": "Статус",
+    "amount": "Сума",
+    "createdAt": "Створено",
+    "actions": "Дії",
+    "details": "Деталі",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "deliveryMethod": "Спосіб доставки",
+    "deliveryPostNumber": "Номер відділення доставки",
+    "phoneNumber": "Номер телефону",
+    "products": "Товари",
+    "numberOfItems": "Кількість товарів",
+    "paymentMethod": "Спосіб оплати",
+    "source": "Джерело",
+    "updateOrder": "Оновити замовлення",
+    "orders": "Замовлення",
+    "statuses": {
+      "beingprocessedbymanager": "Обробляється менеджером",
+      "shipped": "Відправлено",
+      "delivered": "Доставлено",
+      "cancelled": "Скасовано"
+    }
+  }
+}

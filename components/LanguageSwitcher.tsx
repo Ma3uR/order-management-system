@@ -1,20 +1,21 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { usePathname } from 'next/navigation';
 
 export default function LanguageSwitcher() {
   const router = useRouter();
-  const locale = useLocale();
+  const pathname = usePathname();
 
   const switchLanguage = () => {
-    const newLocale = locale === 'en' ? 'uk' : 'en';
-    router.push(`/${newLocale}`);
+    const newLocale = pathname.startsWith('/ua') ? '' : '/ua';
+    const newPath = newLocale + (pathname.startsWith('/ua') ? pathname.slice(3) : pathname);
+    router.push(newPath);
   };
 
   return (
     <button onClick={switchLanguage} className="px-4 py-2 bg-blue-500 text-white rounded">
-      {locale === 'en' ? 'Українська' : 'English'}
+      {pathname.startsWith('/ua') ? 'English' : 'Українська'}
     </button>
   );
 }
