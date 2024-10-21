@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -171,7 +171,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
         </Card>
       </div>
 
-      <Card>
+      <Card className="bg-white">
         <CardHeader>
           <CardTitle>{translations.orders}</CardTitle>
         </CardHeader>
@@ -190,7 +190,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </TableHeader>
               <TableBody>
                 {filteredOrders.map((order) => (
-                  <TableRow key={order.id} className="border-b border-gray-200">
+                  <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.orderNumber}</TableCell>
                     <TableCell>{order.fullName}</TableCell>
                     <TableCell>
@@ -201,21 +201,32 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                     <TableCell>${order.amount.toFixed(2)}</TableCell>
                     <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
                     <TableCell>
-                      <Button onClick={() => {
-                        setSelectedOrder(order);
-                        setIsDetailsModalOpen(true);
-                      }} variant="outline" className="mr-2">
-                        {translations.details}
-                      </Button>
-                      <Button onClick={() => {
-                        setSelectedOrder(order);
-                        setIsEditModalOpen(true);
-                      }} variant="outline" className="mr-2">
-                        {translations.edit}
-                      </Button>
-                      <Button onClick={() => handleDeleteOrder(order.id)} variant="destructive">
-                        {translations.delete}
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setIsDetailsModalOpen(true);
+                          }} 
+                          className="bg-blue-500 text-white hover:bg-blue-600"
+                        >
+                          {translations.details}
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setIsEditModalOpen(true);
+                          }} 
+                          className="bg-green-500 text-white hover:bg-green-600"
+                        >
+                          {translations.edit}
+                        </Button>
+                        <Button 
+                          onClick={() => handleDeleteOrder(order.id)} 
+                          className="bg-red-500 text-white hover:bg-red-600"
+                        >
+                          {translations.delete}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

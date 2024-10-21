@@ -40,6 +40,8 @@
       "parcelLocker": "Поштомат",
       "rozetka": "Розетка",
       "mistExpress": "Міст Експрес"
-    }
+    },
+    "orderDetailsDescription": "Переглянути деталі цього замовлення.",
+    "editOrderDescription": "Внести зміни до цього замовлення."
   }
 }

@@ -40,6 +40,8 @@
       "parcelLocker": "Parcel Locker or Poshtomat",
       "rozetka": "Rozetka",
       "mistExpress": "Mist Express"
-    }
+    },
+    "orderDetailsDescription": "View the details of this order.",
+    "editOrderDescription": "Make changes to this order."
   }
 }
