@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,6 +47,7 @@ interface OrdersManagementProps {
     edit: string;
     delete: string;
     deleteConfirmation: string;
+    deleteError: string; // Add this line
     orderDetails: string;
     source: string;
     deliveryMethod: string;
@@ -110,8 +112,16 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     }
   };
 
-  const handleDeleteOrder = (orderId: number) => {
-    setOrders(orders.filter(order => order.id !== orderId));
+  const handleDeleteOrder = async (orderId: number) => {
+    if (window.confirm(translations.deleteConfirmation)) {
+      try {
+        await axios.delete(`/api/orders/${orderId}`);
+        setOrders(orders.filter(order => order.id !== orderId));
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        alert(translations.deleteError);
+      }
+    }
   };
 
   const handleEditSelectChange = (field: string, value: string) => {
@@ -191,10 +201,16 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                     <TableCell>${order.amount.toFixed(2)}</TableCell>
                     <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
                     <TableCell>
-                      <Button onClick={() => { setSelectedOrder(order); setIsDetailsModalOpen(true); }} className="mr-2">
+                      <Button onClick={() => {
+                        setSelectedOrder(order);
+                        setIsDetailsModalOpen(true);
+                      }} variant="outline" className="mr-2">
                         {translations.details}
                       </Button>
-                      <Button onClick={() => { setSelectedOrder(order); setIsEditModalOpen(true); }} className="mr-2">
+                      <Button onClick={() => {
+                        setSelectedOrder(order);
+                        setIsEditModalOpen(true);
+                      }} variant="outline" className="mr-2">
                         {translations.edit}
                       </Button>
                       <Button onClick={() => handleDeleteOrder(order.id)} variant="destructive">

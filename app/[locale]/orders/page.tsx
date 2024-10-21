@@ -23,6 +23,7 @@ export default async function OrdersPage() {
     edit: t('edit'),
     delete: t('delete'),
     deleteConfirmation: t('deleteConfirmation'),
+    deleteError: t('deleteError'),
     orderDetails: t('orderDetails'),
     source: t('source'),
     deliveryMethod: t('deliveryMethod'),

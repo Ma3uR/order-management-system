@@ -16,6 +16,7 @@
     "edit": "Edit",
     "delete": "Delete",
     "deleteConfirmation": "Are you sure you want to delete this order?",
+    "deleteError": "An error occurred while deleting the order. Please try again.",
     "orderDetails": "Order Details",
     "source": "Source",
     "deliveryMethod": "Delivery Method",
