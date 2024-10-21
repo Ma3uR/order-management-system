@@ -51,14 +51,13 @@ export default async function OrdersPage() {
 
   return (
     <div>
-      <h1>{translations.title}</h1>
       <OrdersManagement 
         translations={translations} 
         initialOrders={orders.map(order => ({
           ...order,
           createdAt: order.createdAt.toISOString(),
           updatedAt: order.updatedAt.toISOString(),
-          products: JSON.stringify(order.products) // Convert products to string
+          products: JSON.stringify(order.products)
         }))} 
       />
     </div>

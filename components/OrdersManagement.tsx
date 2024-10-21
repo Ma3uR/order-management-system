@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -75,13 +75,19 @@ interface OrdersManagementProps {
 }
 
 const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initialOrders }) => {
+  const [orders, setOrders] = useState<Order[]>([])
+  const [isClient, setIsClient] = useState(false)
   const [filterText, setFilterText] = useState("")
-  const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+
+  useEffect(() => {
+    setOrders(initialOrders);
+    setIsClient(true);
+  }, [initialOrders]);
 
   const filteredOrders = orders.filter(order => 
     order.orderNumber.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -114,8 +120,12 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     }
   };
 
+  if (!isClient) {
+    return null; // or a loading spinner
+  }
+
   return (
-    <div className="min-h-screen bg-white text-black p-8">
+    <div className="space-y-4 p-8 bg-white text-black">
       <h1 className="text-4xl font-bold mb-8">{translations.title}</h1>
       
       <div className="grid gap-8 mb-8 md:grid-cols-3">
