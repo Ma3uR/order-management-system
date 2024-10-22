@@ -1,6 +1,7 @@
 import '@/styles/globals.css';
 import { NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
+import { Providers } from '../providers';
 
 export function generateStaticParams() {
   return [{ locale: 'en' }, { locale: 'ua' }];
@@ -21,11 +22,13 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
-        </NextIntlClientProvider>
+    <html lang={locale}>
+      <body>
+        <Providers>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            {children}
+          </NextIntlClientProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -43,5 +43,22 @@
     },
     "orderDetailsDescription": "Переглянути деталі цього замовлення.",
     "editOrderDescription": "Внести зміни до цього замовлення."
+  },
+  "Auth": {
+    "signInTitle": "Увійдіть у свій обліковий запис",
+    "emailLabel": "Електронна адреса",
+    "emailPlaceholder": "Електронна адреса",
+    "passwordLabel": "Пароль",
+    "passwordPlaceholder": "Пароль",
+    "signInButton": "Увійти"
+  },
+  "Dashboard": {
+    "title": "Панель керування",
+    "welcome": "Ласкаво просимо до вашої панелі керування",
+    "navigation": "Навігація",
+    "dashboard": "Панель керування",
+    "orders": "Замовлення",
+    "projects": "Проекти",
+    "settings": "Налаштування"
   }
 }

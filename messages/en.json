@@ -43,5 +43,22 @@
     },
     "orderDetailsDescription": "View the details of this order.",
     "editOrderDescription": "Make changes to this order."
+  },
+  "Auth": {
+    "signInTitle": "Sign in to your account",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "Email address",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Password",
+    "signInButton": "Sign in"
+  },
+  "Dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to your dashboard",
+    "navigation": "Navigation",
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "projects": "Projects",
+    "settings": "Settings"
   }
 }
