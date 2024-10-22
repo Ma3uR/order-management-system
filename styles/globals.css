@@ -2,17 +2,4 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  /* ... other custom properties ... */
-}
-
-body {
-  background-color: white;
-  color: black;
-}
-
-.bg-background {
-  background-color: white !important;
-}
+/* Remove any global styles that add classes to html or body */

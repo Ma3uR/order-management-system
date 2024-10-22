@@ -1,9 +1,6 @@
+const withNextIntl = require('next-intl/plugin')('./i18n.ts');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {};
 
-const withNextIntl = async () => {
-  const { default: createNextIntlPlugin } = await import('next-intl/plugin');
-  return createNextIntlPlugin('./i18n.ts')(nextConfig);
-};
-
-module.exports = withNextIntl();
+module.exports = withNextIntl(nextConfig);
