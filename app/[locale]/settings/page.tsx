@@ -42,6 +42,9 @@ export default function SettingsPage() {
 
   const [flashMessage, setFlashMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  const [editingStatus, setEditingStatus] = useState<Status | null>(null);
+  const [editStatusValues, setEditStatusValues] = useState({ name: '', color: '#000000' });
+
   useEffect(() => {
     fetchCurrencies();
     fetchStatuses();
@@ -209,6 +212,30 @@ export default function SettingsPage() {
     }
   };
 
+  const handleEditStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStatus) return;
+
+    try {
+      const response = await fetch(`/api/statuses/${editingStatus.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editStatusValues),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to edit status');
+      }
+      const updatedStatus = await response.json();
+      setStatuses(statuses.map(status => status.id === updatedStatus.id ? updatedStatus : status));
+      setEditingStatus(null);
+      showFlashMessage('Status updated successfully!', 'success');
+    } catch (error) {
+      console.error('Error editing status:', error);
+      showFlashMessage(error.message, 'error');
+    }
+  };
+
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">{t('title')}</h1>
@@ -299,10 +326,30 @@ export default function SettingsPage() {
               <li key={status.id} className="flex justify-between items-center mb-2">
                 <span>{status.name}</span>
                 <span style={{ backgroundColor: status.color, width: '20px', height: '20px' }}></span>
+                <button onClick={() => {
+                  setEditingStatus(status);
+                  setEditStatusValues({ name: status.name, color: status.color });
+                }}>Edit</button>
                 <button onClick={() => handleDeleteStatus(status.id)}>Delete</button>
               </li>
             ))}
           </ul>
+          {editingStatus && (
+            <form onSubmit={handleEditStatus} className="space-y-4 mb-4">
+              <Input
+                placeholder={t('statusName')}
+                value={editStatusValues.name}
+                onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
+              />
+              <Input
+                type="color"
+                value={editStatusValues.color}
+                onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
+              />
+              <Button type="submit">Save Changes</Button>
+              <Button type="button" onClick={() => setEditingStatus(null)}>Cancel</Button>
+            </form>
+          )}
         </TabsContent>
         <TabsContent value="paymentMethods">
           <form onSubmit={handleAddPaymentMethod} className="space-y-4 mb-4">

@@ -49,3 +49,17 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Error deleting status' }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const { id, name, color } = await request.json();
+    const updatedStatus = await prisma.status.update({
+      where: { id },
+      data: { name, color },
+    });
+    return NextResponse.json(updatedStatus);
+  } catch (error) {
+    console.error('Error updating status:', error);
+    return NextResponse.json({ error: 'Error updating status' }, { status: 500 });
+  }
+}
