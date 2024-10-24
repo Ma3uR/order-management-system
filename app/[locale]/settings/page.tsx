@@ -117,7 +117,7 @@ export default function SettingsPage() {
       showFlashMessage('Currency added successfully!', 'success');
     } catch (error) {
       console.error('Error adding currency:', error);
-      showFlashMessage(error.message, 'error');
+      showFlashMessage(error instanceof Error ? error.message : 'An error occurred', 'error');
     }
   };
 
@@ -139,7 +139,7 @@ export default function SettingsPage() {
       showFlashMessage('Status added successfully!', 'success');
     } catch (error) {
       console.error('Error adding status:', error);
-      showFlashMessage(error.message, 'error');
+      showFlashMessage(error instanceof Error ? error.message : 'An error occurred', 'error');
     }
   };
 
@@ -161,7 +161,7 @@ export default function SettingsPage() {
       showFlashMessage('Payment method added successfully!', 'success');
     } catch (error) {
       console.error('Error adding payment method:', error);
-      showFlashMessage(error.message, 'error');
+      showFlashMessage(error instanceof Error ? error.message : 'An error occurred', 'error');
     }
   };
 
@@ -233,7 +233,11 @@ export default function SettingsPage() {
       showFlashMessage('Status updated successfully!', 'success');
     } catch (error) {
       console.error('Error editing status:', error);
-      showFlashMessage(error.message, 'error');
+      if (error instanceof Error) {
+        showFlashMessage(error.message, 'error');
+      } else {
+        showFlashMessage('An unexpected error occurred', 'error');
+      }
     }
   };
 
