@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select } from "@/components/ui/select"
 
 interface Order {
   id: number;
@@ -326,17 +326,13 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                 <Select 
                   name="status" 
                   value={selectedOrder.status} 
-                  onValueChange={(value) => handleEditSelectChange("status", value)}
+                  onChange={(e) => handleEditSelectChange("status", e.target.value)}
                 >
-                  <SelectTrigger className="w-full bg-white text-black border-gray-300 focus:border-black focus:ring-black">
-                    <SelectValue placeholder={translations.selectStatus} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white text-black">
-                    <SelectItem value="Being processed by manager">{translations.statuses.beingProcessed}</SelectItem>
-                    <SelectItem value="Shipped">{translations.statuses.shipped}</SelectItem>
-                    <SelectItem value="Delivered">{translations.statuses.delivered}</SelectItem>
-                    <SelectItem value="Cancelled">{translations.statuses.cancelled}</SelectItem>
-                  </SelectContent>
+                  <option value="" disabled>{translations.selectStatus}</option>
+                  <option value="Being processed by manager">{translations.statuses.beingProcessed}</option>
+                  <option value="Shipped">{translations.statuses.shipped}</option>
+                  <option value="Delivered">{translations.statuses.delivered}</option>
+                  <option value="Cancelled">{translations.statuses.cancelled}</option>
                 </Select>
               </div>
               {/* Add more editable fields as needed */}

@@ -60,5 +60,28 @@
     "orders": "Orders",
     "projects": "Projects",
     "settings": "Settings"
+  },
+  "Settings": {
+    "deleteError": "Error deleting item",
+    "settingsUpdated": "Settings updated successfully",
+    "updateError": "Error updating settings",
+    "addError": "Error adding item",
+    "currencyCode": "Currency Code",
+    "currencyName": "Currency Name",
+    "currencySymbol": "Currency Symbol",
+    "addCurrency": "Add Currency",
+    "statusName": "Status Name",
+    "addStatus": "Add Status",
+    "paymentMethodName": "Payment Method Name",
+    "addPaymentMethod": "Add Payment Method",
+    "title": "Settings",
+    "profile": "Profile",
+    "currencies": "Currencies",
+    "statuses": "Statuses",
+    "paymentMethods": "Payment Methods",
+    "name": "Name",
+    "email": "Email",
+    "saveChanges": "Save Changes",
+    "default": "Default"
   }
 }

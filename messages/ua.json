@@ -60,5 +60,27 @@
     "orders": "Замовлення",
     "projects": "Проекти",
     "settings": "Налаштування"
+  },
+  "Settings": {
+    "title": "Налаштування",
+    "profile": "Профіль",
+    "currencies": "Валюти",
+    "statuses": "Статуси",
+    "paymentMethods": "Способи оплати",
+    "name": "Ім'я",
+    "email": "Електронна пошта",
+    "saveChanges": "Зберегти зміни",
+    "settingsUpdated": "Налаштування успішно оновлено!",
+    "updateError": "Помилка оновлення налаштувань",
+    "addError": "Помилка додавання елемента",
+    "currencyCode": "Код валюти",
+    "currencyName": "Назва валюти",
+    "currencySymbol": "Символ валюти",
+    "addCurrency": "Додати валюту",
+    "default": "За замовчуванням",
+    "statusName": "Назва статусу",
+    "addStatus": "Додати статус",
+    "paymentMethodName": "Назва способу оплати",
+    "addPaymentMethod": "Додати спосіб оплати"
   }
 }
