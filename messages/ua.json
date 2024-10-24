@@ -81,6 +81,7 @@
     "statusName": "Назва статусу",
     "addStatus": "Додати статус",
     "paymentMethodName": "Назва способу оплати",
-    "addPaymentMethod": "Додати спосіб оплати"
+    "addPaymentMethod": "Додати спосіб оплати",
+    "backToDashboard": "Повернутися до панелі керування"
   }
 }

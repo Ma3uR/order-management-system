@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Link from 'next/link';
 
 interface Currency {
   id: string;
@@ -239,6 +240,9 @@ export default function SettingsPage() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">{t('title')}</h1>
+      <Link href="/dashboard" className="mb-4 inline-block text-blue-500 hover:underline">
+        {t('backToDashboard')}
+      </Link>
       {flashMessage && (
         <div className={`mb-4 p-2 rounded ${flashMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
           {flashMessage.message}

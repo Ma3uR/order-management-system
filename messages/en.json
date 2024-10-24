@@ -82,6 +82,7 @@
     "name": "Name",
     "email": "Email",
     "saveChanges": "Save Changes",
-    "default": "Default"
+    "default": "Default",
+    "backToDashboard": "Back to Dashboard"
   }
 }
