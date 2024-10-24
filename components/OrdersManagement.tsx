@@ -82,9 +82,25 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const [filterText, setFilterText] = useState("")
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  // Add this state to manage the create order modal
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [newOrder, setNewOrder] = useState<Order>({
+    id: 0,
+    orderNumber: '',
+    source: '',
+    deliveryMethod: '',
+    deliveryPostNumber: null,
+    phoneNumber: '',
+    fullName: '',
+    products: '',
+    numberOfItems: 0,
+    paymentMethod: '',
+    amount: 0,
+    status: '',
+    createdAt: '',
+    updatedAt: '',
+  });
 
   useEffect(() => {
     setOrders(initialOrders);
@@ -130,6 +146,43 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     }
   };
 
+  const openCreateOrderModal = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const closeCreateOrderModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  const handleCreateOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('/api/orders', newOrder);
+      const createdOrder = response.data;
+      setOrders([...orders, createdOrder]);
+      setNewOrder({
+        id: 0,
+        orderNumber: '',
+        source: '',
+        deliveryMethod: '',
+        deliveryPostNumber: null,
+        phoneNumber: '',
+        fullName: '',
+        products: '',
+        numberOfItems: 0,
+        paymentMethod: '',
+        amount: 0,
+        status: '',
+        createdAt: '',
+        updatedAt: '',
+      });
+      closeCreateOrderModal();
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Error creating order');
+    }
+  };
+
   if (!isClient) {
     return null; // or a loading spinner
   }
@@ -164,7 +217,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
             <CardTitle>{translations.createNewOrder}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={openCreateOrderModal} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
               {translations.createNewOrder}
             </Button>
           </CardContent>
@@ -339,6 +392,25 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800">{translations.updateOrder}</Button>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal for creating a new order */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="sm:max-w-[625px] bg-white text-black">
+          <DialogHeader>
+            <DialogTitle>Create New Order</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateOrder} className="space-y-4">
+            {/* Add form fields for creating a new order */}
+            <Input
+              placeholder="Order Number"
+              value={newOrder.orderNumber}
+              onChange={(e) => setNewOrder({ ...newOrder, orderNumber: e.target.value })}
+            />
+            {/* Add more fields as needed */}
+            <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800">Create Order</Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
