@@ -40,11 +40,18 @@ export default function SettingsPage() {
   const [newStatus, setNewStatus] = useState({ name: '', color: '#000000' });
   const [newPaymentMethod, setNewPaymentMethod] = useState({ name: '' });
 
+  const [flashMessage, setFlashMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
   useEffect(() => {
     fetchCurrencies();
     fetchStatuses();
     fetchPaymentMethods();
   }, []);
+
+  const showFlashMessage = (message: string, type: 'success' | 'error' = 'success') => {
+    setFlashMessage({ message, type });
+    setTimeout(() => setFlashMessage(null), 3000);
+  };
 
   const fetchCurrencies = async () => {
     const response = await fetch('/api/currencies');
@@ -81,10 +88,10 @@ export default function SettingsPage() {
           email,
         },
       });
-      alert(t('settingsUpdated'));
+      showFlashMessage(t('settingsUpdated'), 'success');
     } catch (error) {
       console.error('Error updating settings:', error);
-      alert(t('updateError'));
+      showFlashMessage(t('updateError'), 'error');
     }
   };
 
@@ -96,13 +103,17 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newCurrency),
       });
-      if (!response.ok) throw new Error('Failed to add currency');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add currency');
+      }
       const addedCurrency = await response.json();
       setCurrencies([...currencies, addedCurrency]);
       setNewCurrency({ code: '', name: '', symbol: '' });
+      showFlashMessage('Currency added successfully!', 'success');
     } catch (error) {
       console.error('Error adding currency:', error);
-      alert(t('addError'));
+      showFlashMessage(error.message, 'error');
     }
   };
 
@@ -114,13 +125,17 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStatus),
       });
-      if (!response.ok) throw new Error('Failed to add status');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add status');
+      }
       const addedStatus = await response.json();
       setStatuses([...statuses, addedStatus]);
       setNewStatus({ name: '', color: '#000000' });
+      showFlashMessage('Status added successfully!', 'success');
     } catch (error) {
       console.error('Error adding status:', error);
-      alert(t('addError'));
+      showFlashMessage(error.message, 'error');
     }
   };
 
@@ -132,13 +147,17 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPaymentMethod),
       });
-      if (!response.ok) throw new Error('Failed to add payment method');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add payment method');
+      }
       const addedPaymentMethod = await response.json();
       setPaymentMethods([...paymentMethods, addedPaymentMethod]);
       setNewPaymentMethod({ name: '' });
+      showFlashMessage('Payment method added successfully!', 'success');
     } catch (error) {
       console.error('Error adding payment method:', error);
-      alert(t('addError'));
+      showFlashMessage(error.message, 'error');
     }
   };
 
@@ -151,9 +170,10 @@ export default function SettingsPage() {
       });
       if (!response.ok) throw new Error('Failed to delete status');
       setStatuses(statuses.filter(status => status.id !== id));
+      showFlashMessage('Status deleted successfully!', 'success');
     } catch (error) {
       console.error('Error deleting status:', error);
-      alert(t('deleteError'));
+      showFlashMessage('Error deleting status', 'error');
     }
   };
 
@@ -166,9 +186,10 @@ export default function SettingsPage() {
       });
       if (!response.ok) throw new Error('Failed to delete currency');
       setCurrencies(currencies.filter(currency => currency.id !== id));
+      showFlashMessage('Currency deleted successfully!', 'success');
     } catch (error) {
       console.error('Error deleting currency:', error);
-      alert(t('deleteError'));
+      showFlashMessage('Error deleting currency', 'error');
     }
   };
 
@@ -181,15 +202,21 @@ export default function SettingsPage() {
       });
       if (!response.ok) throw new Error('Failed to delete payment method');
       setPaymentMethods(paymentMethods.filter(method => method.id !== id));
+      showFlashMessage('Payment method deleted successfully!', 'success');
     } catch (error) {
       console.error('Error deleting payment method:', error);
-      alert(t('deleteError'));
+      showFlashMessage('Error deleting payment method', 'error');
     }
   };
 
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">{t('title')}</h1>
+      {flashMessage && (
+        <div className={`mb-4 p-2 rounded ${flashMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {flashMessage.message}
+        </div>
+      )}
       <Tabs defaultValue="profile">
         <TabsList>
           <TabsTrigger value="profile">{t('profile')}</TabsTrigger>
