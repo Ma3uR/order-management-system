@@ -42,7 +42,9 @@
       "mistExpress": "Mist Express"
     },
     "orderDetailsDescription": "View the details of this order.",
-    "editOrderDescription": "Make changes to this order."
+    "editOrderDescription": "Make changes to this order.",
+    "createNewOrderDescription": "Fill in the details to create a new order. Click save when you're done.",
+    "backToDashboard": "Back to Dashboard"
   },
   "Auth": {
     "signInTitle": "Sign in to your account",

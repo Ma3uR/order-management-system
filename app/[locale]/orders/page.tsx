@@ -48,6 +48,8 @@ export default async function OrdersPage() {
       rozetka: t('deliveryMethods.rozetka'),
       mistExpress: t('deliveryMethods.mistExpress'),
     },
+    createNewOrderDescription: t('createNewOrderDescription'),
+    backToDashboard: t('backToDashboard'),
   };
 
   return (

@@ -42,7 +42,9 @@
       "mistExpress": "Міст Експрес"
     },
     "orderDetailsDescription": "Переглянути деталі цього замовлення.",
-    "editOrderDescription": "Внести зміни до цього замовлення."
+    "editOrderDescription": "Внести зміни до цього замовлення.",
+    "createNewOrderDescription": "Заповніть деталі для створення нового замовлення. Натисніть зберегти, коли закінчите.",
+    "backToDashboard": "Повернутися до панелі керування"
   },
   "Auth": {
     "signInTitle": "Увійдіть у свій обліковий запис",

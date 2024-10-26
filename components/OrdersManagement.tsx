@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PlusCircle, Search, RefreshCw } from "lucide-react"
+import { PlusCircle, Search, RefreshCw, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 interface Order {
   id: number
@@ -74,6 +75,10 @@ interface OrdersManagementProps {
       rozetka: string
       mistExpress: string
     }
+    selectDeliveryMethod: string;
+    selectPaymentMethod: string;
+    createNewOrderDescription: string; // Add this line
+    backToDashboard: string; // Add this line
   }
   initialOrders: Order[]
 }
@@ -189,7 +194,15 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
   return (
     <div className="min-h-screen bg-white text-black p-8">
-      <h1 className="text-3xl font-bold mb-6">{translations.title}</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">{translations.title}</h1>
+        <Link href="/dashboard" passHref>
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {translations.backToDashboard}
+          </Button>
+        </Link>
+      </div>
       <Tabs defaultValue="orders" className="space-y-4">
         <TabsList>
           <TabsTrigger value="orders">Orders</TabsTrigger>
@@ -260,7 +273,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                       <TableCell className="font-medium">{order.orderNumber}</TableCell>
                       <TableCell>{order.fullName}</TableCell>
                       <TableCell>
-                        <Badge variant={order.status === 'Delivered' ? 'success' : 'secondary'}>
+                        <Badge variant={order.status === 'Delivered' ? 'default' : 'secondary'}>
                           {translateStatus(order.status)}
                         </Badge>
                       </TableCell>
@@ -268,19 +281,19 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                       <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => {
+                          <Button variant="default" size="sm" onClick={() => {
                             setSelectedOrder(order)
                             setIsDetailsModalOpen(true)
                           }}>
                             {translations.details}
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => {
+                          <Button variant="default" size="sm" onClick={() => {
                             setSelectedOrder(order)
                             setIsEditModalOpen(true)
                           }}>
                             {translations.edit}
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.id)}>
+                          <Button variant="default" size="sm" onClick={() => handleDeleteOrder(order.id)}>
                             {translations.delete}
                           </Button>
                         </div>
@@ -323,7 +336,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.status}</Label>
-                <Badge variant={selectedOrder.status === 'Delivered' ? 'success' : 'secondary'}>
+                <Badge variant={selectedOrder.status === 'Delivered' ? 'default' : 'secondary'}>
                   {translateStatus(selectedOrder.status)}
                 </Badge>
               </div>
@@ -376,10 +389,10 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                 <Label htmlFor="status">{translations.status}</Label>
                 <Select
                   value={selectedOrder.status}
-                  onValueChange={(value) => setSelectedOrder({ ...selectedOrder, status: value })}
+                  onValueChange={(value: string) => setSelectedOrder({ ...selectedOrder, status: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={translations.selectStatus} />
+                    <SelectValue placeholder={translations.selectStatus || 'Select Status'} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Being processed by manager">{translations.statuses.beingProcessed}</SelectItem>
@@ -401,7 +414,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
           <DialogHeader>
             <DialogTitle>{translations.createNewOrder}</DialogTitle>
             <DialogDescription>
-              Fill in the details to create a new order. Click save when you're done.
+              {translations.createNewOrderDescription}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateOrder} className="space-y-4">
@@ -435,10 +448,10 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               <Select
                 name="deliveryMethod"
                 value={newOrder.deliveryMethod}
-                onValueChange={(value) => handleSelectChange("deliveryMethod", value)}
+                onValueChange={(value: string) => handleSelectChange("deliveryMethod", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={translations.selectDeliveryMethod} />
+                  <SelectValue placeholder={translations.selectDeliveryMethod || 'Select Delivery Method'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Ukrposhta">{translations.deliveryMethods.ukrposhta}</SelectItem>
@@ -517,10 +530,10 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                 <Select
                   name="paymentMethod"
                   value={newOrder.paymentMethod}
-                  onValueChange={(value) => handleSelectChange("paymentMethod", value)}
+                  onValueChange={(value: string) => handleSelectChange("paymentMethod", value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={translations.selectPaymentMethod} />
+                    <SelectValue placeholder={translations.selectPaymentMethod || 'Select Payment Method'} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Cash on delivery">Cash on delivery</SelectItem>
