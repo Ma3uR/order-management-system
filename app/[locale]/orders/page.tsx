@@ -50,6 +50,8 @@ export default async function OrdersPage() {
     },
     createNewOrderDescription: t('createNewOrderDescription'),
     backToDashboard: t('backToDashboard'),
+    selectDeliveryMethod: t('selectDeliveryMethod'),
+    selectPaymentMethod: t('selectPaymentMethod'),
   };
 
   return (
@@ -57,9 +59,12 @@ export default async function OrdersPage() {
       translations={translations} 
       initialOrders={orders.map(order => ({
         ...order,
+        id: parseInt(order.id, 10),
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
-        products: JSON.stringify(order.products)
+        products: JSON.stringify(order.products),
+        paymentMethod: order.paymentMethodId,
+        status: order.statusId,
       }))} 
     />
   );
