@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, Edit2 } from 'lucide-react';
 
 interface Currency {
   id: string;
@@ -303,8 +303,8 @@ export default function SettingsPage() {
           {flashMessage.message}
         </div>
       )}
-      <Tabs defaultValue="profile">
-        <TabsList>
+      <Tabs defaultValue="profile" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile">{t('profile')}</TabsTrigger>
           <TabsTrigger value="currencies">{t('currencies')}</TabsTrigger>
           <TabsTrigger value="statuses">{t('statuses')}</TabsTrigger>
@@ -340,91 +340,137 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="currencies">
           <form onSubmit={handleAddCurrency} className="space-y-4 mb-4">
-            <Input
-              placeholder={t('currencyCode')}
-              value={newCurrency.code}
-              onChange={(e) => setNewCurrency({ ...newCurrency, code: e.target.value })}
-            />
-            <Input
-              placeholder={t('currencyName')}
-              value={newCurrency.name}
-              onChange={(e) => setNewCurrency({ ...newCurrency, name: e.target.value })}
-            />
-            <Input
-              placeholder={t('currencySymbol')}
-              value={newCurrency.symbol}
-              onChange={(e) => setNewCurrency({ ...newCurrency, symbol: e.target.value })}
-            />
-            <Button type="submit">{t('addCurrency')}</Button>
+            <div className="flex space-x-2">
+              <Input
+                placeholder={t('currencyCode')}
+                value={newCurrency.code}
+                onChange={(e) => setNewCurrency({ ...newCurrency, code: e.target.value })}
+              />
+              <Input
+                placeholder={t('currencyName')}
+                value={newCurrency.name}
+                onChange={(e) => setNewCurrency({ ...newCurrency, name: e.target.value })}
+              />
+              <Input
+                placeholder={t('currencySymbol')}
+                value={newCurrency.symbol}
+                onChange={(e) => setNewCurrency({ ...newCurrency, symbol: e.target.value })}
+              />
+              <Button type="submit">
+                <PlusCircle className="w-4 h-4 mr-2" />
+                {t('addCurrency')}
+              </Button>
+            </div>
           </form>
-          <ul>
+          <ul className="space-y-2">
             {currencies.map((currency) => (
-              <li key={currency.id} className="flex justify-between items-center mb-2">
+              <li key={currency.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
                 <span>{currency.name} ({currency.code}) {currency.symbol}</span>
                 <span>{currency.isDefault ? t('default') : ''}</span>
-                <button onClick={() => handleDeleteCurrency(currency.id)}>Delete</button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteCurrency(currency.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </li>
             ))}
           </ul>
         </TabsContent>
         <TabsContent value="statuses">
           <form onSubmit={handleAddStatus} className="space-y-4 mb-4">
-            <Input
-              placeholder={t('statusName')}
-              value={newStatus.name}
-              onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
-            />
-            <Input
-              type="color"
-              value={newStatus.color}
-              onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
-            />
-            <Button type="submit">{t('addStatus')}</Button>
+            <div className="flex space-x-2">
+              <Input
+                placeholder={t('statusName')}
+                value={newStatus.name}
+                onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
+              />
+              <Input
+                type="color"
+                value={newStatus.color}
+                onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
+                className="w-12"
+              />
+              <Button type="submit">
+                <PlusCircle className="w-4 h-4 mr-2" />
+                {t('addStatus')}
+              </Button>
+            </div>
           </form>
-          <ul>
+          <ul className="space-y-2">
             {statuses.map((status) => (
-              <li key={status.id} className="flex justify-between items-center mb-2">
+              <li key={status.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
                 <span>{status.name}</span>
-                <span style={{ backgroundColor: status.color, width: '20px', height: '20px' }}></span>
-                <button onClick={() => {
-                  setEditingStatus(status);
-                  setEditStatusValues({ name: status.name, color: status.color });
-                }}>Edit</button>
-                <button onClick={() => handleDeleteStatus(status.id)}>Delete</button>
+                <div className="flex items-center space-x-2">
+                  <div style={{ backgroundColor: status.color, width: '20px', height: '20px', borderRadius: '50%' }}></div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditingStatus(status);
+                      setEditStatusValues({ name: status.name, color: status.color });
+                    }}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteStatus(status.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
           {editingStatus && (
-            <form onSubmit={handleEditStatus} className="space-y-4 mb-4">
-              <Input
-                placeholder={t('statusName')}
-                value={editStatusValues.name}
-                onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
-              />
-              <Input
-                type="color"
-                value={editStatusValues.color}
-                onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
-              />
-              <Button type="submit">Save Changes</Button>
-              <Button type="button" onClick={() => setEditingStatus(null)}>Cancel</Button>
+            <form onSubmit={handleEditStatus} className="mt-4 space-y-4">
+              <div className="flex space-x-2">
+                <Input
+                  placeholder={t('statusName')}
+                  value={editStatusValues.name}
+                  onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
+                />
+                <Input
+                  type="color"
+                  value={editStatusValues.color}
+                  onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
+                  className="w-12"
+                />
+                <Button type="submit">Save Changes</Button>
+                <Button type="button" variant="outline" onClick={() => setEditingStatus(null)}>Cancel</Button>
+              </div>
             </form>
           )}
         </TabsContent>
         <TabsContent value="paymentMethods">
           <form onSubmit={handleAddPaymentMethod} className="space-y-4 mb-4">
-            <Input
-              placeholder={t('paymentMethodName')}
-              value={newPaymentMethod.name}
-              onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, name: e.target.value })}
-            />
-            <Button type="submit">{t('addPaymentMethod')}</Button>
+            <div className="flex space-x-2">
+              <Input
+                placeholder={t('paymentMethodName')}
+                value={newPaymentMethod.name}
+                onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, name: e.target.value })}
+                className="flex-grow"
+              />
+              <Button type="submit">
+                <PlusCircle className="w-4 h-4 mr-2" />
+                {t('addPaymentMethod')}
+              </Button>
+            </div>
           </form>
-          <ul>
+          <ul className="space-y-2">
             {paymentMethods.map((method) => (
-              <li key={method.id} className="flex justify-between items-center mb-2">
+              <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
                 <span>{method.name}</span>
-                <button onClick={() => handleDeletePaymentMethod(method.id)}>Delete</button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeletePaymentMethod(method.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </li>
             ))}
           </ul>
