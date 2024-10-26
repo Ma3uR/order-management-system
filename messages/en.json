@@ -85,6 +85,9 @@
     "email": "Email",
     "saveChanges": "Save Changes",
     "default": "Default",
-    "backToDashboard": "Back to Dashboard"
+    "backToDashboard": "Back to Dashboard",
+    "deliveryMethods": "Delivery Methods",
+    "deliveryMethodName": "Delivery Method Name",
+    "addDeliveryMethod": "Add Delivery Method"
   }
 }

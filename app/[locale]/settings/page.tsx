@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
+import { PlusCircle, Trash2 } from 'lucide-react';
 
 interface Currency {
   id: string;
@@ -27,6 +28,11 @@ interface PaymentMethod {
   name: string;
 }
 
+interface DeliveryMethod {
+  id: string;
+  name: string;
+}
+
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const { data: session, update } = useSession();
@@ -36,10 +42,12 @@ export default function SettingsPage() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
 
   const [newCurrency, setNewCurrency] = useState({ code: '', name: '', symbol: '' });
   const [newStatus, setNewStatus] = useState({ name: '', color: '#000000' });
   const [newPaymentMethod, setNewPaymentMethod] = useState({ name: '' });
+  const [newDeliveryMethod, setNewDeliveryMethod] = useState({ name: '' });
 
   const [flashMessage, setFlashMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -50,6 +58,7 @@ export default function SettingsPage() {
     fetchCurrencies();
     fetchStatuses();
     fetchPaymentMethods();
+    fetchDeliveryMethods();
   }, []);
 
   const showFlashMessage = (message: string, type: 'success' | 'error' = 'success') => {
@@ -73,6 +82,12 @@ export default function SettingsPage() {
     const response = await fetch('/api/payment-methods');
     const data = await response.json();
     setPaymentMethods(data);
+  };
+
+  const fetchDeliveryMethods = async () => {
+    const response = await fetch('/api/delivery-methods');
+    const data = await response.json();
+    setDeliveryMethods(data);
   };
 
   const handleUserUpdate = async (e: React.FormEvent) => {
@@ -165,6 +180,28 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAddDeliveryMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/delivery-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDeliveryMethod),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add delivery method');
+      }
+      const addedDeliveryMethod = await response.json();
+      setDeliveryMethods([...deliveryMethods, addedDeliveryMethod]);
+      setNewDeliveryMethod({ name: '' });
+      showFlashMessage('Delivery method added successfully!', 'success');
+    } catch (error) {
+      console.error('Error adding delivery method:', error);
+      showFlashMessage(error instanceof Error ? error.message : 'An error occurred', 'error');
+    }
+  };
+
   const handleDeleteStatus = async (id: string) => {
     try {
       const response = await fetch('/api/statuses', {
@@ -213,6 +250,20 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteDeliveryMethod = async (id: string) => {
+    try {
+      const response = await fetch(`/api/delivery-methods/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete delivery method');
+      setDeliveryMethods(deliveryMethods.filter(method => method.id !== id));
+      showFlashMessage('Delivery method deleted successfully!', 'success');
+    } catch (error) {
+      console.error('Error deleting delivery method:', error);
+      showFlashMessage('Error deleting delivery method', 'error');
+    }
+  };
+
   const handleEditStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStatus) return;
@@ -258,6 +309,7 @@ export default function SettingsPage() {
           <TabsTrigger value="currencies">{t('currencies')}</TabsTrigger>
           <TabsTrigger value="statuses">{t('statuses')}</TabsTrigger>
           <TabsTrigger value="paymentMethods">{t('paymentMethods')}</TabsTrigger>
+          <TabsTrigger value="deliveryMethods">{t('deliveryMethods')}</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
           <form onSubmit={handleUserUpdate} className="space-y-4">
@@ -373,6 +425,36 @@ export default function SettingsPage() {
               <li key={method.id} className="flex justify-between items-center mb-2">
                 <span>{method.name}</span>
                 <button onClick={() => handleDeletePaymentMethod(method.id)}>Delete</button>
+              </li>
+            ))}
+          </ul>
+        </TabsContent>
+        <TabsContent value="deliveryMethods">
+          <form onSubmit={handleAddDeliveryMethod} className="space-y-4 mb-4">
+            <div className="flex space-x-2">
+              <Input
+                placeholder={t('deliveryMethodName')}
+                value={newDeliveryMethod.name}
+                onChange={(e) => setNewDeliveryMethod({ ...newDeliveryMethod, name: e.target.value })}
+                className="flex-grow"
+              />
+              <Button type="submit">
+                <PlusCircle className="w-4 h-4 mr-2" />
+                {t('addDeliveryMethod')}
+              </Button>
+            </div>
+          </form>
+          <ul className="space-y-2">
+            {deliveryMethods.map((method) => (
+              <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                <span>{method.name}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteDeliveryMethod(method.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </li>
             ))}
           </ul>

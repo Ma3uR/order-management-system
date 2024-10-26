@@ -75,7 +75,8 @@ model Order {
   id                String   @id @default(cuid())
   orderNumber       String   @unique
   source            String
-  deliveryMethod    String
+  deliveryMethod    DeliveryMethod @relation(fields: [deliveryMethodId], references: [id])
+  deliveryMethodId  String
   deliveryPostNumber String?
   phoneNumber       String
   fullName          String
@@ -102,4 +103,10 @@ model Blacklist {
   reason    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model DeliveryMethod {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  orders Order[]
 }
