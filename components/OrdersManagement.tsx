@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PlusCircle, Search, RefreshCw, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { checkBlacklist } from '../utils/blacklistUtils'
 
 interface Order {
   id: number
@@ -229,6 +230,20 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
       status: 'Being processed by manager',
     })
   }
+
+  const handlePaymentMethod = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      const isBlacklisted = checkBlacklist(order.fullName, order.phoneNumber);
+      if (isBlacklisted) {
+        alert('This customer is blacklisted. Only prepayment is allowed.');
+        // Implement prepayment logic here
+      } else {
+        // Implement normal payment method selection logic here
+        alert('Select payment method');
+      }
+    }
+  };
 
   if (!isClient) {
     return null // or a loading spinner

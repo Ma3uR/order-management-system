@@ -1,9 +1,0 @@
-'use client';
-
-import OrdersManagement from '@/components/OrdersManagement';
-import { useTranslations } from 'next-intl';
-
-export default function OrdersPage() {
-  const t = useTranslations('OrdersManagement');
-  return <OrdersManagement t={t} />;
-}

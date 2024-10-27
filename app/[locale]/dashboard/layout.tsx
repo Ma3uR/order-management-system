@@ -28,6 +28,11 @@ export default function DashboardLayout({
               </Link>
             </li>
             <li>
+              <Link href="/blacklist" className="block px-4 py-2 text-gray-700 hover:bg-gray-200 rounded">
+                {t('blacklist')}
+              </Link>
+            </li>
+            <li>
               <Link href="/settings" className="block px-4 py-2 text-gray-700 hover:bg-gray-200 rounded">
                 {t('settings')}
               </Link>
