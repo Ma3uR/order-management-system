@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  reactStrictMode: true,
+  experimental: {
+    appDir: true,
+  },
+};
 
 const withNextIntl = async () => {
   const { default: createNextIntlPlugin } = await import('next-intl/plugin');

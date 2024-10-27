@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -75,10 +75,10 @@ interface OrdersManagementProps {
       rozetka: string
       mistExpress: string
     }
-    selectDeliveryMethod: string;
-    selectPaymentMethod: string;
-    createNewOrderDescription: string; // Add this line
-    backToDashboard: string; // Add this line
+    selectDeliveryMethod: string
+    selectPaymentMethod: string
+    createNewOrderDescription: string
+    backToDashboard: string
   }
   initialOrders: Order[]
 }
@@ -104,11 +104,48 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     amount: 0,
     status: 'Being processed by manager',
   })
+  const [deliveryMethods, setDeliveryMethods] = useState<{ id: string; name: string }[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<{ id: string; name: string }[]>([]);
+  const [deliveryMethod, setDeliveryMethod] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+
+  const fetchDeliveryMethods = useCallback(async () => {
+    try {
+      const response = await fetch('/api/delivery-methods');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setDeliveryMethods(data);
+    } catch (error) {
+      console.error('Error fetching delivery methods:', error);
+    }
+  }, []);
+
+  const fetchPaymentMethods = useCallback(async () => {
+    try {
+      const response = await fetch('/api/payment-methods');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setPaymentMethods(data);
+    } catch (error) {
+      console.error('Error fetching payment methods:', error);
+    }
+  }, []);
 
   useEffect(() => {
-    setOrders(initialOrders)
-    setIsClient(true)
-  }, [initialOrders])
+    setOrders(initialOrders);
+    setIsClient(true);
+    fetchDeliveryMethods();
+    fetchPaymentMethods();
+  }, [initialOrders, fetchDeliveryMethods, fetchPaymentMethods]);
+
+  useEffect(() => {
+    console.log('Current delivery methods:', deliveryMethods);
+    console.log('Current payment methods:', paymentMethods);
+  }, [deliveryMethods, paymentMethods]);
 
   const filteredOrders = orders.filter(order => 
     order.orderNumber.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -155,7 +192,12 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setNewOrder(prev => ({ ...prev, [name]: value }))
+    if (name === 'deliveryMethod') {
+      setDeliveryMethod(value);
+    } else if (name === 'paymentMethod') {
+      setPaymentMethod(value);
+    }
+    setNewOrder(prev => ({ ...prev, [name]: value }));
   }
 
   const handleCreateOrder = async (e: React.FormEvent) => {
@@ -377,7 +419,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
         </DialogContent>
       </Dialog>
 
-      {/* Edit Modal */}
+      {/* Edit Order Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -389,10 +431,10 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                 <Label htmlFor="status">{translations.status}</Label>
                 <Select
                   value={selectedOrder.status}
-                  onValueChange={(value: string) => setSelectedOrder({ ...selectedOrder, status: value })}
+                  onValueChange={(value) => setSelectedOrder({ ...selectedOrder, status: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={translations.selectStatus || 'Select Status'} />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Being processed by manager">{translations.statuses.beingProcessed}</SelectItem>
@@ -410,7 +452,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
       {/* Create Order Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[625px]">
+        <DialogContent className="sm:max-w-[625px] bg-white">
           <DialogHeader>
             <DialogTitle>{translations.createNewOrder}</DialogTitle>
             <DialogDescription>
@@ -445,20 +487,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
             <div className="space-y-2">
               <Label htmlFor="deliveryMethod">{translations.deliveryMethod}</Label>
-              <Select
-                name="deliveryMethod"
-                value={newOrder.deliveryMethod}
-                onValueChange={(value: string) => handleSelectChange("deliveryMethod", value)}
-              >
+              <Select value={deliveryMethod} onValueChange={(value) => handleSelectChange("deliveryMethod", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder={translations.selectDeliveryMethod || 'Select Delivery Method'} />
+                  <SelectValue>{translations.selectDeliveryMethod}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Ukrposhta">{translations.deliveryMethods.ukrposhta}</SelectItem>
-                  <SelectItem value="Nova Poshta">{translations.deliveryMethods.novaPoshta}</SelectItem>
-                  <SelectItem value="Parcel Locker">{translations.deliveryMethods.parcelLocker}</SelectItem>
-                  <SelectItem value="Rozetka">{translations.deliveryMethods.rozetka}</SelectItem>
-                  <SelectItem value="Mist Express">{translations.deliveryMethods.mistExpress}</SelectItem>
+                  {deliveryMethods.map((method) => (
+                    <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -527,20 +563,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </div>
               <div className="space-y-2">
                 <Label htmlFor="paymentMethod">{translations.paymentMethod}</Label>
-                <Select
-                  name="paymentMethod"
-                  value={newOrder.paymentMethod}
-                  onValueChange={(value: string) => handleSelectChange("paymentMethod", value)}
-                >
+                <Select value={paymentMethod} onValueChange={(value) => handleSelectChange("paymentMethod", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder={translations.selectPaymentMethod || 'Select Payment Method'} />
+                    <SelectValue>{translations.selectPaymentMethod}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Cash on delivery">Cash on delivery</SelectItem>
-                    <SelectItem value="Bank Account">Bank Account</SelectItem>
-                    <SelectItem value="Card">Card</SelectItem>
-                    <SelectItem value="Kasta">Kasta</SelectItem>
-                    <SelectItem value="EVO">EVO</SelectItem>
+                    {paymentMethods.map((method) => (
+                      <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

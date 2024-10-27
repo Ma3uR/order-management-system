@@ -44,7 +44,9 @@
     "orderDetailsDescription": "View the details of this order.",
     "editOrderDescription": "Make changes to this order.",
     "createNewOrderDescription": "Fill in the details to create a new order. Click save when you're done.",
-    "backToDashboard": "Back to Dashboard"
+    "backToDashboard": "Back to Dashboard",
+    "selectDeliveryMethod": "Select Delivery Method",
+    "selectPaymentMethod": "Select Payment Method"
   },
   "Auth": {
     "signInTitle": "Sign in to your account",

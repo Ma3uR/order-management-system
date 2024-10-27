@@ -44,7 +44,9 @@
     "orderDetailsDescription": "Переглянути деталі цього замовлення.",
     "editOrderDescription": "Внести зміни до цього замовлення.",
     "createNewOrderDescription": "Заповніть деталі для створення нового замовлення. Натисніть зберегти, коли закінчите.",
-    "backToDashboard": "Повернутися до панелі керування"
+    "backToDashboard": "Повернутися до панелі керування",
+    "selectDeliveryMethod": "Виберіть спосіб доставки",
+    "selectPaymentMethod": "Виберіть спосіб оплати"
   },
   "Auth": {
     "signInTitle": "Увійдіть у свій обліковий запис",
