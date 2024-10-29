@@ -10,25 +10,50 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 import { PlusCircle, Search, RefreshCw, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { checkBlacklist } from '../utils/blacklistUtils'
 
 interface Order {
-  id: number
+  id: string
   orderNumber: string
   source: string
-  deliveryMethod: string
+  deliveryMethod?: {
+    id: string;
+    name: string;
+  };
   deliveryPostNumber: string | null
   phoneNumber: string
   fullName: string
-  products: string
+  products: Record<string, any>
   numberOfItems: number
-  paymentMethod: string
+  paymentMethod?: {
+    id: string;
+    name: string;
+  };
   amount: number
-  status: string
+  status?: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  currency?: {
+    id: string;
+    code: string;
+    symbol: string;
+  };
   createdAt: string
   updatedAt: string
 }
@@ -84,6 +109,16 @@ interface OrdersManagementProps {
   initialOrders: Order[]
 }
 
+interface DeliveryMethod {
+  id: string;
+  name: string;
+}
+
+interface PaymentMethod {
+  id: string;
+  name: string;
+}
+
 const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initialOrders }) => {
   const [orders, setOrders] = useState<Order[]>([])
   const [isClient, setIsClient] = useState(false)
@@ -95,29 +130,25 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const [newOrder, setNewOrder] = useState<Partial<Order>>({
     orderNumber: '',
     source: '',
-    deliveryMethod: '',
+    deliveryMethod: { id: '', name: '' },
     deliveryPostNumber: '',
     phoneNumber: '',
     fullName: '',
-    products: '',
+    products: {},
     numberOfItems: 0,
-    paymentMethod: '',
+    paymentMethod: { id: '', name: '' },
     amount: 0,
-    status: 'Being processed by manager',
+    status: { id: '', name: 'Being processed by manager', color: 'yellow' },
   })
-  const [deliveryMethods, setDeliveryMethods] = useState<{ id: string; name: string }[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<{ id: string; name: string }[]>([]);
-  const [deliveryMethod, setDeliveryMethod] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [deliveryMethod, setDeliveryMethod] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('');
 
   const fetchDeliveryMethods = useCallback(async () => {
     try {
-      const response = await fetch('/api/delivery-methods');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setDeliveryMethods(data);
+      const response = await axios.get('/api/delivery-methods');
+      setDeliveryMethods(response.data);
     } catch (error) {
       console.error('Error fetching delivery methods:', error);
     }
@@ -125,12 +156,8 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
   const fetchPaymentMethods = useCallback(async () => {
     try {
-      const response = await fetch('/api/payment-methods');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setPaymentMethods(data);
+      const response = await axios.get('/api/payment-methods');
+      setPaymentMethods(response.data);
     } catch (error) {
       console.error('Error fetching payment methods:', error);
     }
@@ -151,31 +178,53 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const filteredOrders = orders.filter(order => 
     order.orderNumber.toLowerCase().includes(filterText.toLowerCase()) ||
     order.fullName.toLowerCase().includes(filterText.toLowerCase()) ||
-    order.status.toLowerCase().includes(filterText.toLowerCase())
+    (order.status?.name?.toLowerCase() || '').includes(filterText.toLowerCase())
   )
 
   const totalAmount = orders.reduce((sum, order) => sum + order.amount, 0)
 
-  const translateStatus = (status: string) => {
-    const statusKey = status.toLowerCase().replace(/ /g, '') as keyof typeof translations.statuses
-    return translations.statuses[statusKey] || status
+  const translateStatus = (status: string | undefined) => {
+    if (!status) return '';
+    const statusKey = status.toLowerCase().replace(/ /g, '') as keyof typeof translations.statuses;
+    return translations.statuses[statusKey] || status;
   }
 
   const handleEditOrder = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (selectedOrder) {
-      try {
-        await axios.put(`/api/orders/${selectedOrder.id}`, selectedOrder)
-        setOrders(orders.map(order => order.id === selectedOrder.id ? selectedOrder : order))
-        setIsEditModalOpen(false)
-      } catch (error) {
-        console.error('Error updating order:', error)
-        alert('Error updating order')
-      }
+    e.preventDefault();
+    console.log('Submitting edit form...', selectedOrder);
+    
+    if (!selectedOrder?.id || selectedOrder.id === 'null') {
+      console.error('Invalid order ID:', selectedOrder?.id);
+      return;
     }
-  }
 
-  const handleDeleteOrder = async (orderId: number) => {
+    try {
+      const orderId = selectedOrder.statusId || selectedOrder.id;
+      console.log('Sending update request for order:', orderId);
+      
+      const response = await axios.put(`/api/orders/${orderId}`, {
+        status: {
+          name: selectedOrder.status?.name || 'Being processed by manager'
+        }
+      });
+      
+      console.log('Update response:', response.data);
+      
+      if (response.data) {
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId ? response.data : order
+          )
+        );
+        setIsEditModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Error updating order');
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
     if (window.confirm(translations.deleteConfirmation)) {
       try {
         await axios.delete(`/api/orders/${orderId}`)
@@ -195,11 +244,24 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const handleSelectChange = (name: string, value: string) => {
     if (name === 'deliveryMethod') {
       setDeliveryMethod(value);
+      const selectedMethod = deliveryMethods.find(method => method.id === value);
+      if (selectedMethod) {
+        setNewOrder(prev => ({
+          ...prev,
+          deliveryMethod: { id: selectedMethod.id, name: selectedMethod.name }
+        }));
+      }
     } else if (name === 'paymentMethod') {
       setPaymentMethod(value);
+      const selectedMethod = paymentMethods.find(method => method.id === value);
+      if (selectedMethod) {
+        setNewOrder(prev => ({
+          ...prev,
+          paymentMethod: { id: selectedMethod.id, name: selectedMethod.name }
+        }));
+      }
     }
-    setNewOrder(prev => ({ ...prev, [name]: value }));
-  }
+  };
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -211,7 +273,11 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
       resetNewOrderForm()
     } catch (error) {
       console.error('Error creating order:', error)
-      alert('Error creating order')
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        alert(`Error creating order: ${error.response.data.error}`);
+      } else {
+        alert('Error creating order');
+      }
     }
   }
 
@@ -219,30 +285,16 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     setNewOrder({
       orderNumber: '',
       source: '',
-      deliveryMethod: '',
+      deliveryMethod: { id: '', name: '' },
       deliveryPostNumber: '',
       phoneNumber: '',
       fullName: '',
-      products: '',
+      products: {},
       numberOfItems: 0,
-      paymentMethod: '',
+      paymentMethod: { id: '', name: '' },
       amount: 0,
-      status: 'Being processed by manager',
-    })
-  }
-
-  const handlePaymentMethod = (orderId: string) => {
-    const order = orders.find(o => o.id === orderId);
-    if (order) {
-      const isBlacklisted = checkBlacklist(order.fullName, order.phoneNumber);
-      if (isBlacklisted) {
-        alert('This customer is blacklisted. Only prepayment is allowed.');
-        // Implement prepayment logic here
-      } else {
-        // Implement normal payment method selection logic here
-        alert('Select payment method');
-      }
-    }
+      status: { id: '', name: 'Being processed by manager', color: 'yellow' },
+    });
   };
 
   if (!isClient) {
@@ -260,107 +312,138 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
           </Button>
         </Link>
       </div>
-      <Tabs defaultValue="orders" className="space-y-4">
+      <Tabs defaultValue="orders">
         <TabsList>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
-        <TabsContent value="orders" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>{translations.totalAmount}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">${totalAmount.toFixed(2)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>{translations.filterOrders}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder={translations.filterOrdersPlaceholder}
-                    value={filterText}
-                    onChange={(e) => setFilterText(e.target.value)}
-                    className="flex-grow"
-                  />
-                  <Button variant="outline" size="icon">
-                    <Search className="h-4 w-4" />
+        <TabsContent value="orders">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{translations.totalAmount}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">${totalAmount.toFixed(2)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{translations.filterOrders}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder={translations.filterOrdersPlaceholder}
+                      value={filterText}
+                      onChange={(e) => setFilterText(e.target.value)}
+                      className="flex-grow"
+                    />
+                    <Button variant="outline" size="icon">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{translations.createNewOrder}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => setIsCreateModalOpen(true)} className="w-full">
+                    <PlusCircle className="mr-2 h-4 w-4" /> {translations.createNewOrder}
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
-              <CardHeader>
-                <CardTitle>{translations.createNewOrder}</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle>{translations.orders}</CardTitle>
+                <Button variant="outline" size="sm">
+                  <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+                </Button>
               </CardHeader>
               <CardContent>
-                <Button onClick={() => setIsCreateModalOpen(true)} className="w-full">
-                  <PlusCircle className="mr-2 h-4 w-4" /> {translations.createNewOrder}
-                </Button>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{translations.orderNumber}</TableHead>
+                      <TableHead>{translations.fullName}</TableHead>
+                      <TableHead>{translations.status}</TableHead>
+                      <TableHead>{translations.amount}</TableHead>
+                      <TableHead>{translations.createdAt}</TableHead>
+                      <TableHead>{translations.actions}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                        <TableCell>{order.fullName}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              order.status && order.status.name === 'Delivered' 
+                                ? 'default' 
+                                : 'secondary'
+                            }
+                          >
+                            {order.status ? translateStatus(order.status.name) : ''}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>${order.amount.toFixed(2)}</TableCell>
+                        <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="default" size="sm" onClick={() => {
+                              setSelectedOrder(order)
+                              setIsDetailsModalOpen(true)
+                            }}>
+                              {translations.details}
+                            </Button>
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              onClick={() => {
+                                console.log('Original order:', order);
+                                const orderToEdit = {
+                                  ...order,
+                                  id: order.id,
+                                  deliveryMethod: {
+                                    id: order.deliveryMethodId || '',
+                                    name: order.deliveryMethod?.name || ''
+                                  },
+                                  paymentMethod: {
+                                    id: order.paymentMethodId || '',
+                                    name: order.paymentMethod?.name || ''
+                                  },
+                                  status: {
+                                    id: order.statusId || '',
+                                    name: order.status?.name || 'Being processed by manager',
+                                    color: order.status?.color || ''
+                                  }
+                                };
+                                console.log('Setting selected order:', orderToEdit);
+                                setSelectedOrder(orderToEdit);
+                                setIsEditModalOpen(true);
+                              }}
+                            >
+                              {translations.edit}
+                            </Button>
+                            <Button variant="default" size="sm" onClick={() => handleDeleteOrder(order.id)}>
+                              {translations.delete}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle>{translations.orders}</CardTitle>
-              <Button variant="outline" size="sm">
-                <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{translations.orderNumber}</TableHead>
-                    <TableHead>{translations.fullName}</TableHead>
-                    <TableHead>{translations.status}</TableHead>
-                    <TableHead>{translations.amount}</TableHead>
-                    <TableHead>{translations.createdAt}</TableHead>
-                    <TableHead>{translations.actions}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                      <TableCell>{order.fullName}</TableCell>
-                      <TableCell>
-                        <Badge variant={order.status === 'Delivered' ? 'default' : 'secondary'}>
-                          {translateStatus(order.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>${order.amount.toFixed(2)}</TableCell>
-                      <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button variant="default" size="sm" onClick={() => {
-                            setSelectedOrder(order)
-                            setIsDetailsModalOpen(true)
-                          }}>
-                            {translations.details}
-                          </Button>
-                          <Button variant="default" size="sm" onClick={() => {
-                            setSelectedOrder(order)
-                            setIsEditModalOpen(true)
-                          }}>
-                            {translations.edit}
-                          </Button>
-                          <Button variant="default" size="sm" onClick={() => handleDeleteOrder(order.id)}>
-                            {translations.delete}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
         </TabsContent>
         <TabsContent value="analytics">
           {/* Add analytics content here */}
@@ -393,8 +476,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.status}</Label>
-                <Badge variant={selectedOrder.status === 'Delivered' ? 'default' : 'secondary'}>
-                  {translateStatus(selectedOrder.status)}
+                <Badge 
+                  variant={
+                    selectedOrder.status?.name === 'Delivered' 
+                      ? 'default' 
+                      : 'secondary'
+                  }
+                >
+                  {selectedOrder.status ? translateStatus(selectedOrder.status.name) : ''}
                 </Badge>
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
@@ -407,7 +496,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.deliveryMethod}</Label>
-                <Input value={selectedOrder.deliveryMethod} readOnly />
+                <Input value={selectedOrder.deliveryMethod?.name || ''} readOnly />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.phoneNumber}</Label>
@@ -415,7 +504,12 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.products}</Label>
-                <Textarea value={selectedOrder.products} readOnly />
+                <Textarea 
+                  value={typeof selectedOrder.products === 'object' 
+                    ? JSON.stringify(selectedOrder.products, null, 2) 
+                    : selectedOrder.products} 
+                  readOnly 
+                />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.numberOfItems}</Label>
@@ -423,7 +517,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.paymentMethod}</Label>
-                <Input value={selectedOrder.paymentMethod} readOnly />
+                <Input value={selectedOrder.paymentMethod?.name || ''} readOnly />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.createdAt}</Label>
@@ -441,25 +535,59 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
             <DialogTitle>{translations.editOrder}</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
-            <form onSubmit={handleEditOrder} className="space-y-4">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleEditOrder(e);
+              }} 
+              className="space-y-4"
+            >
               <div className="space-y-2">
                 <Label htmlFor="status">{translations.status}</Label>
                 <Select
-                  value={selectedOrder.status}
-                  onValueChange={(value) => setSelectedOrder({ ...selectedOrder, status: value })}
+                  value={selectedOrder.status?.name || ''}
+                  onValueChange={(value) => {
+                    console.log('Selected new status:', value);
+                    setSelectedOrder(prev => {
+                      if (!prev) return null;
+                      return {
+                        ...prev,
+                        status: {
+                          id: prev.status?.id || '',
+                          name: value,
+                          color: prev.status?.color || ''
+                        }
+                      };
+                    });
+                  }}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      {selectedOrder.status ? translateStatus(selectedOrder.status.name) : translations.selectStatus}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Being processed by manager">{translations.statuses.beingProcessed}</SelectItem>
-                    <SelectItem value="Shipped">{translations.statuses.shipped}</SelectItem>
-                    <SelectItem value="Delivered">{translations.statuses.delivered}</SelectItem>
-                    <SelectItem value="Cancelled">{translations.statuses.cancelled}</SelectItem>
+                    <SelectItem value="Being processed by manager">
+                      {translations.statuses.beingProcessed}
+                    </SelectItem>
+                    <SelectItem value="Shipped">
+                      {translations.statuses.shipped}
+                    </SelectItem>
+                    <SelectItem value="Delivered">
+                      {translations.statuses.delivered}
+                    </SelectItem>
+                    <SelectItem value="Cancelled">
+                      {translations.statuses.cancelled}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full">{translations.updateOrder}</Button>
+              <Button 
+                type="submit" 
+                className="w-full"
+              >
+                {translations.updateOrder}
+              </Button>
             </form>
           )}
         </DialogContent>
@@ -502,13 +630,22 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
             <div className="space-y-2">
               <Label htmlFor="deliveryMethod">{translations.deliveryMethod}</Label>
-              <Select value={deliveryMethod} onValueChange={(value) => handleSelectChange("deliveryMethod", value)}>
-                <SelectTrigger>
-                  <SelectValue>{translations.selectDeliveryMethod}</SelectValue>
+              <Select
+                value={deliveryMethod}
+                onValueChange={(value) => handleSelectChange("deliveryMethod", value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {deliveryMethod 
+                      ? deliveryMethods.find(m => m.id === deliveryMethod)?.name 
+                      : translations.selectDeliveryMethod}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {deliveryMethods.map((method) => (
-                    <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                    <SelectItem key={method.id} value={method.id}>
+                      {method.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -578,13 +715,22 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </div>
               <div className="space-y-2">
                 <Label htmlFor="paymentMethod">{translations.paymentMethod}</Label>
-                <Select value={paymentMethod} onValueChange={(value) => handleSelectChange("paymentMethod", value)}>
-                  <SelectTrigger>
-                    <SelectValue>{translations.selectPaymentMethod}</SelectValue>
+                <Select
+                  value={paymentMethod}
+                  onValueChange={(value) => handleSelectChange("paymentMethod", value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      {paymentMethod 
+                        ? paymentMethods.find(m => m.id === paymentMethod)?.name 
+                        : translations.selectPaymentMethod}
+                      </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {paymentMethods.map((method) => (
-                      <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                      <SelectItem key={method.id} value={method.id}>
+                        {method.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

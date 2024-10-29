@@ -3,12 +3,19 @@ import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const deliveryMethods = await prisma.deliveryMethod.findMany();
-    console.log('Fetched delivery methods:', deliveryMethods);
+    const deliveryMethods = await prisma.deliveryMethod.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+    });
     return NextResponse.json(deliveryMethods);
   } catch (error) {
     console.error('Error fetching delivery methods:', error);
-    return NextResponse.json({ error: 'Error fetching delivery methods' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch delivery methods' },
+      { status: 500 }
+    );
   }
 }
 

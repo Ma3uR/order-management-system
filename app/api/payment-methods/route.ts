@@ -3,12 +3,16 @@ import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const paymentMethods = await prisma.paymentMethod.findMany();
-    console.log('Fetched payment methods:', paymentMethods);
+    const paymentMethods = await prisma.paymentMethod.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+    });
     return NextResponse.json(paymentMethods);
   } catch (error) {
     console.error('Error fetching payment methods:', error);
-    return NextResponse.json({ error: 'Error fetching payment methods' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch payment methods' }, { status: 500 });
   }
 }
 

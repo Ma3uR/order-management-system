@@ -3,55 +3,47 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Seed Currencies
-  const currencies = [
-    { code: 'USD', name: 'US Dollar', symbol: '$', isDefault: true },
-    { code: 'EUR', name: 'Euro', symbol: '€', isDefault: false },
-    { code: 'UAH', name: 'Ukrainian Hryvnia', symbol: '₴', isDefault: false },
-  ]
+  // Create default currency
+  await prisma.currency.upsert({
+    where: { code: 'UAH' },
+    update: {},
+    create: {
+      code: 'UAH',
+      name: 'Ukrainian Hryvnia',
+      symbol: '₴',
+      isDefault: true,
+    },
+  })
 
-  for (const currency of currencies) {
-    await prisma.currency.upsert({
-      where: { code: currency.code },
-      update: {},
-      create: currency,
-    })
-  }
+  // Create default status
+  await prisma.status.upsert({
+    where: { name: 'Being processed by manager' },
+    update: {},
+    create: {
+      name: 'Being processed by manager',
+      color: 'yellow',
+    },
+  })
 
-  // Seed Statuses
-  const statuses = [
-    { name: 'Pending', color: '#FFA500' },
-    { name: 'Processing', color: '#1E90FF' },
-    { name: 'Shipped', color: '#32CD32' },
-    { name: 'Delivered', color: '#008000' },
-    { name: 'Cancelled', color: '#FF0000' },
-  ]
+  // Create delivery methods
+  await prisma.deliveryMethod.upsert({
+    where: { name: 'Ukr poshta' },
+    update: {},
+    create: {
+      name: 'Ukr poshta',
+    },
+  })
 
-  for (const status of statuses) {
-    await prisma.status.upsert({
-      where: { name: status.name },
-      update: {},
-      create: status,
-    })
-  }
+  // Create payment methods
+  await prisma.paymentMethod.upsert({
+    where: { name: 'test2' },
+    update: {},
+    create: {
+      name: 'test2',
+    },
+  })
 
-  // Seed Payment Methods
-  const paymentMethods = [
-    { name: 'Credit Card' },
-    { name: 'PayPal' },
-    { name: 'Bank Transfer' },
-    { name: 'Cash on Delivery' },
-  ]
-
-  for (const method of paymentMethods) {
-    await prisma.paymentMethod.upsert({
-      where: { name: method.name },
-      update: {},
-      create: method,
-    })
-  }
-
-  console.log('Seed data inserted successfully')
+  console.log('Seed data created successfully')
 }
 
 main()
