@@ -90,5 +90,15 @@
     "deliveryMethodName": "Назва способу доставки",
     "addDeliveryMethod": "Додати спосіб доставки",
     "backToDashboard": "Повернутися до панелі керування"
+  },
+  "Blacklist": {
+    "title": "Управління чорним списком",
+    "fullNamePlaceholder": "Повне ім'я",
+    "phoneNumberPlaceholder": "Номер телефону", 
+    "addToBlacklist": "Додати до чорного списку",
+    "remove": "Видалити",
+    "backToDashboard": "Повернутися до панелі керування",
+    "adding": "Додавання...",
+    "blacklist": "Чорний список"
   }
 }

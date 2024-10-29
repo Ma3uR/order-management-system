@@ -58,12 +58,13 @@
   },
   "Dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome to your dashboard",
+    "welcome": "Welcome to your dashboard", 
     "navigation": "Navigation",
     "dashboard": "Dashboard",
     "orders": "Orders",
     "projects": "Projects",
-    "settings": "Settings"
+    "settings": "Settings",
+    "blacklist": "Blacklist"
   },
   "Settings": {
     "deleteError": "Error deleting item",
@@ -91,5 +92,14 @@
     "deliveryMethods": "Delivery Methods",
     "deliveryMethodName": "Delivery Method Name",
     "addDeliveryMethod": "Add Delivery Method"
+  },
+  "Blacklist": {
+    "title": "Blacklist Management",
+    "fullNamePlaceholder": "Full Name",
+    "phoneNumberPlaceholder": "Phone Number",
+    "addToBlacklist": "Add to Blacklist",
+    "remove": "Remove",
+    "backToDashboard": "Back to Dashboard",
+    "adding": "Adding..."
   }
 }

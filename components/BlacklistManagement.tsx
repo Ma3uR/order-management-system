@@ -1,8 +1,14 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useTranslations } from 'next-intl';
+import axios from 'axios';
+import Link from 'next/link';
 
 interface BlacklistItem {
-  id: string;
+  id: number;
   fullName: string;
   phoneNumber: string;
 }
@@ -10,64 +16,94 @@ interface BlacklistItem {
 const BlacklistManagement: React.FC = () => {
   const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
   const [newItem, setNewItem] = useState({ fullName: '', phoneNumber: '' });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const t = useTranslations('Blacklist');
 
   useEffect(() => {
-    // Fetch blacklist from API or local storage
-    // For now, we'll use mock data
-    const mockBlacklist: BlacklistItem[] = [
-      { id: '1', fullName: 'John Doe', phoneNumber: '+1234567890' },
-      { id: '2', fullName: 'Jane Smith', phoneNumber: '+0987654321' },
-    ];
-    setBlacklist(mockBlacklist);
+    fetchBlacklist();
   }, []);
+
+  const fetchBlacklist = async () => {
+    try {
+      const response = await axios.get('/api/blacklist');
+      setBlacklist(response.data);
+    } catch (error: any) {
+      console.error('Error fetching blacklist:', error);
+      setError(`Failed to fetch blacklist: ${error.response?.data?.details || error.message}`);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewItem(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (newItem.fullName && newItem.phoneNumber) {
-      const newBlacklistItem: BlacklistItem = {
-        id: Date.now().toString(),
-        ...newItem
-      };
-      setBlacklist(prev => [...prev, newBlacklistItem]);
-      setNewItem({ fullName: '', phoneNumber: '' });
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await axios.post('/api/blacklist', newItem);
+        setBlacklist(prev => [...prev, response.data]);
+        setNewItem({ fullName: '', phoneNumber: '' });
+      } catch (error: any) {
+        console.error('Error adding item to blacklist:', error);
+        setError(`Failed to add item to blacklist: ${error.response?.data?.details || error.message}`);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleRemoveItem = (id: string) => {
-    setBlacklist(prev => prev.filter(item => item.id !== id));
+  const handleRemoveItem = async (id: number) => {
+    try {
+      await axios.delete('/api/blacklist', { data: { id } });
+      setBlacklist(prev => prev.filter(item => item.id !== id));
+    } catch (error: any) {
+      console.error('Error removing item from blacklist:', error);
+      setError(`Failed to remove item from blacklist: ${error.response?.data?.details || error.message}`);
+    }
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Blacklist Management</h2>
-      <div className="mb-4">
-        <input
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
+        <Link href="/dashboard">
+          <Button variant="outline">{t('backToDashboard')}</Button>
+        </Link>
+      </div>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+      <div className="flex space-x-2">
+        <Input
           type="text"
           name="fullName"
           value={newItem.fullName}
           onChange={handleInputChange}
-          placeholder="Full Name"
-          className="mr-2 p-2 border rounded"
+          placeholder={t('fullNamePlaceholder')}
         />
-        <input
+        <Input
           type="text"
           name="phoneNumber"
           value={newItem.phoneNumber}
           onChange={handleInputChange}
-          placeholder="Phone Number"
-          className="mr-2 p-2 border rounded"
+          placeholder={t('phoneNumberPlaceholder')}
         />
-        <Button onClick={handleAddItem}>Add to Blacklist</Button>
+        <Button onClick={handleAddItem} disabled={isLoading}>
+          {isLoading ? t('adding') : t('addToBlacklist')}
+        </Button>
       </div>
-      <ul>
+      <ul className="space-y-2">
         {blacklist.map(item => (
-          <li key={item.id} className="flex justify-between items-center mb-2">
+          <li key={item.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
             <span>{item.fullName} - {item.phoneNumber}</span>
-            <Button onClick={() => handleRemoveItem(item.id)} variant="destructive">Remove</Button>
+            <Button onClick={() => handleRemoveItem(item.id)} variant="destructive">{t('remove')}</Button>
           </li>
         ))}
       </ul>
