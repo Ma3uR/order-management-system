@@ -64,7 +64,8 @@
     "orders": "Замовлення",
     "projects": "Проекти",
     "settings": "Налаштування",
-    "blacklist": "Чорний список"
+    "blacklist": "Чорний список",
+    "languageSwitcher": "Змінити мову"
   },
   "Settings": {
     "title": "Налаштування",

@@ -64,7 +64,8 @@
     "orders": "Orders",
     "projects": "Projects",
     "settings": "Settings",
-    "blacklist": "Blacklist"
+    "blacklist": "Blacklist",
+    "languageSwitcher": "Switch Language"
   },
   "Settings": {
     "deleteError": "Error deleting item",

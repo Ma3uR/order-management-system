@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import DashboardWrapper from './DashboardWrapper';
+import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 
 export default function DashboardLayout({
   children,
@@ -39,9 +40,16 @@ export default function DashboardLayout({
             </li>
           </ul>
         </nav>
-        <main className="flex-1 overflow-y-auto p-8">
-          {children}
-        </main>
+        <div className="flex-1 flex flex-col">
+          <header className="bg-white shadow-sm">
+            <div className="flex justify-end items-center px-6 py-3">
+              <LanguageSwitcher />
+            </div>
+          </header>
+          <main className="flex-1 overflow-y-auto p-8">
+            {children}
+          </main>
+        </div>
       </div>
     </DashboardWrapper>
   );
