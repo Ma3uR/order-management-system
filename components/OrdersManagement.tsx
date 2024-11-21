@@ -571,15 +571,51 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
             <DialogTitle>{translations.orderDetails}</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
-            <div className="grid gap-4 py-4">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const response = await axios.put(`/api/orders/${selectedOrder.id}`, selectedOrder);
+                if (response.data) {
+                  setOrders(prevOrders => 
+                    prevOrders.map(o => o.id === selectedOrder.id ? response.data : o)
+                  );
+                  setIsDetailsModalOpen(false);
+                }
+              } catch (error) {
+                console.error('Error updating order:', error);
+                alert('Error updating order');
+              }
+            }} 
+            className="grid gap-4 py-4"
+            >
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.orderNumber}</Label>
-                <Input value={selectedOrder.orderNumber} readOnly />
+                <Input 
+                  value={selectedOrder.orderNumber} 
+                  onChange={(e) => setSelectedOrder({
+                    ...selectedOrder,
+                    orderNumber: e.target.value
+                  })}
+                  pattern="^[A-Za-z0-9-]+$"
+                  title="Order number can only contain letters, numbers, and hyphens"
+                  required
+                />
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.fullName}</Label>
-                <Input value={selectedOrder.fullName} readOnly />
+                <Input 
+                  value={selectedOrder.fullName} 
+                  onChange={(e) => setSelectedOrder({
+                    ...selectedOrder,
+                    fullName: e.target.value
+                  })}
+                  pattern="^[A-Za-zА-Яа-яіІїЇєЄ\s'-]+$"
+                  title="Full name can only contain letters, spaces, hyphens, and apostrophes"
+                  required
+                />
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.status}</Label>
                 <Badge 
@@ -597,47 +633,144 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                   {selectedOrder.status ? translateStatus(selectedOrder.status.name) : ''}
                 </Badge>
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.amount}</Label>
                 <Input 
-                  value={`${selectedOrder.currency.symbol}${selectedOrder.amount.toFixed(2)}`} 
-                  readOnly 
+                  type="number"
+                  value={selectedOrder.amount} 
+                  onChange={(e) => setSelectedOrder({
+                    ...selectedOrder,
+                    amount: parseFloat(e.target.value)
+                  })}
+                  min="0"
+                  step="0.01"
+                  required
                 />
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.source}</Label>
-                <Input value={selectedOrder.source} readOnly />
+                <Input 
+                  value={selectedOrder.source} 
+                  onChange={(e) => setSelectedOrder({
+                    ...selectedOrder,
+                    source: e.target.value
+                  })}
+                  required
+                />
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.deliveryMethod}</Label>
-                <Input value={selectedOrder.deliveryMethod?.name || ''} readOnly />
+                <Select
+                  value={selectedOrder.deliveryMethod?.id}
+                  onValueChange={(value) => {
+                    const method = deliveryMethods.find(m => m.id === value);
+                    setSelectedOrder({
+                      ...selectedOrder,
+                      deliveryMethod: method
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue>{selectedOrder.deliveryMethod?.name}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deliveryMethods.map(method => (
+                      <SelectItem key={method.id} value={method.id}>
+                        {method.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.phoneNumber}</Label>
-                <Input value={selectedOrder.phoneNumber} readOnly />
+                <Input 
+                  value={selectedOrder.phoneNumber} 
+                  onChange={(e) => setSelectedOrder({
+                    ...selectedOrder,
+                    phoneNumber: e.target.value
+                  })}
+                  pattern="^\+?[0-9]{10,15}$"
+                  title="Phone number must be between 10 and 15 digits, optionally starting with +"
+                  required
+                />
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.products}</Label>
                 <Textarea 
                   value={typeof selectedOrder.products === 'object' 
                     ? JSON.stringify(selectedOrder.products, null, 2) 
-                    : selectedOrder.products} 
-                  readOnly 
+                    : selectedOrder.products
+                  } 
+                  onChange={(e) => {
+                    try {
+                      const products = JSON.parse(e.target.value);
+                      setSelectedOrder({
+                        ...selectedOrder,
+                        products
+                      });
+                    } catch (error) {
+                      // Don't update if JSON is invalid
+                      console.error('Invalid JSON:', error);
+                    }
+                  }}
+                  required
                 />
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.numberOfItems}</Label>
-                <Input value={selectedOrder.numberOfItems.toString()} readOnly />
+                <Input 
+                  type="number"
+                  value={selectedOrder.numberOfItems} 
+                  onChange={(e) => setSelectedOrder({
+                    ...selectedOrder,
+                    numberOfItems: parseInt(e.target.value)
+                  })}
+                  min="1"
+                  required
+                />
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.paymentMethod}</Label>
-                <Input value={selectedOrder.paymentMethod?.name || ''} readOnly />
+                <Select
+                  value={selectedOrder.paymentMethod?.id}
+                  onValueChange={(value) => {
+                    const method = paymentMethods.find(m => m.id === value);
+                    setSelectedOrder({
+                      ...selectedOrder,
+                      paymentMethod: method
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue>{selectedOrder.paymentMethod?.name}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map(method => (
+                      <SelectItem key={method.id} value={method.id}>
+                        {method.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.createdAt}</Label>
                 <Input value={new Date(selectedOrder.createdAt).toLocaleString()} readOnly />
               </div>
-            </div>
+
+              <DialogFooter>
+                <Button type="submit">{translations.updateOrder}</Button>
+              </DialogFooter>
+            </form>
           )}
         </DialogContent>
       </Dialog>

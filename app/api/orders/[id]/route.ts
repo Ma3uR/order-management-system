@@ -32,31 +32,27 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('Updating order:', params.id); // Debug log
     const data = await request.json();
-    console.log('Update data:', data); // Debug log
     
-    // Find the status first
-    const status = await prisma.status.findFirst({
-      where: { name: data.status.name }
-    });
-
-    if (!status) {
-      return NextResponse.json(
-        { error: 'Status not found' },
-        { status: 400 }
-      );
-    }
-
     const order = await prisma.order.update({
-      where: { 
-        id: params.id 
-      },
+      where: { id: params.id },
       data: {
+        orderNumber: data.orderNumber,
+        source: data.source,
+        deliveryMethod: {
+          connect: { id: data.deliveryMethod.id }
+        },
+        deliveryPostNumber: data.deliveryPostNumber,
+        phoneNumber: data.phoneNumber,
+        fullName: data.fullName,
+        products: data.products,
+        numberOfItems: data.numberOfItems,
+        paymentMethod: {
+          connect: { id: data.paymentMethod.id }
+        },
+        amount: data.amount,
         status: {
-          connect: {
-            id: status.id
-          }
+          connect: { id: data.status.id }
         }
       },
       include: {
@@ -67,12 +63,11 @@ export async function PUT(
       },
     });
 
-    console.log('Updated order:', order); // Debug log
     return NextResponse.json(order);
   } catch (error) {
     console.error('Error updating order:', error);
     return NextResponse.json(
-      { error: 'Failed to update order', details: error },
+      { error: 'Failed to update order' },
       { status: 500 }
     );
   }
