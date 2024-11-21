@@ -21,7 +21,7 @@ async function main() {
     update: {},
     create: {
       name: 'Being processed by manager',
-      color: 'yellow',
+      color: '#FFD700',
       priority: 0,
     },
   });

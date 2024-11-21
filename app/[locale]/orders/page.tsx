@@ -68,13 +68,13 @@ export default async function OrdersPage() {
           symbol: order.currency.symbol,
         },
         paymentMethod: {
-          id: order.paymentMethodId,
-          name: '' // This will be populated by the component
+          id: order.paymentMethod.id,
+          name: order.paymentMethod.name
         },
         status: {
-          id: order.statusId,
-          name: '', // This will be populated by the component
-          color: '' // This will be populated by the component
+          id: order.status.id,
+          name: order.status.name,
+          color: order.status.color
         },
         products: typeof order.products === 'string' 
           ? JSON.parse(order.products) 

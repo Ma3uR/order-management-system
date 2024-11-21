@@ -119,6 +119,22 @@ interface PaymentMethod {
   name: string;
 }
 
+function getContrastColor(hexcolor: string): string {
+  // Remove the hash if it exists
+  const hex = hexcolor.replace('#', '');
+  
+  // Convert hex to RGB
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  
+  // Calculate luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Return black or white based on luminance
+  return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
 const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initialOrders }) => {
   const [orders, setOrders] = useState<Order[]>([])
   const [isClient, setIsClient] = useState(false)
@@ -146,6 +162,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const [deliveryMethod, setDeliveryMethod] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [defaultCurrency, setDefaultCurrency] = useState<{symbol: string} | null>(null);
+  const [statuses, setStatuses] = useState<Array<{id: string; name: string; color: string}>>([]);
 
   const fetchDeliveryMethods = useCallback(async () => {
     try {
@@ -188,6 +205,20 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
       }
     };
     fetchDefaultCurrency();
+  }, []);
+
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const response = await fetch('/api/statuses');
+        const data = await response.json();
+        setStatuses(data);
+      } catch (error) {
+        console.error('Error fetching statuses:', error);
+      }
+    };
+
+    fetchStatuses();
   }, []);
 
   const filteredOrders = orders.filter(order => 
@@ -422,11 +453,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                         <TableCell>{order.fullName}</TableCell>
                         <TableCell>
                           <Badge 
-                            variant={
-                              order.status && order.status.name === 'Delivered' 
-                                ? 'default' 
-                                : 'secondary'
-                            }
+                            style={{ 
+                              backgroundColor: order.status?.color?.startsWith('#') 
+                                ? order.status.color 
+                                : '#cbd5e1',
+                              color: getContrastColor(order.status?.color || '#cbd5e1'),
+                              padding: '0.5rem 0.75rem',
+                              borderRadius: '0.375rem'
+                            }}
                           >
                             {order.status ? translateStatus(order.status.name) : ''}
                           </Badge>
@@ -517,11 +551,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.status}</Label>
                 <Badge 
-                  variant={
-                    selectedOrder.status?.name === 'Delivered' 
-                      ? 'default' 
-                      : 'secondary'
-                  }
+                  style={{ 
+                    backgroundColor: selectedOrder.status?.color?.startsWith('#') 
+                      ? selectedOrder.status.color 
+                      : '#cbd5e1',
+                    color: getContrastColor(selectedOrder.status?.color || '#cbd5e1'),
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.375rem'
+                  }}
                 >
                   {selectedOrder.status ? translateStatus(selectedOrder.status.name) : ''}
                 </Badge>
@@ -590,15 +627,15 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                 <Select
                   value={selectedOrder.status?.name || ''}
                   onValueChange={(value) => {
-                    console.log('Selected new status:', value);
+                    const selectedStatus = statuses.find(s => s.name === value);
                     setSelectedOrder(prev => {
                       if (!prev) return null;
                       return {
                         ...prev,
                         status: {
-                          id: prev.status?.id || '',
+                          id: selectedStatus?.id || '',
                           name: value,
-                          color: prev.status?.color || ''
+                          color: selectedStatus?.color || ''
                         }
                       };
                     });
@@ -610,18 +647,18 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Being processed by manager">
-                      {translations.statuses.beingProcessed}
-                    </SelectItem>
-                    <SelectItem value="Shipped">
-                      {translations.statuses.shipped}
-                    </SelectItem>
-                    <SelectItem value="Delivered">
-                      {translations.statuses.delivered}
-                    </SelectItem>
-                    <SelectItem value="Cancelled">
-                      {translations.statuses.cancelled}
-                    </SelectItem>
+                    {statuses.map(status => (
+                      <SelectItem 
+                        key={status.id} 
+                        value={status.name}
+                        style={{
+                          backgroundColor: status.color,
+                          color: getContrastColor(status.color)
+                        }}
+                      >
+                        {translateStatus(status.name)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
