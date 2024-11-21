@@ -376,12 +376,12 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
           <Select
             value={order.status?.name || ''}
             onValueChange={async (value) => {
-              const selectedStatus = statuses.find(s => s.name === value);
               try {
+                const selectedStatus = statuses.find(s => s.name === value);
+                if (!selectedStatus) return;
+
                 const response = await axios.put(`/api/orders/${order.id}`, {
-                  status: {
-                    name: value
-                  }
+                  statusId: selectedStatus.id
                 });
                 
                 if (response.data) {

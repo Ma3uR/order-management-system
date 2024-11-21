@@ -34,27 +34,37 @@ export async function PUT(
   try {
     const data = await request.json();
     
+    // Create update data object
+    const updateData: any = {};
+    
+    // Handle status update
+    if (data.statusId) {
+      updateData.status = {
+        connect: { id: data.statusId }
+      };
+    }
+    
+    // Handle full order update
+    if (data.orderNumber) {
+      updateData.orderNumber = data.orderNumber;
+      updateData.source = data.source;
+      updateData.deliveryMethod = {
+        connect: { id: data.deliveryMethod.id }
+      };
+      updateData.deliveryPostNumber = data.deliveryPostNumber;
+      updateData.phoneNumber = data.phoneNumber;
+      updateData.fullName = data.fullName;
+      updateData.products = data.products;
+      updateData.numberOfItems = data.numberOfItems;
+      updateData.paymentMethod = {
+        connect: { id: data.paymentMethod.id }
+      };
+      updateData.amount = data.amount;
+    }
+
     const order = await prisma.order.update({
       where: { id: params.id },
-      data: {
-        orderNumber: data.orderNumber,
-        source: data.source,
-        deliveryMethod: {
-          connect: { id: data.deliveryMethod.id }
-        },
-        deliveryPostNumber: data.deliveryPostNumber,
-        phoneNumber: data.phoneNumber,
-        fullName: data.fullName,
-        products: data.products,
-        numberOfItems: data.numberOfItems,
-        paymentMethod: {
-          connect: { id: data.paymentMethod.id }
-        },
-        amount: data.amount,
-        status: {
-          connect: { id: data.status.id }
-        }
-      },
+      data: updateData,
       include: {
         deliveryMethod: true,
         paymentMethod: true,
