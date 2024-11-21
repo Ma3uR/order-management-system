@@ -163,6 +163,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [defaultCurrency, setDefaultCurrency] = useState<{symbol: string} | null>(null);
   const [statuses, setStatuses] = useState<Array<{id: string; name: string; color: string}>>([]);
+  const [editingStatusOrder, setEditingStatusOrder] = useState<Order | null>(null);
 
   const fetchDeliveryMethods = useCallback(async () => {
     try {
@@ -364,6 +365,64 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     });
   };
 
+  const StatusEditDialog = ({ order, onClose }: { order: Order, onClose: () => void }) => (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{translations.editOrder}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="status">{translations.status}</Label>
+          <Select
+            value={order.status?.name || ''}
+            onValueChange={async (value) => {
+              const selectedStatus = statuses.find(s => s.name === value);
+              try {
+                const response = await axios.put(`/api/orders/${order.id}`, {
+                  status: {
+                    name: value
+                  }
+                });
+                
+                if (response.data) {
+                  setOrders(prevOrders => 
+                    prevOrders.map(o => 
+                      o.id === order.id ? response.data : o
+                    )
+                  );
+                  onClose();
+                }
+              } catch (error) {
+                console.error('Error updating order:', error);
+                alert('Error updating order');
+              }
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {order.status ? translateStatus(order.status.name) : translations.selectStatus}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {statuses.map(status => (
+                <SelectItem 
+                  key={status.id} 
+                  value={status.name}
+                  style={{
+                    backgroundColor: status.color,
+                    color: getContrastColor(status.color)
+                  }}
+                >
+                  {translateStatus(status.name)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   if (!isClient) {
     return null // or a loading spinner
   }
@@ -459,8 +518,10 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                                 : '#cbd5e1',
                               color: getContrastColor(order.status?.color || '#cbd5e1'),
                               padding: '0.5rem 0.75rem',
-                              borderRadius: '0.375rem'
+                              borderRadius: '0.375rem',
+                              cursor: 'pointer'
                             }}
+                            onClick={() => setEditingStatusOrder(order)}
                           >
                             {order.status ? translateStatus(order.status.name) : ''}
                           </Badge>
@@ -476,35 +537,6 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                               setIsDetailsModalOpen(true)
                             }}>
                               {translations.details}
-                            </Button>
-                            <Button 
-                              variant="default" 
-                              size="sm" 
-                              onClick={() => {
-                                console.log('Original order:', order);
-                                const orderToEdit = {
-                                  ...order,
-                                  id: order.id,
-                                  deliveryMethod: {
-                                    id: order.deliveryMethod?.id || '',
-                                    name: order.deliveryMethod?.name || ''
-                                  },
-                                  paymentMethod: {
-                                    id: order.paymentMethod?.id || '',
-                                    name: order.paymentMethod?.name || ''
-                                  },
-                                  status: {
-                                    id: order.status?.id || '',
-                                    name: order.status?.name || 'Being processed by manager',
-                                    color: order.status?.color || ''
-                                  }
-                                };
-                                console.log('Setting selected order:', orderToEdit);
-                                setSelectedOrder(orderToEdit);
-                                setIsEditModalOpen(true);
-                              }}
-                            >
-                              {translations.edit}
                             </Button>
                             <Button variant="default" size="sm" onClick={() => handleDeleteOrder(order.id)}>
                               {translations.delete}
@@ -557,8 +589,10 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                       : '#cbd5e1',
                     color: getContrastColor(selectedOrder.status?.color || '#cbd5e1'),
                     padding: '0.5rem 0.75rem',
-                    borderRadius: '0.375rem'
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer'
                   }}
+                  onClick={() => setEditingStatusOrder(selectedOrder)}
                 >
                   {selectedOrder.status ? translateStatus(selectedOrder.status.name) : ''}
                 </Badge>
@@ -608,70 +642,12 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
         </DialogContent>
       </Dialog>
 
-      {/* Edit Order Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{translations.editOrder}</DialogTitle>
-          </DialogHeader>
-          {selectedOrder && (
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleEditOrder(e);
-              }} 
-              className="space-y-4"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="status">{translations.status}</Label>
-                <Select
-                  value={selectedOrder.status?.name || ''}
-                  onValueChange={(value) => {
-                    const selectedStatus = statuses.find(s => s.name === value);
-                    setSelectedOrder(prev => {
-                      if (!prev) return null;
-                      return {
-                        ...prev,
-                        status: {
-                          id: selectedStatus?.id || '',
-                          name: value,
-                          color: selectedStatus?.color || ''
-                        }
-                      };
-                    });
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {selectedOrder.status ? translateStatus(selectedOrder.status.name) : translations.selectStatus}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statuses.map(status => (
-                      <SelectItem 
-                        key={status.id} 
-                        value={status.name}
-                        style={{
-                          backgroundColor: status.color,
-                          color: getContrastColor(status.color)
-                        }}
-                      >
-                        {translateStatus(status.name)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full"
-              >
-                {translations.updateOrder}
-              </Button>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      {editingStatusOrder && (
+        <StatusEditDialog 
+          order={editingStatusOrder} 
+          onClose={() => setEditingStatusOrder(null)} 
+        />
+      )}
 
       {/* Create Order Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
