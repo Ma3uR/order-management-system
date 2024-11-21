@@ -8,21 +8,30 @@ import { useTranslations } from 'next-intl';
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const router = useRouter();
   const t = useTranslations('Auth');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await signIn('credentials', {
-      redirect: false,
-      email,
-      password,
-    });
+    setError('');
 
-    if (result?.error) {
-      console.error(result.error);
-    } else {
-      router.push('/dashboard');
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (result?.error) {
+        setError(t('invalidCredentials'));
+      } else {
+        router.push('/dashboard');
+        router.refresh(); // Refresh to update session data
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      setError(t('signInError'));
     }
   };
 
@@ -34,6 +43,13 @@ export default function SignIn() {
             {t('signInTitle')}
           </h2>
         </div>
+        {error && (
+          <div className="rounded-md bg-red-50 p-4">
+            <div className="text-sm text-red-700">
+              {error}
+            </div>
+          </div>
+        )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <input type="hidden" name="remember" defaultValue="true" />
           <div className="rounded-md shadow-sm -space-y-px">

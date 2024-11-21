@@ -1,11 +1,8 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import pb from "@/lib/pocketbase";
 
 const handler = NextAuth({
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -17,22 +14,25 @@ const handler = NextAuth({
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        });
-        if (!user || !user.password) {
+
+        try {
+          // Authenticate with PocketBase
+          const authData = await pb.collection('users').authWithPassword(
+            credentials.email,
+            credentials.password
+          );
+
+          // Return user data in the format NextAuth expects
+          return {
+            id: authData.record.id,
+            email: authData.record.email,
+            name: authData.record.name,
+            role: authData.record.role || 'USER',
+          };
+        } catch (error) {
+          console.error('Authentication error:', error);
           return null;
         }
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isPasswordValid) {
-          return null;
-        }
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
       }
     })
   ],
@@ -43,12 +43,14 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
         session.user.role = token.role as string;
+        session.user.id = token.id as string;
       }
       return session;
     }

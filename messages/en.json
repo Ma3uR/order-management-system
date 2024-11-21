@@ -54,7 +54,9 @@
     "emailPlaceholder": "Email address",
     "passwordLabel": "Password",
     "passwordPlaceholder": "Password",
-    "signInButton": "Sign in"
+    "signInButton": "Sign in",
+    "invalidCredentials": "Invalid email or password",
+    "signInError": "An error occurred during sign in"
   },
   "Dashboard": {
     "title": "Dashboard",

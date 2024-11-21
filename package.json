@@ -12,7 +12,9 @@
     "prisma:studio": "prisma studio",
     "add-test-user": "node scripts/addTestUser.js",
     "prisma:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "add-pb-user": "node scripts/add-test-pocketbase-user.js",
+    "seed:pb": "node scripts/seed-pocketbase.js"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
@@ -52,5 +54,6 @@
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
-  }
+  },
+  "type": "module"
 }

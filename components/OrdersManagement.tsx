@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/tabs"
 import { PlusCircle, Search, RefreshCw, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import pb from '@/lib/pocketbase'
 
 interface Order {
   id: string
@@ -166,8 +167,8 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
   const fetchDeliveryMethods = useCallback(async () => {
     try {
-      const response = await axios.get('/api/delivery-methods');
-      setDeliveryMethods(response.data);
+      const records = await pb.collection('delivery_options').getFullList();
+      setDeliveryMethods(records);
     } catch (error) {
       console.error('Error fetching delivery methods:', error);
     }
@@ -175,8 +176,8 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
   const fetchPaymentMethods = useCallback(async () => {
     try {
-      const response = await axios.get('/api/payment-methods');
-      setPaymentMethods(response.data);
+      const records = await pb.collection('payment_options').getFullList();
+      setPaymentMethods(records);
     } catch (error) {
       console.error('Error fetching payment methods:', error);
     }
@@ -197,9 +198,8 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   useEffect(() => {
     const fetchDefaultCurrency = async () => {
       try {
-        const response = await fetch('/api/currencies/default');
-        const data = await response.json();
-        setDefaultCurrency(data);
+        const record = await pb.collection('currency_options').getFirstListItem('isDefault=true');
+        setDefaultCurrency(record);
       } catch (error) {
         console.error('Error fetching default currency:', error);
       }
@@ -210,14 +210,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const response = await fetch('/api/statuses');
-        const data = await response.json();
-        setStatuses(data);
+        const records = await pb.collection('status_options').getFullList({
+          sort: 'priority'
+        });
+        setStatuses(records);
       } catch (error) {
         console.error('Error fetching statuses:', error);
       }
     };
-
     fetchStatuses();
   }, []);
 
@@ -238,14 +238,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const handleDeleteOrder = async (orderId: string) => {
     if (window.confirm(translations.deleteConfirmation)) {
       try {
-        await axios.delete(`/api/orders/${orderId}`)
-        setOrders(orders.filter(order => order.id !== orderId))
+        await pb.collection('orders').delete(orderId);
+        setOrders(orders.filter(order => order.id !== orderId));
       } catch (error) {
-        console.error('Error deleting order:', error)
-        alert(translations.deleteError)
+        console.error('Error deleting order:', error);
+        alert(translations.deleteError);
       }
     }
-  }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -279,8 +279,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     try {
       const orderData = {
         ...newOrder,
-        currencyId: defaultCurrency?.id,
-        currency: defaultCurrency || { id: '', code: '', symbol: '' },
+        currency: defaultCurrency?.id,
         products: typeof newOrder.products === 'string' 
           ? newOrder.products 
           : JSON.stringify(newOrder.products),
@@ -288,18 +287,13 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
         amount: Number(newOrder.amount),
       };
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData),
+      const record = await pb.collection('orders').create(orderData);
+      
+      // Fetch the complete order with relations
+      const createdOrder = await pb.collection('orders').getOne(record.id, {
+        expand: 'deliveryMethod,paymentMethod,status,currency'
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create order');
-      }
-
-      const createdOrder = await response.json();
       setOrders([...orders, createdOrder]);
       setIsCreateModalOpen(false);
       resetNewOrderForm();
