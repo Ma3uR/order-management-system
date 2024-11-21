@@ -29,28 +29,32 @@ export async function POST(request: Request) {
     const data = await request.json();
     console.log('Received order data:', data);
 
-    // Get the default currency
-    const defaultCurrency = await prisma.currency.findFirst({
-      where: { isDefault: true }
-    });
-
-    if (!defaultCurrency) {
-      return NextResponse.json(
-        { error: 'Default currency not found' },
-        { status: 400 }
-      );
+    // Get the default currency if not provided
+    if (!data.currencyId) {
+      const defaultCurrency = await prisma.currency.findFirst({
+        where: { isDefault: true }
+      });
+      if (!defaultCurrency) {
+        return NextResponse.json(
+          { error: 'Default currency not found' },
+          { status: 400 }
+        );
+      }
+      data.currencyId = defaultCurrency.id;
     }
 
-    // Get the default status
-    const status = await prisma.status.findFirst({
-      where: { name: 'Being processed by manager' }
-    });
-
-    if (!status) {
-      return NextResponse.json(
-        { error: 'Default status not found' },
-        { status: 400 }
-      );
+    // Get the default status if not provided
+    if (!data.statusId) {
+      const status = await prisma.status.findFirst({
+        where: { name: 'Being processed by manager' }
+      });
+      if (!status) {
+        return NextResponse.json(
+          { error: 'Default status not found' },
+          { status: 400 }
+        );
+      }
+      data.statusId = status.id;
     }
 
     // Create the order with the correct relationships
@@ -66,22 +70,22 @@ export async function POST(request: Request) {
         deliveryPostNumber: data.deliveryPostNumber,
         phoneNumber: data.phoneNumber,
         fullName: data.fullName,
-        products: JSON.parse(data.products), // Parse JSON string to object
-        numberOfItems: parseInt(data.numberOfItems),
+        products: data.products, // Already stringified from frontend
+        numberOfItems: Number(data.numberOfItems),
         paymentMethod: {
           connect: {
             id: data.paymentMethod.id
           }
         },
-        amount: parseFloat(data.amount),
+        amount: Number(data.amount),
         status: {
           connect: {
-            id: status.id // Use the found status ID
+            id: data.statusId
           }
         },
         currency: {
           connect: {
-            id: defaultCurrency.id
+            id: data.currencyId
           }
         },
       },
@@ -93,12 +97,11 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log('Created order:', order);
     return NextResponse.json(order);
   } catch (error) {
     console.error('Error creating order:', error);
     return NextResponse.json(
-      { error: 'Failed to create order', details: error },
+      { error: 'Error creating order', details: error },
       { status: 500 }
     );
   }

@@ -49,7 +49,7 @@ interface Order {
     name: string;
     color: string;
   };
-  currency?: {
+  currency: {
     id: string;
     code: string;
     symbol: string;
@@ -139,11 +139,13 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     paymentMethod: { id: '', name: '' },
     amount: 0,
     status: { id: '', name: 'Being processed by manager', color: 'yellow' },
+    currency: { id: '', code: '', symbol: '' },
   })
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [deliveryMethod, setDeliveryMethod] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
+  const [defaultCurrency, setDefaultCurrency] = useState<{symbol: string} | null>(null);
 
   const fetchDeliveryMethods = useCallback(async () => {
     try {
@@ -174,6 +176,19 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     console.log('Current delivery methods:', deliveryMethods);
     console.log('Current payment methods:', paymentMethods);
   }, [deliveryMethods, paymentMethods]);
+
+  useEffect(() => {
+    const fetchDefaultCurrency = async () => {
+      try {
+        const response = await fetch('/api/currencies/default');
+        const data = await response.json();
+        setDefaultCurrency(data);
+      } catch (error) {
+        console.error('Error fetching default currency:', error);
+      }
+    };
+    fetchDefaultCurrency();
+  }, []);
 
   const filteredOrders = orders.filter(order => 
     order.orderNumber.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -264,22 +279,42 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   };
 
   const handleCreateOrder = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const response = await axios.post('/api/orders', newOrder)
-      const createdOrder = response.data
-      setOrders([...orders, createdOrder])
-      setIsCreateModalOpen(false)
-      resetNewOrderForm()
+      const orderData = {
+        ...newOrder,
+        currencyId: defaultCurrency?.id,
+        products: typeof newOrder.products === 'string' 
+          ? newOrder.products 
+          : JSON.stringify(newOrder.products),
+        numberOfItems: Number(newOrder.numberOfItems),
+        amount: Number(newOrder.amount),
+      };
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create order');
+      }
+
+      const createdOrder = await response.json();
+      setOrders([...orders, createdOrder]);
+      setIsCreateModalOpen(false);
+      resetNewOrderForm();
     } catch (error) {
-      console.error('Error creating order:', error)
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
-        alert(`Error creating order: ${error.response.data.error}`);
+      console.error('Error creating order:', error);
+      if (error instanceof Error) {
+        alert(`Error creating order: ${error.message}`);
       } else {
         alert('Error creating order');
       }
     }
-  }
+  };
 
   const resetNewOrderForm = () => {
     setNewOrder({
@@ -294,6 +329,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
       paymentMethod: { id: '', name: '' },
       amount: 0,
       status: { id: '', name: 'Being processed by manager', color: 'yellow' },
+      currency: { id: '', code: '', symbol: '' },
     });
   };
 
@@ -325,7 +361,9 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                   <CardTitle>{translations.totalAmount}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">${totalAmount.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">
+                    {defaultCurrency?.symbol || ''}{totalAmount.toFixed(2)}
+                  </p>
                 </CardContent>
               </Card>
               <Card>
@@ -393,7 +431,9 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                             {order.status ? translateStatus(order.status.name) : ''}
                           </Badge>
                         </TableCell>
-                        <TableCell>${order.amount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {order.currency.symbol}{order.amount.toFixed(2)}
+                        </TableCell>
                         <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
@@ -488,7 +528,10 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.amount}</Label>
-                <Input value={`$${selectedOrder.amount.toFixed(2)}`} readOnly />
+                <Input 
+                  value={`${selectedOrder.currency.symbol}${selectedOrder.amount.toFixed(2)}`} 
+                  readOnly 
+                />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.source}</Label>

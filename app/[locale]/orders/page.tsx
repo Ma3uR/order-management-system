@@ -62,6 +62,11 @@ export default async function OrdersPage() {
         id: order.id,
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
+        currency: {
+          id: order.currency.id,
+          code: order.currency.code,
+          symbol: order.currency.symbol,
+        },
         paymentMethod: {
           id: order.paymentMethodId,
           name: '' // This will be populated by the component
