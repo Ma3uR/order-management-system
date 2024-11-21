@@ -1,10 +1,10 @@
 import '@/styles/globals.css';
 import { NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
-import { Providers } from '../providers';
+import { locales } from '@/config';
 
 export function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'ua' }];
+  return locales.map((locale) => ({ locale }));
 }
 
 export default async function LocaleLayout({
@@ -22,13 +22,11 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale}>
-      <body>
-        <Providers>
-          <NextIntlClientProvider locale={locale} messages={messages}>
-            {children}
-          </NextIntlClientProvider>
-        </Providers>
+    <html lang={locale} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );
