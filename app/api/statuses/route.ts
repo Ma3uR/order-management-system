@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   try {
     const { name, color, priority } = await request.json();
     const newStatus = await prisma.status.create({
-      data: {
+      data: <Prisma.StatusCreateInput>{
         name,
         color,
         priority: typeof priority === 'number' ? priority : 0,
@@ -68,7 +68,7 @@ export async function PUT(request: Request) {
     const { id, name, color, priority } = await request.json();
     const updatedStatus = await prisma.status.update({
       where: { id },
-      data: {
+      data: <Prisma.StatusUpdateInput>{
         name,
         color,
         priority: typeof priority === 'number' ? priority : 0,

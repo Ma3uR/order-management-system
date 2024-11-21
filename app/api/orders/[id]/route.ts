@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET(
   request: Request,
@@ -35,7 +36,7 @@ export async function PUT(
     const data = await request.json();
     
     // Create update data object
-    const updateData: any = {};
+    const updateData: Prisma.OrderUpdateInput = {};
     
     // Handle status update
     if (data.statusId) {

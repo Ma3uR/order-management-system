@@ -140,7 +140,6 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const [isClient, setIsClient] = useState(false)
   const [filterText, setFilterText] = useState("")
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [newOrder, setNewOrder] = useState<Partial<Order>>({
@@ -161,7 +160,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [deliveryMethod, setDeliveryMethod] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
-  const [defaultCurrency, setDefaultCurrency] = useState<{symbol: string} | null>(null);
+  const [defaultCurrency, setDefaultCurrency] = useState<{id: string; code: string; symbol: string} | null>(null);
   const [statuses, setStatuses] = useState<Array<{id: string; name: string; color: string}>>([]);
   const [editingStatusOrder, setEditingStatusOrder] = useState<Order | null>(null);
 
@@ -236,41 +235,6 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     return translations.statuses[statusKey] || status;
   }
 
-  const handleEditOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Submitting edit form...', selectedOrder);
-    
-    if (!selectedOrder?.id || selectedOrder.id === 'null') {
-      console.error('Invalid order ID:', selectedOrder?.id);
-      return;
-    }
-
-    try {
-      const orderId = selectedOrder.status?.id || selectedOrder.id;
-      console.log('Sending update request for order:', orderId);
-      
-      const response = await axios.put(`/api/orders/${orderId}`, {
-        status: {
-          name: selectedOrder.status?.name || 'Being processed by manager'
-        }
-      });
-      
-      console.log('Update response:', response.data);
-      
-      if (response.data) {
-        setOrders(prevOrders => 
-          prevOrders.map(order => 
-            order.id === orderId ? response.data : order
-          )
-        );
-        setIsEditModalOpen(false);
-      }
-    } catch (error) {
-      console.error('Error updating order:', error);
-      alert('Error updating order');
-    }
-  };
-
   const handleDeleteOrder = async (orderId: string) => {
     if (window.confirm(translations.deleteConfirmation)) {
       try {
@@ -316,6 +280,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
       const orderData = {
         ...newOrder,
         currencyId: defaultCurrency?.id,
+        currency: defaultCurrency || { id: '', code: '', symbol: '' },
         products: typeof newOrder.products === 'string' 
           ? newOrder.products 
           : JSON.stringify(newOrder.products),

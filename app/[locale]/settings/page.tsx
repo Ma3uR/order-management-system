@@ -312,254 +312,258 @@ export default function SettingsPage() {
           {flashMessage.message}
         </div>
       )}
-      <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="profile">{t('profile')}</TabsTrigger>
-          <TabsTrigger value="currencies">{t('currencies')}</TabsTrigger>
-          <TabsTrigger value="statuses">{t('statuses')}</TabsTrigger>
-          <TabsTrigger value="paymentMethods">{t('paymentMethods')}</TabsTrigger>
-          <TabsTrigger value="deliveryMethods">{t('deliveryMethods')}</TabsTrigger>
-        </TabsList>
-        <TabsContent value="profile">
-          <form onSubmit={handleUserUpdate} className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                {t('name')}
-              </label>
-              <Input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+      <div className="space-y-4">
+        <Tabs defaultValue="profile">
+          <TabsList>
+            <div className="grid w-full grid-cols-5">
+              <TabsTrigger value="profile">{t('profile')}</TabsTrigger>
+              <TabsTrigger value="currencies">{t('currencies')}</TabsTrigger>
+              <TabsTrigger value="statuses">{t('statuses')}</TabsTrigger>
+              <TabsTrigger value="paymentMethods">{t('paymentMethods')}</TabsTrigger>
+              <TabsTrigger value="deliveryMethods">{t('deliveryMethods')}</TabsTrigger>
             </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                {t('email')}
-              </label>
-              <Input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <Button type="submit">{t('saveChanges')}</Button>
-          </form>
-        </TabsContent>
-        <TabsContent value="currencies">
-          <form onSubmit={handleAddCurrency} className="space-y-4 mb-4">
-            <div className="flex space-x-2">
-              <Input
-                placeholder={t('currencyCode')}
-                value={newCurrency.code}
-                onChange={(e) => setNewCurrency({ ...newCurrency, code: e.target.value })}
-              />
-              <Input
-                placeholder={t('currencyName')}
-                value={newCurrency.name}
-                onChange={(e) => setNewCurrency({ ...newCurrency, name: e.target.value })}
-              />
-              <Input
-                placeholder={t('currencySymbol')}
-                value={newCurrency.symbol}
-                onChange={(e) => setNewCurrency({ ...newCurrency, symbol: e.target.value })}
-              />
-              <Button type="submit">
-                <PlusCircle className="w-4 h-4 mr-2" />
-                {t('addCurrency')}
-              </Button>
-            </div>
-          </form>
-          <ul className="space-y-2">
-            {currencies.map((currency) => (
-              <li key={currency.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-                <span>{currency.name} ({currency.code}) {currency.symbol}</span>
-                <span>{currency.isDefault ? t('default') : ''}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteCurrency(currency.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </TabsContent>
-        <TabsContent value="statuses">
-          <form onSubmit={handleAddStatus} className="space-y-4 mb-4">
-            <div className="flex space-x-2">
-              <Input
-                placeholder={t('statusName')}
-                value={newStatus.name}
-                onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
-                className="flex-grow"
-              />
-              <div className="flex flex-col space-y-1">
-                <label className="text-sm text-gray-500">{t('statusColor')}</label>
+          </TabsList>
+          <TabsContent value="profile">
+            <form onSubmit={handleUserUpdate} className="space-y-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  {t('name')}
+                </label>
                 <Input
-                  type="color"
-                  value={newStatus.color}
-                  onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
-                  className="w-20 h-10"
+                  type="text"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
-              <div className="flex flex-col space-y-1">
-                <label className="text-sm text-gray-500">{t('statusPriority')}</label>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  {t('email')}
+                </label>
                 <Input
-                  type="number"
-                  placeholder={t('priorityPlaceholder')}
-                  value={newStatus.priority}
-                  onChange={(e) => setNewStatus({ 
-                    ...newStatus, 
-                    priority: Math.max(0, Math.min(99, parseInt(e.target.value) || 0)) 
-                  })}
-                  className="w-24"
-                  min="0"
-                  max="99"
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              <Button type="submit">
-                <PlusCircle className="w-4 h-4 mr-2" />
-                {t('addStatus')}
-              </Button>
-            </div>
-          </form>
-          <ul className="space-y-2">
-            {statuses
-              .sort((a, b) => a.priority - b.priority)
-              .map((status) => (
-                <li key={status.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-                  <div className="flex items-center space-x-2">
-                    <div 
-                      className="w-4 h-4 rounded-full" 
-                      style={{ backgroundColor: status.color }}
-                    />
-                    <span>{status.name}</span>
-                    <span className="text-sm text-gray-500">({t('priority')}: {status.priority})</span>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingStatus(status);
-                        setEditStatusValues({
-                          name: status.name,
-                          color: status.color,
-                          priority: status.priority
-                        });
-                      }}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteStatus(status.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </li>
-            ))}
-          </ul>
-          {editingStatus && (
-            <form onSubmit={handleEditStatus} className="mt-4 space-y-4">
+              <Button type="submit">{t('saveChanges')}</Button>
+            </form>
+          </TabsContent>
+          <TabsContent value="currencies">
+            <form onSubmit={handleAddCurrency} className="space-y-4 mb-4">
               <div className="flex space-x-2">
                 <Input
-                  value={editStatusValues.name}
-                  onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
-                  className="flex-grow"
+                  placeholder={t('currencyCode')}
+                  value={newCurrency.code}
+                  onChange={(e) => setNewCurrency({ ...newCurrency, code: e.target.value })}
                 />
                 <Input
-                  type="color"
-                  value={editStatusValues.color}
-                  onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
-                  className="w-20"
+                  placeholder={t('currencyName')}
+                  value={newCurrency.name}
+                  onChange={(e) => setNewCurrency({ ...newCurrency, name: e.target.value })}
                 />
                 <Input
-                  type="number"
-                  value={editStatusValues.priority}
-                  onChange={(e) => setEditStatusValues({ 
-                    ...editStatusValues, 
-                    priority: parseInt(e.target.value) || 0 
-                  })}
-                  className="w-24"
-                  min="0"
+                  placeholder={t('currencySymbol')}
+                  value={newCurrency.symbol}
+                  onChange={(e) => setNewCurrency({ ...newCurrency, symbol: e.target.value })}
                 />
-              </div>
-              <div className="flex space-x-2">
-                <Button type="submit">Save Changes</Button>
-                <Button type="button" variant="outline" onClick={() => setEditingStatus(null)}>
-                  Cancel
+                <Button type="submit">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  {t('addCurrency')}
                 </Button>
               </div>
             </form>
-          )}
-        </TabsContent>
-        <TabsContent value="paymentMethods">
-          <form onSubmit={handleAddPaymentMethod} className="space-y-4 mb-4">
-            <div className="flex space-x-2">
-              <Input
-                placeholder={t('paymentMethodName')}
-                value={newPaymentMethod.name}
-                onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, name: e.target.value })}
-                className="flex-grow"
-              />
-              <Button type="submit">
-                <PlusCircle className="w-4 h-4 mr-2" />
-                {t('addPaymentMethod')}
-              </Button>
-            </div>
-          </form>
-          <ul className="space-y-2">
-            {paymentMethods.map((method) => (
-              <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-                <span>{method.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeletePaymentMethod(method.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
+            <ul className="space-y-2">
+              {currencies.map((currency) => (
+                <li key={currency.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                  <span>{currency.name} ({currency.code}) {currency.symbol}</span>
+                  <span>{currency.isDefault ? t('default') : ''}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteCurrency(currency.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </TabsContent>
+          <TabsContent value="statuses">
+            <form onSubmit={handleAddStatus} className="space-y-4 mb-4">
+              <div className="flex space-x-2">
+                <Input
+                  placeholder={t('statusName')}
+                  value={newStatus.name}
+                  onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
+                  className="flex-grow"
+                />
+                <div className="flex flex-col space-y-1">
+                  <label className="text-sm text-gray-500">{t('statusColor')}</label>
+                  <Input
+                    type="color"
+                    value={newStatus.color}
+                    onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
+                    className="w-20 h-10"
+                  />
+                </div>
+                <div className="flex flex-col space-y-1">
+                  <label className="text-sm text-gray-500">{t('statusPriority')}</label>
+                  <Input
+                    type="number"
+                    placeholder={t('priorityPlaceholder')}
+                    value={newStatus.priority}
+                    onChange={(e) => setNewStatus({ 
+                      ...newStatus, 
+                      priority: Math.max(0, Math.min(99, parseInt(e.target.value) || 0)) 
+                    })}
+                    className="w-24"
+                    min="0"
+                    max="99"
+                  />
+                </div>
+                <Button type="submit">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  {t('addStatus')}
                 </Button>
-              </li>
-            ))}
-          </ul>
-        </TabsContent>
-        <TabsContent value="deliveryMethods">
-          <form onSubmit={handleAddDeliveryMethod} className="space-y-4 mb-4">
-            <div className="flex space-x-2">
-              <Input
-                placeholder={t('deliveryMethodName')}
-                value={newDeliveryMethod.name}
-                onChange={(e) => setNewDeliveryMethod({ ...newDeliveryMethod, name: e.target.value })}
-                className="flex-grow"
-              />
-              <Button type="submit">
-                <PlusCircle className="w-4 h-4 mr-2" />
-                {t('addDeliveryMethod')}
-              </Button>
-            </div>
-          </form>
-          <ul className="space-y-2">
-            {deliveryMethods.map((method) => (
-              <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-                <span>{method.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteDeliveryMethod(method.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
+              </div>
+            </form>
+            <ul className="space-y-2">
+              {statuses
+                .sort((a, b) => a.priority - b.priority)
+                .map((status) => (
+                  <li key={status.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-4 h-4 rounded-full" 
+                        style={{ backgroundColor: status.color }}
+                      />
+                      <span>{status.name}</span>
+                      <span className="text-sm text-gray-500">({t('priority')}: {status.priority})</span>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingStatus(status);
+                          setEditStatusValues({
+                            name: status.name,
+                            color: status.color,
+                            priority: status.priority
+                          });
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteStatus(status.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </li>
+              ))}
+            </ul>
+            {editingStatus && (
+              <form onSubmit={handleEditStatus} className="mt-4 space-y-4">
+                <div className="flex space-x-2">
+                  <Input
+                    value={editStatusValues.name}
+                    onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
+                    className="flex-grow"
+                  />
+                  <Input
+                    type="color"
+                    value={editStatusValues.color}
+                    onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
+                    className="w-20"
+                  />
+                  <Input
+                    type="number"
+                    value={editStatusValues.priority}
+                    onChange={(e) => setEditStatusValues({ 
+                      ...editStatusValues, 
+                      priority: parseInt(e.target.value) || 0 
+                    })}
+                    className="w-24"
+                    min="0"
+                  />
+                </div>
+                <div className="flex space-x-2">
+                  <Button type="submit">Save Changes</Button>
+                  <Button type="button" variant="outline" onClick={() => setEditingStatus(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+          </TabsContent>
+          <TabsContent value="paymentMethods">
+            <form onSubmit={handleAddPaymentMethod} className="space-y-4 mb-4">
+              <div className="flex space-x-2">
+                <Input
+                  placeholder={t('paymentMethodName')}
+                  value={newPaymentMethod.name}
+                  onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, name: e.target.value })}
+                  className="flex-grow"
+                />
+                <Button type="submit">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  {t('addPaymentMethod')}
                 </Button>
-              </li>
-            ))}
-          </ul>
-        </TabsContent>
-      </Tabs>
+              </div>
+            </form>
+            <ul className="space-y-2">
+              {paymentMethods.map((method) => (
+                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                  <span>{method.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeletePaymentMethod(method.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </TabsContent>
+          <TabsContent value="deliveryMethods">
+            <form onSubmit={handleAddDeliveryMethod} className="space-y-4 mb-4">
+              <div className="flex space-x-2">
+                <Input
+                  placeholder={t('deliveryMethodName')}
+                  value={newDeliveryMethod.name}
+                  onChange={(e) => setNewDeliveryMethod({ ...newDeliveryMethod, name: e.target.value })}
+                  className="flex-grow"
+                />
+                <Button type="submit">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  {t('addDeliveryMethod')}
+                </Button>
+              </div>
+            </form>
+            <ul className="space-y-2">
+              {deliveryMethods.map((method) => (
+                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                  <span>{method.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteDeliveryMethod(method.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
