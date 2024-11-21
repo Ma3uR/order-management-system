@@ -92,7 +92,11 @@
     "backToDashboard": "Back to Dashboard",
     "deliveryMethods": "Delivery Methods",
     "deliveryMethodName": "Delivery Method Name",
-    "addDeliveryMethod": "Add Delivery Method"
+    "addDeliveryMethod": "Add Delivery Method",
+    "priority": "Priority",
+    "priorityPlaceholder": "Enter priority (0-99)",
+    "statusPriority": "Status Priority",
+    "statusColor": "Status Color"
   },
   "Blacklist": {
     "title": "Blacklist Management",

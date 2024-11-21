@@ -91,7 +91,11 @@
     "deliveryMethods": "Способи доставки",
     "deliveryMethodName": "Назва способу доставки",
     "addDeliveryMethod": "Додати спосіб доставки",
-    "backToDashboard": "Повернутися до панелі керування"
+    "backToDashboard": "Повернутися до панелі керування",
+    "priority": "Пріоритет",
+    "priorityPlaceholder": "Введіть пріоритет (0-99)",
+    "statusPriority": "Пріоритет статусу",
+    "statusColor": "Колір статусу"
   },
   "Blacklist": {
     "title": "Управління чорним списком",

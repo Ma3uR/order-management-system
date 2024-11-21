@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET() {
   try {
@@ -13,17 +14,29 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
+    const { name, color, priority } = await request.json();
     const newStatus = await prisma.status.create({
       data: {
-        name: data.name,
-        color: data.color,
+        name,
+        color,
+        priority: typeof priority === 'number' ? priority : 0,
       },
     });
     return NextResponse.json(newStatus);
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'A status with this name already exists' }, 
+          { status: 400 }
+        );
+      }
+    }
     console.error('Error creating status:', error);
-    return NextResponse.json({ error: 'Error creating status' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Error creating status' }, 
+      { status: 500 }
+    );
   }
 }
 
@@ -52,14 +65,29 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { id, name, color } = await request.json();
+    const { id, name, color, priority } = await request.json();
     const updatedStatus = await prisma.status.update({
       where: { id },
-      data: { name, color },
+      data: {
+        name,
+        color,
+        priority: typeof priority === 'number' ? priority : 0,
+      },
     });
     return NextResponse.json(updatedStatus);
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'A status with this name already exists' }, 
+          { status: 400 }
+        );
+      }
+    }
     console.error('Error updating status:', error);
-    return NextResponse.json({ error: 'Error updating status' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Error updating status' }, 
+      { status: 500 }
+    );
   }
 }

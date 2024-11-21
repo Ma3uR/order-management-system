@@ -21,6 +21,7 @@ interface Status {
   id: string;
   name: string;
   color: string;
+  priority: number;
 }
 
 interface PaymentMethod {
@@ -45,14 +46,22 @@ export default function SettingsPage() {
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
 
   const [newCurrency, setNewCurrency] = useState({ code: '', name: '', symbol: '' });
-  const [newStatus, setNewStatus] = useState({ name: '', color: '#000000' });
+  const [newStatus, setNewStatus] = useState({ 
+    name: '', 
+    color: '#000000',
+    priority: 0
+  });
   const [newPaymentMethod, setNewPaymentMethod] = useState({ name: '' });
   const [newDeliveryMethod, setNewDeliveryMethod] = useState({ name: '' });
 
   const [flashMessage, setFlashMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const [editingStatus, setEditingStatus] = useState<Status | null>(null);
-  const [editStatusValues, setEditStatusValues] = useState({ name: '', color: '#000000' });
+  const [editStatusValues, setEditStatusValues] = useState({ 
+    name: '', 
+    color: '#000000',
+    priority: 0
+  });
 
   useEffect(() => {
     fetchCurrencies();
@@ -150,7 +159,7 @@ export default function SettingsPage() {
       }
       const addedStatus = await response.json();
       setStatuses([...statuses, addedStatus]);
-      setNewStatus({ name: '', color: '#000000' });
+      setNewStatus({ name: '', color: '#000000', priority: 0 });
       showFlashMessage('Status added successfully!', 'success');
     } catch (error) {
       console.error('Error adding status:', error);
@@ -385,13 +394,32 @@ export default function SettingsPage() {
                 placeholder={t('statusName')}
                 value={newStatus.name}
                 onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
+                className="flex-grow"
               />
-              <Input
-                type="color"
-                value={newStatus.color}
-                onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
-                className="w-12"
-              />
+              <div className="flex flex-col space-y-1">
+                <label className="text-sm text-gray-500">{t('statusColor')}</label>
+                <Input
+                  type="color"
+                  value={newStatus.color}
+                  onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
+                  className="w-20 h-10"
+                />
+              </div>
+              <div className="flex flex-col space-y-1">
+                <label className="text-sm text-gray-500">{t('statusPriority')}</label>
+                <Input
+                  type="number"
+                  placeholder={t('priorityPlaceholder')}
+                  value={newStatus.priority}
+                  onChange={(e) => setNewStatus({ 
+                    ...newStatus, 
+                    priority: Math.max(0, Math.min(99, parseInt(e.target.value) || 0)) 
+                  })}
+                  className="w-24"
+                  min="0"
+                  max="99"
+                />
+              </div>
               <Button type="submit">
                 <PlusCircle className="w-4 h-4 mr-2" />
                 {t('addStatus')}
@@ -399,48 +427,74 @@ export default function SettingsPage() {
             </div>
           </form>
           <ul className="space-y-2">
-            {statuses.map((status) => (
-              <li key={status.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-                <span>{status.name}</span>
-                <div className="flex items-center space-x-2">
-                  <div style={{ backgroundColor: status.color, width: '20px', height: '20px', borderRadius: '50%' }}></div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setEditingStatus(status);
-                      setEditStatusValues({ name: status.name, color: status.color });
-                    }}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteStatus(status.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </li>
+            {statuses
+              .sort((a, b) => a.priority - b.priority)
+              .map((status) => (
+                <li key={status.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-4 h-4 rounded-full" 
+                      style={{ backgroundColor: status.color }}
+                    />
+                    <span>{status.name}</span>
+                    <span className="text-sm text-gray-500">({t('priority')}: {status.priority})</span>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingStatus(status);
+                        setEditStatusValues({
+                          name: status.name,
+                          color: status.color,
+                          priority: status.priority
+                        });
+                      }}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteStatus(status.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </li>
             ))}
           </ul>
           {editingStatus && (
             <form onSubmit={handleEditStatus} className="mt-4 space-y-4">
               <div className="flex space-x-2">
                 <Input
-                  placeholder={t('statusName')}
                   value={editStatusValues.name}
                   onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
+                  className="flex-grow"
                 />
                 <Input
                   type="color"
                   value={editStatusValues.color}
                   onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
-                  className="w-12"
+                  className="w-20"
                 />
+                <Input
+                  type="number"
+                  value={editStatusValues.priority}
+                  onChange={(e) => setEditStatusValues({ 
+                    ...editStatusValues, 
+                    priority: parseInt(e.target.value) || 0 
+                  })}
+                  className="w-24"
+                  min="0"
+                />
+              </div>
+              <div className="flex space-x-2">
                 <Button type="submit">Save Changes</Button>
-                <Button type="button" variant="outline" onClick={() => setEditingStatus(null)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setEditingStatus(null)}>
+                  Cancel
+                </Button>
               </div>
             </form>
           )}

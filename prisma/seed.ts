@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
   // Create default currency
@@ -13,7 +13,7 @@ async function main() {
       symbol: '₴',
       isDefault: true,
     },
-  })
+  });
 
   // Create default status
   await prisma.status.upsert({
@@ -22,8 +22,9 @@ async function main() {
     create: {
       name: 'Being processed by manager',
       color: 'yellow',
+      priority: 0,
     },
-  })
+  });
 
   // Create delivery methods
   await prisma.deliveryMethod.upsert({
@@ -32,7 +33,7 @@ async function main() {
     create: {
       name: 'Ukr poshta',
     },
-  })
+  });
 
   // Create payment methods
   await prisma.paymentMethod.upsert({
@@ -41,16 +42,16 @@ async function main() {
     create: {
       name: 'test2',
     },
-  })
+  });
 
-  console.log('Seed data created successfully')
+  console.log('Seed data created successfully');
 }
 
 main()
   .catch((e) => {
-    console.error(e)
-    process.exit(1)
+    console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

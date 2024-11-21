@@ -59,10 +59,11 @@ model Currency {
 }
 
 model Status {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  color  String
-  orders Order[]
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String
+  priority  Int      @default(0)
+  orders    Order[]
 }
 
 model PaymentMethod {
