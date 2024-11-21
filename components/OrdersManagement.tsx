@@ -37,7 +37,7 @@ interface Order {
   deliveryPostNumber: string | null
   phoneNumber: string
   fullName: string
-  products: Record<string, any>
+  products: Record<string, unknown>
   numberOfItems: number
   paymentMethod?: {
     id: string;
@@ -199,7 +199,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     }
 
     try {
-      const orderId = selectedOrder.statusId || selectedOrder.id;
+      const orderId = selectedOrder.status?.id || selectedOrder.id;
       console.log('Sending update request for order:', orderId);
       
       const response = await axios.put(`/api/orders/${orderId}`, {
@@ -412,15 +412,15 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                                   ...order,
                                   id: order.id,
                                   deliveryMethod: {
-                                    id: order.deliveryMethodId || '',
+                                    id: order.deliveryMethod?.id || '',
                                     name: order.deliveryMethod?.name || ''
                                   },
                                   paymentMethod: {
-                                    id: order.paymentMethodId || '',
+                                    id: order.paymentMethod?.id || '',
                                     name: order.paymentMethod?.name || ''
                                   },
                                   status: {
-                                    id: order.statusId || '',
+                                    id: order.status?.id || '',
                                     name: order.status?.name || 'Being processed by manager',
                                     color: order.status?.color || ''
                                   }
@@ -693,8 +693,17 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               <Textarea
                 id="products"
                 name="products"
-                value={newOrder.products}
-                onChange={handleInputChange}
+                value={typeof newOrder.products === 'string' 
+                  ? newOrder.products 
+                  : JSON.stringify(newOrder.products, null, 2)}
+                onChange={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value);
+                    setNewOrder(prev => ({ ...prev, products: parsed }));
+                  } catch {
+                    setNewOrder(prev => ({ ...prev, products: {} }));
+                  }
+                }}
                 placeholder={`${translations.products} (JSON format)`}
                 required
               />

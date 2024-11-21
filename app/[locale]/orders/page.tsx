@@ -59,12 +59,21 @@ export default async function OrdersPage() {
       translations={translations} 
       initialOrders={orders.map(order => ({
         ...order,
-        id: parseInt(order.id, 10),
+        id: order.id,
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
-        products: JSON.stringify(order.products),
-        paymentMethod: order.paymentMethodId,
-        status: order.statusId,
+        paymentMethod: {
+          id: order.paymentMethodId,
+          name: '' // This will be populated by the component
+        },
+        status: {
+          id: order.statusId,
+          name: '', // This will be populated by the component
+          color: '' // This will be populated by the component
+        },
+        products: typeof order.products === 'string' 
+          ? JSON.parse(order.products) 
+          : order.products || {}
       }))} 
     />
   );
