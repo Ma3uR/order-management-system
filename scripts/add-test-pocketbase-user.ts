@@ -4,6 +4,12 @@ import { ClientResponseError } from 'pocketbase';
 // Initialize PocketBase client
 const pb = new PocketBase('http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io');
 
+/**
+ * Creates a test user and optionally authenticates as the created user.
+ * If the user already exists, it attempts to authenticate with the existing user.
+ * @returns {Promise<void>} This method doesn't return a value, but logs the results to the console.
+ * @throws {Error} If there's an error creating the user or authenticating, and it's not a "user already exists" error.
+ */
 async function createTestUser() {
   try {
     // Create a test user

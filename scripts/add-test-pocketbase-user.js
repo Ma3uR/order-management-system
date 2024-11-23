@@ -3,6 +3,12 @@ import PocketBase from 'pocketbase';
 // Initialize PocketBase client
 const pb = new PocketBase('http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io');
 
+/**
+ * Creates a test user and optionally authenticates as the created user.
+ * If the user already exists, it attempts to authenticate with the existing credentials.
+ * @returns {Promise<void>} Does not return a value, but logs the results of user creation and authentication
+ * @throws {Error} If there's an error during user creation or authentication that isn't handled internally
+ */
 async function createTestUser() {
   try {
     // Create a test user

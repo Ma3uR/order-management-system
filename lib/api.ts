@@ -1,5 +1,10 @@
 import prisma from './prisma'; // Assuming you have a Prisma client setup
 
+/**
+ * Fetches all orders from the database with related information.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of order objects. Each order object includes status, payment method, delivery method, and currency information. Returns an empty array if an error occurs.
+ * @throws {Error} Logs the error to console if there's an issue fetching orders.
+ */
 export async function fetchOrders() {
   try {
     const orders = await prisma.order.findMany({

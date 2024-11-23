@@ -2,6 +2,12 @@ import PocketBase from 'pocketbase';
 
 const pb = new PocketBase('http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io');
 
+/**
+ * Seeds the PocketBase database with default data for currency, status, delivery, and payment options.
+ * This function attempts to create or update entries in various collections, handling existing entries appropriately.
+ * @returns {Promise<void>} A promise that resolves when all seeding operations are complete.
+ * @throws {Error} If any seeding operation fails, the error is logged and the process exits with status code 1.
+ */
 async function seedPocketBase() {
   try {
     // Try to create or update default currency

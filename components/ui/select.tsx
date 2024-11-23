@@ -15,6 +15,14 @@ const SelectValue = SelectPrimitive.Value
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+/**
+ * A custom Select trigger component that extends the functionality of SelectPrimitive.Trigger
+ * @param {Object} props - The properties passed to the component
+ * @param {string} [props.className] - Additional CSS classes to apply to the trigger
+ * @param {React.ReactNode} props.children - The content to be rendered inside the trigger
+ * @param {React.Ref} ref - A ref object to access the underlying DOM element
+ * @returns {JSX.Element} A styled Select trigger component
+ */
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
@@ -35,6 +43,15 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+/**
+ * Renders a customizable select content component using Radix UI Primitive.
+ * @param {Object} props - The component props.
+ * @param {string} props.className - Additional CSS classes to apply to the component.
+ * @param {React.ReactNode} props.children - The child elements to render within the select content.
+ * @param {string} [props.position="popper"] - The positioning strategy for the select content.
+ * @param {React.Ref} ref - The ref to be forwarded to the SelectPrimitive.Content component.
+ * @returns {React.ReactElement} A React component representing the select content.
+ */
 >(({ className, children, position = "popper", ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content

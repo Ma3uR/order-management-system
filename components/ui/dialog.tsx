@@ -8,6 +8,14 @@ const Dialog = DialogPrimitive.Root
 
 const DialogTrigger = DialogPrimitive.Trigger
 
+/**
+ * Renders a dialog portal component with customizable positioning.
+ * @param {Object} props - The component props.
+ * @param {string} [props.className] - Additional CSS class for styling.
+ * @param {React.ReactNode} props.children - The content to be rendered inside the portal.
+ * @param {...DialogPrimitive.DialogPortalProps} props - Additional props for the DialogPrimitive.Portal component.
+ * @returns {JSX.Element} A dialog portal component with fixed positioning and centered content.
+ */
 const DialogPortal = ({
   className,
   children,
@@ -39,6 +47,14 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+/**
+ * Renders a dialog content component with a portal, overlay, and close button.
+ * @param {Object} props - The component props
+ * @param {string} props.className - Additional CSS class names for the dialog content
+ * @param {React.ReactNode} props.children - The content to be rendered inside the dialog
+ * @param {React.Ref} ref - The ref to be forwarded to the dialog content element
+ * @returns {React.ReactElement} A React element representing the dialog content
+ */
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
