@@ -1,70 +1,101 @@
-# Order Management System
+# Next.js E-commerce Admin Dashboard
 
-This is a [Next.js](https://nextjs.org) project that provides a comprehensive order management system with internationalization support, authentication, and various management features.
+This is a comprehensive admin dashboard application built with Next.js 13+, featuring internationalization, authentication, and various management interfaces for e-commerce operations.
 
 ## Features
 
-- 🌐 **Internationalization**: Supports multiple languages (English and Ukrainian) using next-intl
-- 🔐 **Authentication**: Secure sign-in functionality using NextAuth.js
-- 📦 **Order Management**: Complete order CRUD operations with status tracking
-- ⚙️ **Settings Management**: Configure currencies, delivery methods, payment methods, and more
-- 🚫 **Blacklist Management**: Manage blocked entries
-- 💼 **Project Management**: Handle multiple projects
-- 🎨 **Modern UI**: Built with Tailwind CSS and shadcn/ui components
+- **Authentication**: Secure sign-in system using NextAuth
+- **Internationalization**: Multi-language support (English and Ukrainian)
+- **Order Management**: Complete order tracking and management system
+- **Blacklist Management**: User blacklist functionality
+- **Settings Management**: Comprehensive system settings including:
+  - Currency management
+  - Delivery methods
+  - Payment methods
+  - Status management
+  - Project settings
 
-## Getting Started
+## Tech Stack
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Framework**: Next.js 13+
+- **Language**: TypeScript
+- **Database**: Prisma with SQL database
+- **Authentication**: NextAuth.js
+- **Styling**: Tailwind CSS
+- **Components**: Custom UI components built with shadcn/ui
+- **State Management**: React Hooks
+- **API**: REST API endpoints built with Next.js API routes
+- **Internationalization**: next-intl
 
 ## Project Structure
 
-- `/app` - Main application routes and API endpoints
-- `/components` - Reusable UI components
-- `/lib` - Utility functions and database clients
-- `/messages` - Internationalization message files
-- `/prisma` - Database schema and migrations
-- `/scripts` - Utility scripts for database seeding and setup
+```
+├── app/                      # Next.js 13+ app directory
+│   ├── [locale]/            # Localized routes
+│   ├── api/                 # API routes
+│   └── components/          # Application components
+├── components/              # Shared components
+│   └── ui/                 # UI component library
+├── lib/                     # Utility libraries
+├── messages/                # Internationalization messages
+├── prisma/                  # Database schema and migrations
+├── scripts/                 # Utility scripts
+└── styles/                  # Global styles
+```
 
-## Key Components
+## Getting Started
 
-- **Orders Management**: Complete interface for managing orders with filtering and status updates
-- **Settings Page**: Comprehensive settings management for system configuration
-- **Authentication**: Secure sign-in system with role-based access
-- **API Routes**: RESTful endpoints for all major functionality
-- **Database**: Prisma ORM with migrations support
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up your environment variables:
+   - Copy `.env.example` to `.env`
+   - Configure your database connection and other required variables
 
-## Database Setup
+4. Run database migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
 
-The project uses Prisma as the ORM. To set up the database:
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-1. Run migrations: `npx prisma migrate dev`
-2. Seed the database: `npx prisma db seed`
+## API Routes
 
-## Deployment
+The application includes various API endpoints for:
+- Authentication
+- Order management
+- Blacklist management
+- Currency settings
+- Delivery methods
+- Payment methods
+- Status management
+- User management
 
-The project is optimized for deployment on [Vercel](https://vercel.com). See the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database Schema
 
-## Learn More
-
-To learn more about the technologies used in this project:
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Prisma Documentation](https://www.prisma.io/docs/)
-- [NextAuth.js Documentation](https://next-auth.js.org)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+The database schema includes tables for:
+- Users
+- Orders
+- Blacklist entries
+- Currencies
+- Delivery methods
+- Payment methods
+- Statuses
+- Projects
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
+
+## License
+
+This project is licensed under the MIT License.
