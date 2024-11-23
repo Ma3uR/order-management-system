@@ -2,6 +2,12 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+/**
+ * Initializes the database with seed data for various entities.
+ * This asynchronous function creates or updates default entries for currency,
+ * status, delivery method, and payment method using Prisma ORM.
+ * @returns {Promise<void>} A promise that resolves when all seed data has been created successfully.
+ */
 async function main() {
   // Create default currency
   await prisma.currency.upsert({
