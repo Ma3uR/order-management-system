@@ -3,6 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 
+/**
+ * LanguageSwitcher component for toggling between English and Ukrainian languages.
+ * This component renders a button that, when clicked, switches the application's
+ * language by modifying the URL path.
+ *
+ * @returns {JSX.Element} A button element that allows language switching.
+ */
 export default function LanguageSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
