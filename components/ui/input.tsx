@@ -1,5 +1,10 @@
 import React from 'react'
 
+/**
+ * Renders a styled input element with customizable props.
+ * @param {React.InputHTMLAttributes<HTMLInputElement>} props - The props to be spread onto the input element.
+ * @returns {JSX.Element} A styled input element with applied props and custom styling.
+ */
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
