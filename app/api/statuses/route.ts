@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import pb from '@/lib/pocketbase';
+import { ClientResponseError } from 'pocketbase';
 
 export async function GET() {
   try {
-    const statuses = await prisma.status.findMany();
-    return NextResponse.json(statuses);
+    const records = await pb.collection('status_options').getFullList();
+    return NextResponse.json(records);
   } catch (error) {
     console.error('Error fetching statuses:', error);
     return NextResponse.json({ error: 'Error fetching statuses' }, { status: 500 });
@@ -15,47 +15,60 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { name, color, priority } = await request.json();
-    const newStatus = await prisma.status.create({
-      data: <Prisma.StatusCreateInput>{
-        name,
-        color,
-        priority: typeof priority === 'number' ? priority : 0,
-      },
-    });
-    return NextResponse.json(newStatus);
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2002') {
-        return NextResponse.json(
-          { error: 'A status with this name already exists' }, 
-          { status: 400 }
-        );
-      }
+    
+    // Ensure priority is always a valid number
+    const priorityValue = typeof priority === 'number' ? priority : 
+                         typeof priority === 'string' ? parseInt(priority) : 0;
+    
+    if (isNaN(priorityValue)) {
+      return NextResponse.json({ 
+        error: 'Invalid priority value',
+        details: 'Priority must be a valid number'
+      }, { 
+        status: 400 
+      });
     }
-    console.error('Error creating status:', error);
-    return NextResponse.json(
-      { error: 'Error creating status' }, 
-      { status: 500 }
-    );
+
+    const data = {
+      name,
+      color,
+      priority: priorityValue // This must be a number
+    };
+
+    console.log('Creating status with data:', data);
+
+    const record = await pb.collection('status_options').create(data);
+    return NextResponse.json(record);
+  } catch (error) {
+    if (error instanceof ClientResponseError) {
+      console.error('PocketBase error details:', {
+        status: error.status,
+        message: error.message,
+        data: error.data
+      });
+      
+      return NextResponse.json({ 
+        error: 'Error creating status',
+        details: error.response?.data || error.message
+      }, { 
+        status: error.status 
+      });
+    }
+    
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    }, { 
+      status: 500 
+    });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
-    const status = await prisma.status.findUnique({
-      where: { id },
-      include: { orders: true },
-    });
-
-    if (status?.orders.length) {
-      return NextResponse.json({ error: 'Cannot delete status with associated orders' }, { status: 400 });
-    }
-
-    await prisma.status.delete({
-      where: { id },
-    });
-
+    await pb.collection('status_options').delete(id);
     return NextResponse.json({ message: 'Status deleted successfully' });
   } catch (error) {
     console.error('Error deleting status:', error);
@@ -66,28 +79,14 @@ export async function DELETE(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { id, name, color, priority } = await request.json();
-    const updatedStatus = await prisma.status.update({
-      where: { id },
-      data: <Prisma.StatusUpdateInput>{
-        name,
-        color,
-        priority: typeof priority === 'number' ? priority : 0,
-      },
+    const record = await pb.collection('status_options').update(id, {
+      name,
+      color,
+      priority: priority || 0
     });
-    return NextResponse.json(updatedStatus);
+    return NextResponse.json(record);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2002') {
-        return NextResponse.json(
-          { error: 'A status with this name already exists' }, 
-          { status: 400 }
-        );
-      }
-    }
     console.error('Error updating status:', error);
-    return NextResponse.json(
-      { error: 'Error updating status' }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error updating status' }, { status: 500 });
   }
 }

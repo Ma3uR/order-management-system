@@ -94,9 +94,15 @@ export default function SettingsPage() {
   };
 
   const fetchDeliveryMethods = async () => {
-    const response = await fetch('/api/delivery-methods');
-    const data = await response.json();
-    setDeliveryMethods(data);
+    try {
+      const response = await fetch('/api/delivery-methods');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setDeliveryMethods(data);
+      }
+    } catch (error) {
+      console.error('Error fetching delivery methods:', error);
+    }
   };
 
   const handleUserUpdate = async (e: React.FormEvent) => {
@@ -375,7 +381,7 @@ export default function SettingsPage() {
               </div>
             </form>
             <ul className="space-y-2">
-              {currencies.map((currency) => (
+              {Array.isArray(currencies) ? currencies.map((currency) => (
                 <li key={currency.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
                   <span>{currency.name} ({currency.code}) {currency.symbol}</span>
                   <span>{currency.isDefault ? t('default') : ''}</span>
@@ -387,7 +393,7 @@ export default function SettingsPage() {
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </li>
-              ))}
+              )) : null}
             </ul>
           </TabsContent>
           <TabsContent value="statuses">
@@ -548,7 +554,7 @@ export default function SettingsPage() {
               </div>
             </form>
             <ul className="space-y-2">
-              {deliveryMethods.map((method) => (
+              {Array.isArray(deliveryMethods) ? deliveryMethods.map((method) => (
                 <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
                   <span>{method.name}</span>
                   <Button
@@ -559,7 +565,7 @@ export default function SettingsPage() {
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </li>
-              ))}
+              )) : null}
             </ul>
           </TabsContent>
         </Tabs>

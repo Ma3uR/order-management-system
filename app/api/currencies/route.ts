@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import pb from '@/lib/pocketbase';
 
 export async function GET() {
   try {
-    const currencies = await prisma.currency.findMany();
-    return NextResponse.json(currencies);
+    const records = await pb.collection('currency_options').getFullList();
+    return NextResponse.json(records);
   } catch (error) {
     console.error('Error fetching currencies:', error);
     return NextResponse.json({ error: 'Error fetching currencies' }, { status: 500 });
@@ -14,14 +14,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const newCurrency = await prisma.currency.create({
-      data: {
-        code: data.code,
-        name: data.name,
-        symbol: data.symbol,
-      },
+    const record = await pb.collection('currency_options').create({
+      code: data.code,
+      name: data.name,
+      symbol: data.symbol,
     });
-    return NextResponse.json(newCurrency);
+    return NextResponse.json(record);
   } catch (error) {
     console.error('Error creating currency:', error);
     return NextResponse.json({ error: 'Error creating currency' }, { status: 500 });

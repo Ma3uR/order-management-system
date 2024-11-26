@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import pb from '@/lib/pocketbase';
 
 export async function GET() {
   try {
-    const defaultCurrency = await prisma.currency.findFirst({
-      where: { isDefault: true },
-    });
+    const defaultCurrency = await pb.collection('currencies').getFirstListItem('isDefault=true');
 
     if (!defaultCurrency) {
       return NextResponse.json(
