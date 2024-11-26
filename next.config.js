@@ -6,9 +6,6 @@ const nextConfig = {
   },
 };
 
-const withNextIntl = async () => {
-  const { default: createNextIntlPlugin } = await import('next-intl/plugin');
-  return createNextIntlPlugin('./i18n.ts')(nextConfig);
-};
+import withNextIntl from 'next-intl/plugin';
 
-module.exports = withNextIntl();
+export default withNextIntl('./i18n.ts')(nextConfig);
