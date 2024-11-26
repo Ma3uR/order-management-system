@@ -4,6 +4,12 @@ const mockBlacklist = [
   { fullName: 'Jane Smith', phoneNumber: '+0987654321' },
 ];
 
+/**
+ * Checks if a given full name and phone number are present in the blacklist.
+ * @param {string} fullName - The full name to check against the blacklist.
+ * @param {string} phoneNumber - The phone number to check against the blacklist.
+ * @returns {boolean} True if either the full name or phone number is found in the blacklist, false otherwise.
+ */
 export const checkBlacklist = (fullName: string, phoneNumber: string): boolean => {
   return mockBlacklist.some(
     item => item.fullName.toLowerCase() === fullName.toLowerCase() || item.phoneNumber === phoneNumber
