@@ -13,6 +13,12 @@ interface BlacklistItem {
   phoneNumber: string;
 }
 
+/**
+ * Renders a BlacklistManagement component for managing a blacklist of contacts.
+ * This component provides functionality to view, add, and remove items from the blacklist.
+ * It includes error handling, loading states, and internationalization support.
+ * @returns {JSX.Element} A React component for blacklist management
+ */
 const BlacklistManagement: React.FC = () => {
   const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
   const [newItem, setNewItem] = useState({ fullName: '', phoneNumber: '' });

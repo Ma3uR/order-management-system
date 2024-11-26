@@ -11,6 +11,15 @@ interface Project {
   name: string;
 }
 
+/**
+ * Renders a modal component for creating a new post.
+ * This component manages the state for the modal, form data, and projects.
+ * It handles form submission, data fetching, and UI rendering.
+ *
+ * @returns {JSX.Element} A div containing a button to open the modal and the modal itself when open.
+ *
+ * @throws {Error} When there's an issue fetching projects or creating a post.
+ */
 export default function NewPostModal() {
   const [open, setOpen] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])

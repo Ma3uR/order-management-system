@@ -120,6 +120,11 @@ interface PaymentMethod {
   name: string;
 }
 
+/**
+ * Determines the best contrast color (black or white) for text based on a given background color.
+ * @param {string} hexcolor - The hexadecimal color code of the background (with or without '#')
+ * @returns {string} The hexadecimal color code (#000000 for black or #ffffff for white) that provides the best contrast
+ */
 function getContrastColor(hexcolor: string): string {
   // Remove the hash if it exists
   const hex = hexcolor.replace('#', '');
@@ -136,6 +141,13 @@ function getContrastColor(hexcolor: string): string {
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }
 
+/**
+ * React functional component for managing orders
+ * @param {Object} props - Component props
+ * @param {Object} props.translations - Object containing translated strings
+ * @param {Array} props.initialOrders - Initial array of order objects
+ * @returns {JSX.Element|null} Returns the JSX for the OrdersManagement component or null if not client-side
+ */
 const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initialOrders }) => {
   const [orders, setOrders] = useState<Order[]>([])
   const [isClient, setIsClient] = useState(false)

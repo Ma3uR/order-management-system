@@ -23,6 +23,12 @@ const languages: Language[] = [
   { code: "ua", name: "Українська", flag: "🇺🇦" },
 ]
 
+/**
+ * Renders a language switcher component with a dropdown menu.
+ * This component allows users to change the current language of the application.
+ * It displays the current language and provides options to switch to other available languages.
+ * @returns {JSX.Element} A dropdown menu component for language selection.
+ */
 export default function LanguageSwitcher() {
   const router = useRouter()
   const pathname = usePathname()
