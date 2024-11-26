@@ -22,6 +22,12 @@ interface Post {
   project: { name: string }
 }
 
+/**
+ * Social Media Management component for managing posts across various platforms.
+ * This component handles the display, filtering, editing, deleting, and publishing of posts.
+ * It also provides a search functionality and a tab for analytics.
+ * @returns {JSX.Element} A React component that renders the Social Media Management interface
+ */
 export default function SMMManagement() {
   const [posts, setPosts] = useState<Post[]>([])
   const [searchTerm, setSearchTerm] = useState("")
