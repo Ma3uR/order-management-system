@@ -38,6 +38,12 @@ async function seedPocketBase() {
 
     // Try to create or update default status
     try {
+      /**
+       * Retrieves the first status option with the name "Being processed by manager" from the 'status_options' collection.
+       * @param {Object} pb - The PocketBase instance used for database operations.
+       * @returns {Promise<Object|null>} A Promise that resolves to the status option object if found, or null if not found.
+       * @throws {Error} If there's an error during the database operation (caught and returns null in this case).
+       */
       const existingStatus = await pb.collection('status_options').getFirstListItem('name="Being processed by manager"').catch(() => null);
       
       if (existingStatus) {
