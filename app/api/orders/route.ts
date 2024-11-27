@@ -1,6 +1,31 @@
 import { NextResponse } from 'next/server';
 import pb from '@/lib/pocketbase';
 
+interface Product {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+function parseProductsText(text: string): Product[] {
+  try {
+    // Split by new lines and parse each line
+    return text.split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        const [name, quantity = "1", price = "0"] = line.split(',').map(s => s.trim());
+        return {
+          name,
+          quantity: parseInt(quantity) || 1,
+          price: parseFloat(price) || 0
+        };
+      });
+  } catch (error) {
+    console.error('Error parsing products text:', error);
+    return [];
+  }
+}
+
 export async function GET() {
   try {
     const records = await pb.collection('orders').getFullList({
@@ -21,6 +46,23 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     
+    // Handle products data
+    if (data.productsText) {
+      // Convert text input to structured products data
+      data.products = parseProductsText(data.productsText);
+      delete data.productsText; // Remove the text input from data
+      
+      // Calculate total items
+      data.numberOfItems = data.products.reduce((sum: number, product: Product) => 
+        sum + product.quantity, 0);
+        
+      // Calculate total amount if not provided
+      if (!data.amount) {
+        data.amount = data.products.reduce((sum: number, product: Product) => 
+          sum + (product.price * product.quantity), 0);
+      }
+    }
+
     // Get default currency if not provided
     if (!data.currency) {
       const defaultCurrency = await pb.collection('currency_options').getFirstListItem('isDefault=true');

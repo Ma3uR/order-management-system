@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -27,6 +27,12 @@ import { PlusCircle, Search, RefreshCw, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import pb from '@/lib/pocketbase'
 
+interface Product {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
 interface Order {
   id: string
   orderNumber: string
@@ -38,7 +44,7 @@ interface Order {
   deliveryPostNumber: string | null
   phoneNumber: string
   fullName: string
-  products: Record<string, unknown>
+  products: Product[]
   numberOfItems: number
   paymentMethod?: {
     id: string;
@@ -57,6 +63,7 @@ interface Order {
   };
   createdAt: string
   updatedAt: string
+  productsText: string
 }
 
 interface OrdersManagementProps {
@@ -120,6 +127,21 @@ interface PaymentMethod {
   name: string;
 }
 
+interface Currency {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+  isDefault: boolean;
+}
+
+interface Status {
+  id: string;
+  name: string;
+  color: string;
+  priority: number;
+}
+
 function getContrastColor(hexcolor: string): string {
   // Remove the hash if it exists
   const hex = hexcolor.replace('#', '');
@@ -136,8 +158,23 @@ function getContrastColor(hexcolor: string): string {
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }
 
+interface OrderData {
+  orderNumber: string;
+  source: string;
+  deliveryMethod: string;
+  deliveryPostNumber: string;
+  phoneNumber: string;
+  fullName: string;
+  products: Product[];
+  numberOfItems: number;
+  paymentMethod: string;
+  amount: number;
+  status: string;
+  currency: string;
+}
+
 const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initialOrders }) => {
-  const [orders, setOrders] = useState<Order[]>([])
+  const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isClient, setIsClient] = useState(false)
   const [filterText, setFilterText] = useState("")
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
@@ -150,45 +187,122 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     deliveryPostNumber: '',
     phoneNumber: '',
     fullName: '',
-    products: {},
+    products: [],
     numberOfItems: 0,
     paymentMethod: { id: '', name: '' },
     amount: 0,
     status: { id: '', name: 'Being processed by manager', color: 'yellow' },
     currency: { id: '', code: '', symbol: '' },
+    productsText: '',
   })
-  const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [deliveryMethod, setDeliveryMethod] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<string>('');
-  const [defaultCurrency, setDefaultCurrency] = useState<{id: string; code: string; symbol: string} | null>(null);
-  const [statuses, setStatuses] = useState<Array<{id: string; name: string; color: string}>>([]);
-  const [editingStatusOrder, setEditingStatusOrder] = useState<Order | null>(null);
-
-  const fetchDeliveryMethods = useCallback(async () => {
-    try {
-      const records = await pb.collection('delivery_options').getFullList();
-      setDeliveryMethods(records);
-    } catch (error) {
-      console.error('Error fetching delivery methods:', error);
-    }
-  }, []);
-
-  const fetchPaymentMethods = useCallback(async () => {
-    try {
-      const records = await pb.collection('payment_options').getFullList();
-      setPaymentMethods(records);
-    } catch (error) {
-      console.error('Error fetching payment methods:', error);
-    }
-  }, []);
+  const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [deliveryMethod, setDeliveryMethod] = useState<string>('')
+  const [paymentMethod, setPaymentMethod] = useState<string>('')
+  const [defaultCurrency, setDefaultCurrency] = useState<Currency | null>(null)
+  const [statuses, setStatuses] = useState<Status[]>([])
+  const [editingStatusOrder, setEditingStatusOrder] = useState<Order | null>(null)
 
   useEffect(() => {
-    setOrders(initialOrders);
-    setIsClient(true);
-    fetchDeliveryMethods();
-    fetchPaymentMethods();
-  }, [initialOrders, fetchDeliveryMethods, fetchPaymentMethods]);
+    let isSubscribed = true;
+    const subscriptions: (() => void)[] = [];
+
+    const fetchData = async () => {
+      try {
+        // Set initial orders from props and client state
+        if (isSubscribed) {
+          setOrders(initialOrders);
+          setIsClient(true);
+        }
+
+        // Fetch all required data in parallel
+        const [deliveryMethods, paymentMethods, defaultCurrency, statuses] = await Promise.all([
+          pb.collection('delivery_options').getFullList<DeliveryMethod>(),
+          pb.collection('payment_options').getFullList<PaymentMethod>(),
+          pb.collection('currency_options').getFirstListItem<Currency>('isDefault=true'),
+          pb.collection('status_options').getFullList<Status>()
+        ]);
+
+        if (!isSubscribed) return;
+
+        setDeliveryMethods(deliveryMethods);
+        setPaymentMethods(paymentMethods);
+        setDefaultCurrency(defaultCurrency);
+        setStatuses(statuses);
+
+        // Set up realtime subscriptions
+        const unsubOrders = await pb.collection('orders').subscribe('*', async (e) => {
+          if (!isSubscribed) return;
+          
+          const record = e.action !== 'delete' ? await pb.collection('orders').getOne(e.record.id, {
+            expand: 'deliveryMethod,paymentMethod,status,currency'
+          }) : null;
+
+          if (e.action === 'create' && record) {
+            setOrders(prev => [...prev, record as unknown as Order]);
+          } else if (e.action === 'update' && record) {
+            setOrders(prev => prev.map(order => 
+              order.id === record.id ? (record as unknown as Order) : order
+            ));
+          } else if (e.action === 'delete') {
+            setOrders(prev => prev.filter(order => order.id !== e.record.id));
+          }
+        });
+        subscriptions.push(unsubOrders);
+
+        const unsubDelivery = await pb.collection('delivery_options').subscribe('*', (e) => {
+          if (!isSubscribed) return;
+          if (e.action === 'create') {
+            setDeliveryMethods(prev => [...prev, e.record as unknown as DeliveryMethod]);
+          } else if (e.action === 'delete') {
+            setDeliveryMethods(prev => prev.filter(dm => dm.id !== e.record.id));
+          }
+        });
+        subscriptions.push(unsubDelivery);
+
+        const unsubPayment = await pb.collection('payment_options').subscribe('*', (e) => {
+          if (!isSubscribed) return;
+          if (e.action === 'create') {
+            setPaymentMethods(prev => [...prev, e.record as unknown as PaymentMethod]);
+          } else if (e.action === 'delete') {
+            setPaymentMethods(prev => prev.filter(pm => pm.id !== e.record.id));
+          }
+        });
+        subscriptions.push(unsubPayment);
+
+        const unsubStatus = await pb.collection('status_options').subscribe('*', (e) => {
+          if (!isSubscribed) return;
+          if (e.action === 'create' || e.action === 'update') {
+            setStatuses(prev => {
+              const newStatuses = prev.filter(s => s.id !== e.record.id);
+              return [...newStatuses, e.record as unknown as Status].sort((a, b) => a.priority - b.priority);
+            });
+          } else if (e.action === 'delete') {
+            setStatuses(prev => prev.filter(s => s.id !== e.record.id));
+          }
+        });
+        subscriptions.push(unsubStatus);
+
+      } catch (error) {
+        if (isSubscribed) {
+          console.error('Error fetching data:', error);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isSubscribed = false;
+      subscriptions.forEach(unsubscribe => {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error('Error unsubscribing:', error);
+        }
+      });
+    };
+  }, [initialOrders]);
 
   useEffect(() => {
     console.log('Current delivery methods:', deliveryMethods);
@@ -198,7 +312,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   useEffect(() => {
     const fetchDefaultCurrency = async () => {
       try {
-        const record = await pb.collection('currency_options').getFirstListItem('isDefault=true');
+        const record = await pb.collection('currency_options').getFirstListItem<Currency>('isDefault=true');
         setDefaultCurrency(record);
       } catch (error) {
         console.error('Error fetching default currency:', error);
@@ -210,15 +324,35 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const records = await pb.collection('status_options').getFullList({
-          sort: 'priority'
-        });
+        const records = await pb.collection('status_options').getFullList<Status>();
         setStatuses(records);
       } catch (error) {
         console.error('Error fetching statuses:', error);
       }
     };
     fetchStatuses();
+  }, []);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [deliveryMethods, paymentMethods, defaultCurrency, statuses] = await Promise.all([
+          pb.collection('delivery_options').getFullList<DeliveryMethod>(),
+          pb.collection('payment_options').getFullList<PaymentMethod>(),
+          pb.collection('currency_options').getFirstListItem<Currency>('isDefault=true'),
+          pb.collection('status_options').getFullList<Status>()
+        ]);
+
+        setDeliveryMethods(deliveryMethods);
+        setPaymentMethods(paymentMethods);
+        setDefaultCurrency(defaultCurrency);
+        setStatuses(statuses);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      }
+    };
+
+    fetchInitialData();
   }, []);
 
   const filteredOrders = orders.filter(order => 
@@ -274,36 +408,57 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     }
   };
 
+  const handleProductsTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewOrder(prev => ({
+      ...prev,
+      productsText: e.target.value
+    }));
+  };
+
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!newOrder.deliveryMethod?.id || 
+        !newOrder.paymentMethod?.id || 
+        !newOrder.productsText || 
+        !statuses[0]?.id) {
+      alert('Please fill in all required fields: Delivery Method, Payment Method, Products, and Status');
+      return;
+    }
+
     try {
-      const orderData = {
-        ...newOrder,
-        currency: defaultCurrency?.id,
-        products: typeof newOrder.products === 'string' 
-          ? newOrder.products 
-          : JSON.stringify(newOrder.products),
-        numberOfItems: Number(newOrder.numberOfItems),
-        amount: Number(newOrder.amount),
+      const orderData: OrderData = {
+        orderNumber: newOrder.orderNumber || '',
+        source: newOrder.source || '',
+        deliveryMethod: newOrder.deliveryMethod.id,  // Now guaranteed to exist
+        deliveryPostNumber: newOrder.deliveryPostNumber || '',
+        phoneNumber: newOrder.phoneNumber || '',
+        fullName: newOrder.fullName || '',
+        products: newOrder.productsText.split('\n')  // Parse products immediately
+          .filter(line => line.trim())
+          .map(line => {
+            const [name, quantity = "1", price = "0"] = line.split(',').map(s => s.trim());
+            return { name, quantity: parseInt(quantity) || 1, price: parseFloat(price) || 0 };
+          }),
+        numberOfItems: Number(newOrder.numberOfItems) || 0,
+        paymentMethod: newOrder.paymentMethod.id,    // Now guaranteed to exist
+        amount: Number(newOrder.amount) || 0,
+        status: statuses[0].id,                      // Now guaranteed to exist
+        currency: defaultCurrency?.id || ''
       };
 
       const record = await pb.collection('orders').create(orderData);
-      
-      // Fetch the complete order with relations
       const createdOrder = await pb.collection('orders').getOne(record.id, {
         expand: 'deliveryMethod,paymentMethod,status,currency'
       });
 
-      setOrders([...orders, createdOrder]);
+      setOrders([...orders, createdOrder as unknown as Order]);
       setIsCreateModalOpen(false);
       resetNewOrderForm();
     } catch (error) {
       console.error('Error creating order:', error);
-      if (error instanceof Error) {
-        alert(`Error creating order: ${error.message}`);
-      } else {
-        alert('Error creating order');
-      }
+      alert('Error creating order: ' + (error as Error).message);
     }
   };
 
@@ -315,12 +470,13 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
       deliveryPostNumber: '',
       phoneNumber: '',
       fullName: '',
-      products: {},
+      products: [],
       numberOfItems: 0,
       paymentMethod: { id: '', name: '' },
       amount: 0,
       status: { id: '', name: 'Being processed by manager', color: 'yellow' },
       currency: { id: '', code: '', symbol: '' },
+      productsText: '',
     });
   };
 
@@ -381,6 +537,34 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
       </DialogContent>
     </Dialog>
   );
+
+  useEffect(() => {
+    const connectRealtime = async () => {
+      try {
+        await pb.collection('orders').subscribe('*', (e) => {
+          if (e.action === 'create') {
+            setOrders(prev => [...prev, e.record as unknown as Order]);
+          } else if (e.action === 'update') {
+            setOrders(prev => prev.map(order => 
+              order.id === e.record.id ? (e.record as unknown as Order) : order
+            ));
+          } else if (e.action === 'delete') {
+            setOrders(prev => prev.filter(order => order.id !== e.record.id));
+          }
+        });
+      } catch (error) {
+        console.error('Realtime connection error:', error);
+        // Try to reconnect after 5 seconds
+        setTimeout(connectRealtime, 5000);
+      }
+    };
+
+    connectRealtime();
+
+    return () => {
+      pb.collection('orders').unsubscribe();
+    };
+  }, []);
 
   if (!isClient) {
     return null // or a loading spinner
@@ -555,7 +739,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                     ...selectedOrder,
                     orderNumber: e.target.value
                   })}
-                  pattern="^[A-Za-z0-9-]+$"
+                  pattern="^[A-Za-z0-9\-]+$"
                   title="Order number can only contain letters, numbers, and hyphens"
                   required
                 />
@@ -743,12 +927,12 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
       {/* Create Order Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[625px] bg-white">
+        <DialogContent className="sm:max-w-[625px]" aria-describedby="order-dialog-description">
           <DialogHeader>
             <DialogTitle>{translations.createNewOrder}</DialogTitle>
-            <DialogDescription>
-              {translations.createNewOrderDescription}
-            </DialogDescription>
+            <p id="order-dialog-description" className="text-sm text-gray-500">
+              {translations.createNewOrderDescription || 'Fill in the order details below'}
+            </p>
           </DialogHeader>
           <form onSubmit={handleCreateOrder} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -837,24 +1021,20 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="products">{translations.products}</Label>
+              <Label htmlFor="productsText">{translations.products}</Label>
               <Textarea
-                id="products"
-                name="products"
-                value={typeof newOrder.products === 'string' 
-                  ? newOrder.products 
-                  : JSON.stringify(newOrder.products, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const parsed = JSON.parse(e.target.value);
-                    setNewOrder(prev => ({ ...prev, products: parsed }));
-                  } catch {
-                    setNewOrder(prev => ({ ...prev, products: {} }));
-                  }
-                }}
-                placeholder={`${translations.products} (JSON format)`}
+                id="productsText"
+                name="productsText"
+                value={newOrder.productsText || ''}
+                onChange={handleProductsTextChange}
+                placeholder={`Product Name 1, 2, 19.99
+Product Name 2, 1, 29.99
+Product Name 3, 3, 9.99`}
                 required
               />
+              <p className="text-sm text-gray-500">
+                Enter each product on a new line in format: name, quantity, price
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

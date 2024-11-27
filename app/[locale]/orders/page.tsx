@@ -1,6 +1,6 @@
 import {getTranslations} from 'next-intl/server';
 import OrdersManagement from '@/components/OrdersManagement';
-import { fetchOrders } from '@/lib/api'; // We'll create this file next
+import { fetchOrders } from '@/lib/api';
 
 export default async function OrdersPage() {
   const t = await getTranslations('Orders');
@@ -60,25 +60,29 @@ export default async function OrdersPage() {
       initialOrders={orders.map(order => ({
         ...order,
         id: order.id,
-        createdAt: order.createdAt.toISOString(),
-        updatedAt: order.updatedAt.toISOString(),
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
         currency: {
-          id: order.currency.id,
-          code: order.currency.code,
-          symbol: order.currency.symbol,
+          id: order.currency?.id || '',
+          code: order.currency?.code || '',
+          symbol: order.currency?.symbol || ''
         },
         paymentMethod: {
-          id: order.paymentMethod.id,
-          name: order.paymentMethod.name
+          id: order.paymentMethod?.id || '',
+          name: order.paymentMethod?.name || ''
         },
         status: {
-          id: order.status.id,
-          name: order.status.name,
-          color: order.status.color
+          id: order.status?.id || '',
+          name: order.status?.name || '',
+          color: order.status?.color || '#cbd5e1'
+        },
+        deliveryMethod: {
+          id: order.deliveryMethod?.id || '',
+          name: order.deliveryMethod?.name || ''
         },
         products: typeof order.products === 'string' 
           ? JSON.parse(order.products) 
-          : order.products || {}
+          : order.products || []
       }))} 
     />
   );
