@@ -205,22 +205,22 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
   useEffect(() => {
     let isSubscribed = true;
+    const abortController = new AbortController();
     const subscriptions: (() => void)[] = [];
 
     const fetchData = async () => {
       try {
-        // Set initial orders from props and client state
         if (isSubscribed) {
           setOrders(initialOrders);
           setIsClient(true);
         }
 
-        // Fetch all required data in parallel
+        // Fetch all required data in parallel with abort signal
         const [deliveryMethods, paymentMethods, defaultCurrency, statuses] = await Promise.all([
-          pb.collection('delivery_options').getFullList<DeliveryMethod>(),
-          pb.collection('payment_options').getFullList<PaymentMethod>(),
-          pb.collection('currency_options').getFirstListItem<Currency>('isDefault=true'),
-          pb.collection('status_options').getFullList<Status>()
+          pb.collection('delivery_options').getFullList<DeliveryMethod>({ $autoCancel: false }),
+          pb.collection('payment_options').getFullList<PaymentMethod>({ $autoCancel: false }),
+          pb.collection('currency_options').getFirstListItem<Currency>('isDefault=true', { $autoCancel: false }),
+          pb.collection('status_options').getFullList<Status>({ $autoCancel: false })
         ]);
 
         if (!isSubscribed) return;
@@ -234,22 +234,35 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
         const unsubOrders = await pb.collection('orders').subscribe('*', async (e) => {
           if (!isSubscribed) return;
           
-          const record = e.action !== 'delete' ? await pb.collection('orders').getOne(e.record.id, {
-            expand: 'deliveryMethod,paymentMethod,status,currency'
-          }) : null;
-
-          if (e.action === 'create' && record) {
-            setOrders(prev => [...prev, record as unknown as Order]);
-          } else if (e.action === 'update' && record) {
-            setOrders(prev => prev.map(order => 
-              order.id === record.id ? (record as unknown as Order) : order
-            ));
+          if (e.action === 'create') {
+            try {
+              const record = await pb.collection('orders').getOne(e.record.id, {
+                expand: 'deliveryMethod,paymentMethod,status,currency',
+                $autoCancel: false
+              });
+              setOrders(prev => [...prev, record as unknown as Order]);
+            } catch (error) {
+              console.error('Error fetching created order:', error);
+            }
+          } else if (e.action === 'update') {
+            try {
+              const record = await pb.collection('orders').getOne(e.record.id, {
+                expand: 'deliveryMethod,paymentMethod,status,currency',
+                $autoCancel: false
+              });
+              setOrders(prev => prev.map(order => 
+                order.id === record.id ? (record as unknown as Order) : order
+              ));
+            } catch (error) {
+              console.error('Error fetching updated order:', error);
+            }
           } else if (e.action === 'delete') {
             setOrders(prev => prev.filter(order => order.id !== e.record.id));
           }
         });
         subscriptions.push(unsubOrders);
 
+        // Subscribe to other collections
         const unsubDelivery = await pb.collection('delivery_options').subscribe('*', (e) => {
           if (!isSubscribed) return;
           if (e.action === 'create') {
@@ -294,6 +307,9 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
     return () => {
       isSubscribed = false;
+      abortController.abort();
+      
+      // Clean up all subscriptions
       subscriptions.forEach(unsubscribe => {
         try {
           unsubscribe();
@@ -308,52 +324,6 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     console.log('Current delivery methods:', deliveryMethods);
     console.log('Current payment methods:', paymentMethods);
   }, [deliveryMethods, paymentMethods]);
-
-  useEffect(() => {
-    const fetchDefaultCurrency = async () => {
-      try {
-        const record = await pb.collection('currency_options').getFirstListItem<Currency>('isDefault=true');
-        setDefaultCurrency(record);
-      } catch (error) {
-        console.error('Error fetching default currency:', error);
-      }
-    };
-    fetchDefaultCurrency();
-  }, []);
-
-  useEffect(() => {
-    const fetchStatuses = async () => {
-      try {
-        const records = await pb.collection('status_options').getFullList<Status>();
-        setStatuses(records);
-      } catch (error) {
-        console.error('Error fetching statuses:', error);
-      }
-    };
-    fetchStatuses();
-  }, []);
-
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [deliveryMethods, paymentMethods, defaultCurrency, statuses] = await Promise.all([
-          pb.collection('delivery_options').getFullList<DeliveryMethod>(),
-          pb.collection('payment_options').getFullList<PaymentMethod>(),
-          pb.collection('currency_options').getFirstListItem<Currency>('isDefault=true'),
-          pb.collection('status_options').getFullList<Status>()
-        ]);
-
-        setDeliveryMethods(deliveryMethods);
-        setPaymentMethods(paymentMethods);
-        setDefaultCurrency(defaultCurrency);
-        setStatuses(statuses);
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      }
-    };
-
-    fetchInitialData();
-  }, []);
 
   const filteredOrders = orders.filter(order => 
     order.orderNumber.toLowerCase().includes(filterText.toLowerCase()) ||
