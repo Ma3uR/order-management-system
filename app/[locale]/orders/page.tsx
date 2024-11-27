@@ -58,31 +58,40 @@ export default async function OrdersPage() {
     <OrdersManagement 
       translations={translations} 
       initialOrders={orders.map(order => ({
-        ...order,
         id: order.id,
-        createdAt: order.createdAt,
-        updatedAt: order.updatedAt,
-        currency: {
-          id: order.currency?.id || '',
-          code: order.currency?.code || '',
-          symbol: order.currency?.symbol || ''
+        orderNumber: order.orderNumber || '',
+        source: order.source || '',
+        deliveryMethod: {
+          id: order.deliveryMethod?.id || '',
+          name: order.deliveryMethod?.name || ''
         },
+        deliveryPostNumber: order.deliveryPostNumber || '',
+        phoneNumber: order.phoneNumber || '',
+        fullName: order.fullName || '',
+        products: typeof order.products === 'string' 
+          ? JSON.parse(order.products) 
+          : order.products || [],
+        numberOfItems: order.numberOfItems || 0,
         paymentMethod: {
           id: order.paymentMethod?.id || '',
           name: order.paymentMethod?.name || ''
         },
+        amount: order.amount || 0,
         status: {
           id: order.status?.id || '',
           name: order.status?.name || '',
           color: order.status?.color || '#cbd5e1'
         },
-        deliveryMethod: {
-          id: order.deliveryMethod?.id || '',
-          name: order.deliveryMethod?.name || ''
+        currency: {
+          id: order.currency?.id || '',
+          code: order.currency?.code || '',
+          symbol: order.currency?.symbol || ''
         },
-        products: typeof order.products === 'string' 
-          ? JSON.parse(order.products) 
-          : order.products || []
+        createdAt: order.createdAt || new Date().toISOString(),
+        updatedAt: order.updatedAt || new Date().toISOString(),
+        productsText: typeof order.products === 'string' 
+          ? order.products 
+          : JSON.stringify(order.products || [], null, 2)
       }))} 
     />
   );
