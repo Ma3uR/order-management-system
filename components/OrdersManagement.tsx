@@ -897,46 +897,55 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
 
       {/* Create Order Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[625px]" aria-describedby="order-dialog-description">
+        <DialogContent className="sm:max-w-[625px] bg-white text-black" aria-describedby="order-dialog-description">
           <DialogHeader>
-            <DialogTitle>{translations.createNewOrder}</DialogTitle>
-            <p id="order-dialog-description" className="text-sm text-gray-500">
+            <DialogTitle className="text-xl font-bold text-black">
+              {translations.createNewOrder}
+            </DialogTitle>
+            <p id="order-dialog-description" className="text-sm text-gray-600">
               {translations.createNewOrderDescription || 'Fill in the order details below'}
             </p>
           </DialogHeader>
           <form onSubmit={handleCreateOrder} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="orderNumber">{translations.orderNumber}</Label>
+                <Label htmlFor="orderNumber" className="text-black">
+                  {translations.orderNumber}
+                </Label>
                 <Input
                   id="orderNumber"
                   name="orderNumber"
                   value={newOrder.orderNumber}
                   onChange={handleInputChange}
                   placeholder={translations.orderNumber}
+                  className="bg-white text-black border-gray-300"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="source">{translations.source}</Label>
+                <Label htmlFor="source" className="text-black">
+                  {translations.source}
+                </Label>
                 <Input
                   id="source"
                   name="source"
                   value={newOrder.source}
                   onChange={handleInputChange}
                   placeholder={translations.source}
-                  required
+                  className="bg-white text-black border-gray-300"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="deliveryMethod">{translations.deliveryMethod}</Label>
+              <Label htmlFor="deliveryMethod" className="text-black">
+                {translations.deliveryMethod}
+              </Label>
               <Select
                 value={deliveryMethod}
                 onValueChange={(value) => handleSelectChange("deliveryMethod", value)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-white text-black border-gray-300">
                   <SelectValue>
                     {deliveryMethod 
                       ? deliveryMethods.find(m => m.id === deliveryMethod)?.name 
@@ -945,7 +954,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                 </SelectTrigger>
                 <SelectContent>
                   {deliveryMethods.map((method) => (
-                    <SelectItem key={method.id} value={method.id}>
+                    <SelectItem key={method.id} value={method.id} className="text-black">
                       {method.name}
                     </SelectItem>
                   ))}
@@ -954,19 +963,24 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="deliveryPostNumber">{translations.deliveryPostNumber}</Label>
+              <Label htmlFor="deliveryPostNumber" className="text-black">
+                {translations.deliveryPostNumber}
+              </Label>
               <Input
                 id="deliveryPostNumber"
                 name="deliveryPostNumber"
                 value={newOrder.deliveryPostNumber || ''}
                 onChange={handleInputChange}
                 placeholder={translations.deliveryPostNumber}
+                className="bg-white text-black border-gray-300"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="phoneNumber">{translations.phoneNumber}</Label>
+                <Label htmlFor="phoneNumber" className="text-black">
+                  {translations.phoneNumber}
+                </Label>
                 <Input
                   id="phoneNumber"
                   name="phoneNumber"
@@ -974,42 +988,49 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                   value={newOrder.phoneNumber}
                   onChange={handleInputChange}
                   placeholder={translations.phoneNumber}
+                  className="bg-white text-black border-gray-300"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fullName">{translations.fullName}</Label>
+                <Label htmlFor="fullName" className="text-black">
+                  {translations.fullName}
+                </Label>
                 <Input
                   id="fullName"
                   name="fullName"
                   value={newOrder.fullName}
                   onChange={handleInputChange}
                   placeholder={translations.fullName}
+                  className="bg-white text-black border-gray-300"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="productsText">{translations.products}</Label>
+              <Label htmlFor="productsText" className="text-black">
+                {translations.products}
+              </Label>
               <Textarea
                 id="productsText"
                 name="productsText"
                 value={newOrder.productsText || ''}
                 onChange={handleProductsTextChange}
-                placeholder={`Product Name 1, 2, 19.99
-Product Name 2, 1, 29.99
-Product Name 3, 3, 9.99`}
+                placeholder={`Product Name 1, 2, 19.99\nProduct Name 2, 1, 29.99\nProduct Name 3, 3, 9.99`}
+                className="bg-white text-black border-gray-300 min-h-[100px]"
                 required
               />
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 Enter each product on a new line in format: name, quantity, price
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="numberOfItems">{translations.numberOfItems}</Label>
+                <Label htmlFor="numberOfItems" className="text-black">
+                  {translations.numberOfItems}
+                </Label>
                 <Input
                   id="numberOfItems"
                   name="numberOfItems"
@@ -1017,25 +1038,28 @@ Product Name 3, 3, 9.99`}
                   value={newOrder.numberOfItems?.toString()}
                   onChange={handleInputChange}
                   placeholder={translations.numberOfItems}
+                  className="bg-white text-black border-gray-300"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="paymentMethod">{translations.paymentMethod}</Label>
+                <Label htmlFor="paymentMethod" className="text-black">
+                  {translations.paymentMethod}
+                </Label>
                 <Select
                   value={paymentMethod}
                   onValueChange={(value) => handleSelectChange("paymentMethod", value)}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-white text-black border-gray-300">
                     <SelectValue>
                       {paymentMethod 
                         ? paymentMethods.find(m => m.id === paymentMethod)?.name 
                         : translations.selectPaymentMethod}
-                      </SelectValue>
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {paymentMethods.map((method) => (
-                      <SelectItem key={method.id} value={method.id}>
+                      <SelectItem key={method.id} value={method.id} className="text-black">
                         {method.name}
                       </SelectItem>
                     ))}
@@ -1045,20 +1069,26 @@ Product Name 3, 3, 9.99`}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">{translations.amount}</Label>
+              <Label htmlFor="amount" className="text-black">
+                {translations.amount}
+              </Label>
               <Input
                 id="amount"
                 name="amount"
                 type="number"
+                step="0.01"
                 value={newOrder.amount?.toString()}
                 onChange={handleInputChange}
-                placeholder={translations.amount}
+                placeholder="0.00"
+                className="bg-white text-black border-gray-300"
                 required
               />
             </div>
 
             <DialogFooter>
-              <Button type="submit">{translations.createNewOrder}</Button>
+              <Button type="submit" className="bg-primary text-white hover:bg-primary/90">
+                {translations.createNewOrder}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
