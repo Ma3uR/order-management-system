@@ -49,7 +49,7 @@ export default function SettingsPage() {
   const [newStatus, setNewStatus] = useState({ 
     name: '', 
     color: '#000000',
-    priority: 0
+    priority: 1
   });
   const [newPaymentMethod, setNewPaymentMethod] = useState({ name: '' });
   const [newDeliveryMethod, setNewDeliveryMethod] = useState({ name: '' });
@@ -60,7 +60,7 @@ export default function SettingsPage() {
   const [editStatusValues, setEditStatusValues] = useState({ 
     name: '', 
     color: '#000000',
-    priority: 0
+    priority: 1
   });
 
   useEffect(() => {
@@ -165,7 +165,7 @@ export default function SettingsPage() {
       }
       const addedStatus = await response.json();
       setStatuses([...statuses, addedStatus]);
-      setNewStatus({ name: '', color: '#000000', priority: 0 });
+      setNewStatus({ name: '', color: '#000000', priority: 1 });
       showFlashMessage('Status added successfully!', 'success');
     } catch (error) {
       console.error('Error adding status:', error);
@@ -422,10 +422,10 @@ export default function SettingsPage() {
                     value={newStatus.priority}
                     onChange={(e) => setNewStatus({ 
                       ...newStatus, 
-                      priority: Math.max(0, Math.min(99, parseInt(e.target.value) || 0)) 
+                      priority: Math.max(1, Math.min(99, parseInt(e.target.value) || 1)) 
                     })}
                     className="w-24"
-                    min="0"
+                    min="1"
                     max="99"
                   />
                 </div>
@@ -493,10 +493,10 @@ export default function SettingsPage() {
                     value={editStatusValues.priority}
                     onChange={(e) => setEditStatusValues({ 
                       ...editStatusValues, 
-                      priority: parseInt(e.target.value) || 0 
+                      priority: Math.max(1, parseInt(e.target.value) || 1)
                     })}
                     className="w-24"
-                    min="0"
+                    min="1"
                   />
                 </div>
                 <div className="flex space-x-2">
