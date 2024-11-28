@@ -24,6 +24,11 @@ interface PocketBaseRecord {
   };
 }
 
+interface ApiResponse {
+  data?: unknown;
+  status: number;
+}
+
 export async function fetchOrders() {
   try {
     const records = await pb.collection('orders').getFullList<PocketBaseRecord>({

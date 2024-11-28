@@ -1,6 +1,22 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import pb from "@/lib/pocketbase";
+import { DefaultUser, DefaultSession } from "next-auth"
+
+// Extend the built-in types
+declare module "next-auth" {
+  interface User extends DefaultUser {
+    role?: string
+    id: string
+  }
+
+  interface Session extends DefaultSession {
+    user?: {
+      id: string
+      role: string
+    } & DefaultSession["user"]
+  }
+}
 
 const handler = NextAuth({
   providers: [

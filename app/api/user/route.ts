@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 
 export async function PUT(req: Request) {
   const session = await getServerSession();
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 

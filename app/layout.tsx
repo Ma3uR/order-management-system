@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang={defaultLocale} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Providers>
-          <div className="fixed top-4 right-4 flex items-center gap-2">
+          <div className="fixed top-4 right-4 z-50">
             <ThemeSwitcher />
           </div>
           {children}

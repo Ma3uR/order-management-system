@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import DashboardWrapper from './DashboardWrapper';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
-import ThemeSwitcher from '@/app/components/ThemeSwitcher';
+import { ThemeSwitcher } from '@/components/theme-switcher';
 
 export default function DashboardLayout({
   children,

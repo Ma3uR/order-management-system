@@ -8,7 +8,7 @@ import axios from 'axios';
 import Link from 'next/link';
 
 interface BlacklistItem {
-  id: number;
+  id: string | number;
   fullName: string;
   phoneNumber: string;
 }
@@ -56,7 +56,7 @@ const BlacklistManagement: React.FC = () => {
     }
   };
 
-  const handleRemoveItem = async (id: number) => {
+  const handleRemoveItem = async (id: string | number) => {
     try {
       await axios.delete('/api/blacklist', { data: { id } });
       setBlacklist(prev => prev.filter(item => item.id !== id));
@@ -103,7 +103,13 @@ const BlacklistManagement: React.FC = () => {
         {blacklist.map(item => (
           <li key={item.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
             <span>{item.fullName} - {item.phoneNumber}</span>
-            <Button onClick={() => handleRemoveItem(item.id)} variant="destructive">{t('remove')}</Button>
+            <Button 
+              onClick={() => handleRemoveItem(item.id)} 
+              variant="outline" 
+              className="text-red-600 hover:bg-red-100"
+            >
+              {t('remove')}
+            </Button>
           </li>
         ))}
       </ul>

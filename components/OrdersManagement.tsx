@@ -1,31 +1,22 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect } from "react"
+import { Header } from "./header"
+import { StatsCard } from "./stats-card"
+import { OrdersTable } from "./orders-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import { PlusCircle, Search, RefreshCw, ArrowLeft } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { PlusCircle, Search, ArrowLeft } from 'lucide-react'
 import Link from "next/link"
+import axios from 'axios'
 import pb from '@/lib/pocketbase'
+import { Slider } from "@/components/ui/slider"
 
 interface Product {
   name: string;
@@ -173,7 +164,17 @@ interface OrderData {
   currency: string;
 }
 
-const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initialOrders }) => {
+interface FilterOptions {
+  status?: string;
+  dateRange?: {
+    from: Date | null;
+    to: Date | null;
+  };
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+export function OrdersManagement({ translations, initialOrders }: OrdersManagementProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isClient, setIsClient] = useState(false)
   const [filterText, setFilterText] = useState("")
@@ -202,6 +203,12 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   const [defaultCurrency, setDefaultCurrency] = useState<Currency | null>(null)
   const [statuses, setStatuses] = useState<Status[]>([])
   const [editingStatusOrder, setEditingStatusOrder] = useState<Order | null>(null)
+  const [filters, setFilters] = useState<FilterOptions>({
+    status: undefined,
+    dateRange: { from: null, to: null },
+    minAmount: undefined,
+    maxAmount: undefined
+  });
 
   useEffect(() => {
     let isSubscribed = true;
@@ -325,13 +332,40 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     console.log('Current payment methods:', paymentMethods);
   }, [deliveryMethods, paymentMethods]);
 
-  const filteredOrders = orders.filter(order => 
-    order.orderNumber.toLowerCase().includes(filterText.toLowerCase()) ||
-    order.fullName.toLowerCase().includes(filterText.toLowerCase()) ||
-    (order.status?.name?.toLowerCase() || '').includes(filterText.toLowerCase())
-  )
-
   const totalAmount = orders.reduce((sum, order) => sum + order.amount, 0)
+  const monthlyData = [4200, 4500, 4800, 4600, 4400, 4700]
+  const orderData = [10, 15, 8, 12, 9, 11]
+  const customerData = [120, 140, 160, 155, 170, 180]
+
+  const filteredOrders = orders.filter(order => {
+    let matches = true;
+
+    // Filter by status
+    if (filters.status && order.status?.id !== filters.status) {
+      matches = false;
+    }
+
+    // Filter by date range
+    if (filters.dateRange?.from || filters.dateRange?.to) {
+      const orderDate = new Date(order.createdAt);
+      if (filters.dateRange.from && orderDate < filters.dateRange.from) {
+        matches = false;
+      }
+      if (filters.dateRange.to && orderDate > filters.dateRange.to) {
+        matches = false;
+      }
+    }
+
+    // Filter by amount range
+    if (filters.minAmount && order.amount < filters.minAmount) {
+      matches = false;
+    }
+    if (filters.maxAmount && order.amount > filters.maxAmount) {
+      matches = false;
+    }
+
+    return matches;
+  });
 
   const translateStatus = (status: string | undefined) => {
     if (!status) return '';
@@ -450,67 +484,6 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     });
   };
 
-  const StatusEditDialog = ({ order, onClose }: { order: Order, onClose: () => void }) => (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{translations.editOrder}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2">
-          <Label htmlFor="status">{translations.status}</Label>
-          <Select
-            value={order.status?.name || ''}
-            onValueChange={async (value) => {
-              try {
-                const selectedStatus = statuses.find(s => s.name === value);
-                if (!selectedStatus) return;
-
-                const response = await axios.put(`/api/orders/${order.id}`, {
-                  statusId: selectedStatus.id
-                });
-                
-                if (response.data) {
-                  setOrders(prevOrders => 
-                    prevOrders.map(o => 
-                      o.id === order.id ? response.data : o
-                    )
-                  );
-                  onClose();
-                }
-              } catch (error) {
-                console.error('Error updating order:', error);
-                alert('Error updating order');
-              }
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue>
-                {order.status ? translateStatus(order.status.name) : translations.selectStatus}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {statuses.map(status => {
-                const uniqueKey = `status-${status.id}-${status.name}`;
-                return (
-                  <SelectItem 
-                    key={uniqueKey} 
-                    value={status.name}
-                    style={{
-                      backgroundColor: status.color,
-                      color: getContrastColor(status.color)
-                    }}
-                  >
-                    {translateStatus(status.name)}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-
   useEffect(() => {
     const connectRealtime = async () => {
       try {
@@ -539,154 +512,323 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
     };
   }, []);
 
+  // Add this function to format currency
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  // Calculate max amount from orders for slider
+  const maxPossibleAmount = Math.max(...orders.map(order => order.amount), 5000);
+
   if (!isClient) {
-    return null // or a loading spinner
+    return null
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold dark:text-white">{translations.title}</h1>
-        <Link href="/dashboard" passHref>
-          <Button variant="outline" size="sm" className="dark:border-gray-700 dark:text-gray-300">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {translations.backToDashboard}
-          </Button>
-        </Link>
-      </div>
-
-      <Tabs defaultValue="orders" className="w-full">
-        <TabsList className="border-b dark:border-gray-700">
-          <TabsTrigger value="orders" className="dark:text-gray-300">Orders</TabsTrigger>
-          <TabsTrigger value="analytics" className="dark:text-gray-300">Analytics</TabsTrigger>
-        </TabsList>
-        <TabsContent value="orders">
+    <div className="flex min-h-screen flex-col bg-background">
+      <div className="space-y-4">
+        <Header translations={translations} />
+        
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatsCard
+            title={translations.totalAmount}
+            value={`€${totalAmount.toFixed(2)}`}
+            change={{ value: "+1.25%", positive: true }}
+            data={orderData}
+          />
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader>
-                  <CardTitle className="dark:text-white">{translations.totalAmount}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold dark:text-white">
-                    {defaultCurrency?.symbol || ''}{totalAmount.toFixed(2)}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader>
-                  <CardTitle className="dark:text-white">{translations.filterOrders}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex space-x-2">
-                    <Input
-                      placeholder={translations.filterOrdersPlaceholder}
-                      value={filterText}
-                      onChange={(e) => setFilterText(e.target.value)}
-                      className="flex-grow dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                    />
-                    <Button variant="outline" size="icon" className="dark:border-gray-700 dark:text-gray-300">
-                      <Search className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader>
-                  <CardTitle className="dark:text-white">{translations.createNewOrder}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={() => setIsCreateModalOpen(true)} className="w-full dark:bg-gray-700 dark:hover:bg-gray-600">
-                    <PlusCircle className="mr-2 h-4 w-4" /> {translations.createNewOrder}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="dark:bg-gray-800 dark:border-gray-700">
+            <StatsCard
+              title="Total Orders"
+              value={orders.length.toString()}
+              change={{ value: "+2.5%", positive: true }}
+              data={orderData}
+            />
+            <Card 
+              className="bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:bg-accent/50 transition-colors cursor-pointer" 
+              onClick={() => setIsCreateModalOpen(true)}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="dark:text-white">{translations.orders}</CardTitle>
-                <Button variant="outline" size="sm" className="dark:border-gray-700 dark:text-gray-300">
-                  <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-                </Button>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {translations.createNewOrder}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="dark:border-gray-700">
-                      <TableHead className="dark:text-gray-400">{translations.orderNumber}</TableHead>
-                      <TableHead className="dark:text-gray-400">{translations.fullName}</TableHead>
-                      <TableHead className="dark:text-gray-400">{translations.status}</TableHead>
-                      <TableHead className="dark:text-gray-400">{translations.amount}</TableHead>
-                      <TableHead className="dark:text-gray-400">{translations.createdAt}</TableHead>
-                      <TableHead className="dark:text-gray-400">{translations.actions}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOrders.map((order) => {
-                      // Create a unique key by combining id with a timestamp
-                      const uniqueKey = `${order.id}-${order.createdAt}`;
-                      return (
-                        <TableRow key={uniqueKey} className="dark:border-gray-700">
-                          <TableCell className="font-medium dark:text-gray-300">{order.orderNumber}</TableCell>
-                          <TableCell className="dark:text-gray-300">{order.fullName}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              style={{ 
-                                backgroundColor: order.status?.color?.startsWith('#') 
-                                  ? order.status.color 
-                                  : '#cbd5e1',
-                                color: getContrastColor(order.status?.color || '#cbd5e1'),
-                                padding: '0.5rem 0.75rem',
-                                borderRadius: '0.375rem',
-                                cursor: 'pointer'
-                              }}
-                              onClick={() => setEditingStatusOrder(order)}
-                            >
-                              {order.status ? translateStatus(order.status.name) : ''}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="dark:text-gray-300">
-                            {order.currency.symbol}{order.amount.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="dark:text-gray-300">{new Date(order.createdAt).toLocaleString()}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="default" size="sm" className="dark:bg-gray-700 dark:hover:bg-gray-600" onClick={() => {
-                                setSelectedOrder(order)
-                                setIsDetailsModalOpen(true)
-                              }}>
-                                {translations.details}
-                              </Button>
-                              <Button variant="default" size="sm" className="dark:bg-gray-700 dark:hover:bg-gray-600" onClick={() => handleDeleteOrder(order.id)}>
-                                {translations.delete}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="flex items-center justify-center py-2">
+                  <PlusCircle className="h-8 w-8 text-muted-foreground" />
+                </div>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-        <TabsContent value="analytics">
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <Card className="bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <CardHeader>
-              <CardTitle className="dark:text-white">Analytics</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Filters</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="dark:text-gray-300">Analytics content goes here...</p>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Status</Label>
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger className="w-full bg-background/60">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All</SelectItem>
+                    {statuses.map(status => (
+                      <SelectItem 
+                        key={status.id} 
+                        value={status.id}
+                        style={{
+                          backgroundColor: status.color,
+                          color: getContrastColor(status.color)
+                        }}
+                      >
+                        {translateStatus(status.name)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-xs font-medium">Amount Range</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {formatCurrency(filters.minAmount || 0)} - {formatCurrency(filters.maxAmount || maxPossibleAmount)}
+                  </span>
+                </div>
+                <Slider
+                  min={0}
+                  max={maxPossibleAmount}
+                  step={100}
+                  value={[filters.minAmount || 0, filters.maxAmount || maxPossibleAmount]}
+                  onValueChange={([min, max]) => {
+                    setFilters(prev => ({
+                      ...prev,
+                      minAmount: min,
+                      maxAmount: max
+                    }));
+                  }}
+                  className="mt-2"
+                />
+              </div>
+
+              <Button 
+                variant="outline" 
+                onClick={() => setFilters({
+                  status: undefined,
+                  dateRange: { from: null, to: null },
+                  minAmount: undefined,
+                  maxAmount: undefined
+                })}
+                className="w-full text-xs bg-background/60"
+              >
+                Reset Filters
+              </Button>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
 
-      {/* Update modals with dark mode styles */}
+        <OrdersTable
+          orders={filteredOrders}
+          onViewDetails={(order) => {
+            setSelectedOrder(order as unknown as Order)
+            setIsDetailsModalOpen(true)
+          }}
+          onDeleteOrder={handleDeleteOrder}
+          translations={translations}
+        />
+      </div>
+
+      {/* Create Order Modal */}
+      {isCreateModalOpen && (
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogContent className="sm:max-w-[600px] bg-background border-border">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+                {translations.createNewOrder}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                {translations.orderDetails}
+              </p>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">{translations.orderNumber}</Label>
+                  <Input
+                    name="orderNumber"
+                    value={newOrder.orderNumber}
+                    onChange={handleInputChange}
+                    placeholder={translations.orderNumber}
+                    className="bg-background border-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">{translations.source}</Label>
+                  <Input
+                    name="source"
+                    value={newOrder.source}
+                    onChange={handleInputChange}
+                    placeholder={translations.source}
+                    className="bg-background border-input"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">{translations.deliveryMethod}</Label>
+                <Select
+                  value={newOrder.deliveryMethod?.id}
+                  onValueChange={(value) => {
+                    const method = deliveryMethods.find(m => m.id === value);
+                    setNewOrder(prev => ({
+                      ...prev,
+                      deliveryMethod: method
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="w-full bg-background border-input">
+                    <SelectValue placeholder={translations.selectDeliveryMethod} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deliveryMethods.map(method => (
+                      <SelectItem 
+                        key={method.id} 
+                        value={method.id}
+                        className="text-foreground"
+                      >
+                        {method.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">{translations.deliveryPostNumber}</Label>
+                <Input
+                  name="deliveryPostNumber"
+                  value={newOrder.deliveryPostNumber}
+                  onChange={handleInputChange}
+                  placeholder={translations.deliveryPostNumber}
+                  className="bg-background border-input"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">{translations.phoneNumber}</Label>
+                  <Input
+                    name="phoneNumber"
+                    value={newOrder.phoneNumber}
+                    onChange={handleInputChange}
+                    placeholder={translations.phoneNumber}
+                    className="bg-background border-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">{translations.fullName}</Label>
+                  <Input
+                    name="fullName"
+                    value={newOrder.fullName}
+                    onChange={handleInputChange}
+                    placeholder={translations.fullName}
+                    className="bg-background border-input"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">{translations.products}</Label>
+                <textarea
+                  value={newOrder.productsText || ''}
+                  onChange={(e) => setNewOrder(prev => ({ ...prev, productsText: e.target.value }))}
+                  placeholder="Product Name 1, 2, 19.99&#10;Product Name 2, 1, 29.99"
+                  rows={4}
+                  className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter each product on a new line in format: name, quantity, price
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">{translations.numberOfItems}</Label>
+                  <Input
+                    type="number"
+                    name="numberOfItems"
+                    value={newOrder.numberOfItems}
+                    onChange={handleInputChange}
+                    min="1"
+                    className="bg-background border-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">{translations.paymentMethod}</Label>
+                  <Select
+                    value={newOrder.paymentMethod?.id}
+                    onValueChange={(value) => {
+                      const method = paymentMethods.find(m => m.id === value);
+                      setNewOrder(prev => ({
+                        ...prev,
+                        paymentMethod: method
+                      }));
+                    }}
+                  >
+                    <SelectTrigger className="w-full bg-background border-input">
+                      <SelectValue placeholder={translations.selectPaymentMethod} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map(method => (
+                        <SelectItem 
+                          key={method.id} 
+                          value={method.id}
+                          className="text-foreground"
+                        >
+                          {method.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">{translations.amount}</Label>
+                <Input
+                  type="number"
+                  name="amount"
+                  value={newOrder.amount}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
+                  className="bg-background border-input"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                onClick={handleCreateOrder}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {translations.createNewOrder}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Details Modal */}
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
         <DialogContent className="sm:max-w-[625px] dark:bg-gray-800 dark:border-gray-700">
           <DialogHeader>
@@ -732,7 +874,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                     ...selectedOrder,
                     fullName: e.target.value
                   })}
-                  pattern="^[A-Za-zА-Яа-яіІїЇєЄ\s'-]+$"
+                  pattern="^[A-Za-zА-Яа-яІїЇєЄ\s'-]+$"
                   title="Full name can only contain letters, spaces, hyphens, and apostrophes"
                   required
                 />
@@ -903,6 +1045,7 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
         </DialogContent>
       </Dialog>
 
+      {/* Status Edit Modal */}
       {editingStatusOrder && (
         <Dialog open={true} onOpenChange={() => setEditingStatusOrder(null)}>
           <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:border-gray-700">
@@ -963,209 +1106,6 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
           </DialogContent>
         </Dialog>
       )}
-
-      {/* Create Order Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[625px] dark:bg-gray-800 dark:border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="dark:text-white">{translations.createNewOrder}</DialogTitle>
-            <p className="text-sm dark:text-gray-400">
-              {translations.createNewOrderDescription || 'Fill in the order details below'}
-            </p>
-          </DialogHeader>
-          <form onSubmit={handleCreateOrder} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="orderNumber" className="text-black">
-                  {translations.orderNumber}
-                </Label>
-                <Input
-                  id="orderNumber"
-                  name="orderNumber"
-                  value={newOrder.orderNumber}
-                  onChange={handleInputChange}
-                  placeholder={translations.orderNumber}
-                  className="bg-white text-black border-gray-300"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="source" className="text-black">
-                  {translations.source}
-                </Label>
-                <Input
-                  id="source"
-                  name="source"
-                  value={newOrder.source}
-                  onChange={handleInputChange}
-                  placeholder={translations.source}
-                  className="bg-white text-black border-gray-300"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deliveryMethod" className="text-black">
-                {translations.deliveryMethod}
-              </Label>
-              <Select
-                value={deliveryMethod}
-                onValueChange={(value) => handleSelectChange("deliveryMethod", value)}
-              >
-                <SelectTrigger className="w-full bg-white text-black border-gray-300">
-                  <SelectValue>
-                    {deliveryMethod 
-                      ? deliveryMethods.find(m => m.id === deliveryMethod)?.name 
-                      : translations.selectDeliveryMethod}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {deliveryMethods.map((method) => {
-                    const uniqueKey = `delivery-${method.id}-${method.name}`;
-                    return (
-                      <SelectItem key={uniqueKey} value={method.id} className="text-black">
-                        {method.name}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deliveryPostNumber" className="text-black">
-                {translations.deliveryPostNumber}
-              </Label>
-              <Input
-                id="deliveryPostNumber"
-                name="deliveryPostNumber"
-                value={newOrder.deliveryPostNumber || ''}
-                onChange={handleInputChange}
-                placeholder={translations.deliveryPostNumber}
-                className="bg-white text-black border-gray-300"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phoneNumber" className="text-black">
-                  {translations.phoneNumber}
-                </Label>
-                <Input
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  type="tel"
-                  value={newOrder.phoneNumber}
-                  onChange={handleInputChange}
-                  placeholder={translations.phoneNumber}
-                  className="bg-white text-black border-gray-300"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-black">
-                  {translations.fullName}
-                </Label>
-                <Input
-                  id="fullName"
-                  name="fullName"
-                  value={newOrder.fullName}
-                  onChange={handleInputChange}
-                  placeholder={translations.fullName}
-                  className="bg-white text-black border-gray-300"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="productsText" className="text-black">
-                {translations.products}
-              </Label>
-              <Textarea
-                id="productsText"
-                name="productsText"
-                value={newOrder.productsText || ''}
-                onChange={handleProductsTextChange}
-                placeholder={`Product Name 1, 2, 19.99\nProduct Name 2, 1, 29.99\nProduct Name 3, 3, 9.99`}
-                className="bg-white text-black border-gray-300 min-h-[100px]"
-                required
-              />
-              <p className="text-sm text-gray-600">
-                Enter each product on a new line in format: name, quantity, price
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="numberOfItems" className="text-black">
-                  {translations.numberOfItems}
-                </Label>
-                <Input
-                  id="numberOfItems"
-                  name="numberOfItems"
-                  type="number"
-                  value={newOrder.numberOfItems?.toString()}
-                  onChange={handleInputChange}
-                  placeholder={translations.numberOfItems}
-                  className="bg-white text-black border-gray-300"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="paymentMethod" className="text-black">
-                  {translations.paymentMethod}
-                </Label>
-                <Select
-                  value={paymentMethod}
-                  onValueChange={(value) => handleSelectChange("paymentMethod", value)}
-                >
-                  <SelectTrigger className="w-full bg-white text-black border-gray-300">
-                    <SelectValue>
-                      {paymentMethod 
-                        ? paymentMethods.find(m => m.id === paymentMethod)?.name 
-                        : translations.selectPaymentMethod}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentMethods.map(method => {
-                      const uniqueKey = `payment-${method.id}-${method.name}`;
-                      return (
-                        <SelectItem key={uniqueKey} value={method.id}>
-                          {method.name}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="amount" className="text-black">
-                {translations.amount}
-              </Label>
-              <Input
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                value={newOrder.amount?.toString()}
-                onChange={handleInputChange}
-                placeholder="0.00"
-                className="bg-white text-black border-gray-300"
-                required
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="submit" className="bg-primary text-white hover:bg-primary/90">
-                {translations.createNewOrder}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

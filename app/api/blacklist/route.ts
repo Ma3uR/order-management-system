@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { id } = await request.json();
+    const { id }: { id: string } = await request.json();
     await pb.collection('blacklist').delete(id);
     return NextResponse.json({ success: true });
   } catch (error) {

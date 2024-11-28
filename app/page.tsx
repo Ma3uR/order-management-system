@@ -15,7 +15,7 @@ export default function Home() {
           <Button variant="outline" size="lg">Projects</Button>
         </Link>
         <Link href="/login">
-          <Button variant="secondary" size="lg">Login</Button>
+          <Button variant="ghost" size="lg">Login</Button>
         </Link>
         <Link href="/register">
           <Button variant="link" size="lg">Register</Button>
