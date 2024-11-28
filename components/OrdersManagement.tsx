@@ -489,18 +489,21 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {statuses.map(status => (
-                <SelectItem 
-                  key={status.id} 
-                  value={status.name}
-                  style={{
-                    backgroundColor: status.color,
-                    color: getContrastColor(status.color)
-                  }}
-                >
-                  {translateStatus(status.name)}
-                </SelectItem>
-              ))}
+              {statuses.map(status => {
+                const uniqueKey = `status-${status.id}-${status.name}`;
+                return (
+                  <SelectItem 
+                    key={uniqueKey} 
+                    value={status.name}
+                    style={{
+                      backgroundColor: status.color,
+                      color: getContrastColor(status.color)
+                    }}
+                  >
+                    {translateStatus(status.name)}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -541,37 +544,39 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
   }
 
   return (
-    <div className="min-h-screen bg-white text-black p-8">
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white p-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{translations.title}</h1>
+        <h1 className="text-3xl font-bold dark:text-white">{translations.title}</h1>
         <Link href="/dashboard" passHref>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="dark:border-gray-700 dark:text-gray-300">
             <ArrowLeft className="mr-2 h-4 w-4" />
             {translations.backToDashboard}
           </Button>
         </Link>
       </div>
-      <Tabs defaultValue="orders">
-        <TabsList>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList className="border-b dark:border-gray-700">
+          <TabsTrigger value="orders" className="dark:text-gray-300">Orders</TabsTrigger>
+          <TabsTrigger value="analytics" className="dark:text-gray-300">Analytics</TabsTrigger>
         </TabsList>
         <TabsContent value="orders">
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
+              <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle>{translations.totalAmount}</CardTitle>
+                  <CardTitle className="dark:text-white">{translations.totalAmount}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">
+                  <p className="text-2xl font-bold dark:text-white">
                     {defaultCurrency?.symbol || ''}{totalAmount.toFixed(2)}
                   </p>
                 </CardContent>
               </Card>
-              <Card>
+
+              <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle>{translations.filterOrders}</CardTitle>
+                  <CardTitle className="dark:text-white">{translations.filterOrders}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex space-x-2">
@@ -579,85 +584,90 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                       placeholder={translations.filterOrdersPlaceholder}
                       value={filterText}
                       onChange={(e) => setFilterText(e.target.value)}
-                      className="flex-grow"
+                      className="flex-grow dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                     />
-                    <Button variant="outline" size="icon">
+                    <Button variant="outline" size="icon" className="dark:border-gray-700 dark:text-gray-300">
                       <Search className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+
+              <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle>{translations.createNewOrder}</CardTitle>
+                  <CardTitle className="dark:text-white">{translations.createNewOrder}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Button onClick={() => setIsCreateModalOpen(true)} className="w-full">
+                  <Button onClick={() => setIsCreateModalOpen(true)} className="w-full dark:bg-gray-700 dark:hover:bg-gray-600">
                     <PlusCircle className="mr-2 h-4 w-4" /> {translations.createNewOrder}
                   </Button>
                 </CardContent>
               </Card>
             </div>
 
-            <Card>
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle>{translations.orders}</CardTitle>
-                <Button variant="outline" size="sm">
+                <CardTitle className="dark:text-white">{translations.orders}</CardTitle>
+                <Button variant="outline" size="sm" className="dark:border-gray-700 dark:text-gray-300">
                   <RefreshCw className="mr-2 h-4 w-4" /> Refresh
                 </Button>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>{translations.orderNumber}</TableHead>
-                      <TableHead>{translations.fullName}</TableHead>
-                      <TableHead>{translations.status}</TableHead>
-                      <TableHead>{translations.amount}</TableHead>
-                      <TableHead>{translations.createdAt}</TableHead>
-                      <TableHead>{translations.actions}</TableHead>
+                    <TableRow className="dark:border-gray-700">
+                      <TableHead className="dark:text-gray-400">{translations.orderNumber}</TableHead>
+                      <TableHead className="dark:text-gray-400">{translations.fullName}</TableHead>
+                      <TableHead className="dark:text-gray-400">{translations.status}</TableHead>
+                      <TableHead className="dark:text-gray-400">{translations.amount}</TableHead>
+                      <TableHead className="dark:text-gray-400">{translations.createdAt}</TableHead>
+                      <TableHead className="dark:text-gray-400">{translations.actions}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                        <TableCell>{order.fullName}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            style={{ 
-                              backgroundColor: order.status?.color?.startsWith('#') 
-                                ? order.status.color 
-                                : '#cbd5e1',
-                              color: getContrastColor(order.status?.color || '#cbd5e1'),
-                              padding: '0.5rem 0.75rem',
-                              borderRadius: '0.375rem',
-                              cursor: 'pointer'
-                            }}
-                            onClick={() => setEditingStatusOrder(order)}
-                          >
-                            {order.status ? translateStatus(order.status.name) : ''}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {order.currency.symbol}{order.amount.toFixed(2)}
-                        </TableCell>
-                        <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="default" size="sm" onClick={() => {
-                              setSelectedOrder(order)
-                              setIsDetailsModalOpen(true)
-                            }}>
-                              {translations.details}
-                            </Button>
-                            <Button variant="default" size="sm" onClick={() => handleDeleteOrder(order.id)}>
-                              {translations.delete}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredOrders.map((order) => {
+                      // Create a unique key by combining id with a timestamp
+                      const uniqueKey = `${order.id}-${order.createdAt}`;
+                      return (
+                        <TableRow key={uniqueKey} className="dark:border-gray-700">
+                          <TableCell className="font-medium dark:text-gray-300">{order.orderNumber}</TableCell>
+                          <TableCell className="dark:text-gray-300">{order.fullName}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              style={{ 
+                                backgroundColor: order.status?.color?.startsWith('#') 
+                                  ? order.status.color 
+                                  : '#cbd5e1',
+                                color: getContrastColor(order.status?.color || '#cbd5e1'),
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '0.375rem',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => setEditingStatusOrder(order)}
+                            >
+                              {order.status ? translateStatus(order.status.name) : ''}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="dark:text-gray-300">
+                            {order.currency.symbol}{order.amount.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="dark:text-gray-300">{new Date(order.createdAt).toLocaleString()}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button variant="default" size="sm" className="dark:bg-gray-700 dark:hover:bg-gray-600" onClick={() => {
+                                setSelectedOrder(order)
+                                setIsDetailsModalOpen(true)
+                              }}>
+                                {translations.details}
+                              </Button>
+                              <Button variant="default" size="sm" className="dark:bg-gray-700 dark:hover:bg-gray-600" onClick={() => handleDeleteOrder(order.id)}>
+                                {translations.delete}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -665,23 +675,22 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
           </div>
         </TabsContent>
         <TabsContent value="analytics">
-          {/* Add analytics content here */}
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle>Analytics</CardTitle>
+              <CardTitle className="dark:text-white">Analytics</CardTitle>
             </CardHeader>
             <CardContent>
-              <p>Analytics content goes here...</p>
+              <p className="dark:text-gray-300">Analytics content goes here...</p>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Details Modal */}
+      {/* Update modals with dark mode styles */}
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="sm:max-w-[625px]">
+        <DialogContent className="sm:max-w-[625px] dark:bg-gray-800 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle>{translations.orderDetails}</DialogTitle>
+            <DialogTitle className="dark:text-white">{translations.orderDetails}</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
             <form onSubmit={async (e) => {
@@ -790,11 +799,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                     <SelectValue>{selectedOrder.deliveryMethod?.name}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {deliveryMethods.map(method => (
-                      <SelectItem key={method.id} value={method.id}>
-                        {method.name}
-                      </SelectItem>
-                    ))}
+                    {deliveryMethods.map((method) => {
+                      const uniqueKey = `delivery-${method.id}-${method.name}`;
+                      return (
+                        <SelectItem key={uniqueKey} value={method.id} className="text-black">
+                          {method.name}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -866,11 +878,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                     <SelectValue>{selectedOrder.paymentMethod?.name}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {paymentMethods.map(method => (
-                      <SelectItem key={method.id} value={method.id}>
-                        {method.name}
-                      </SelectItem>
-                    ))}
+                    {paymentMethods.map(method => {
+                      const uniqueKey = `payment-${method.id}-${method.name}`;
+                      return (
+                        <SelectItem key={uniqueKey} value={method.id}>
+                          {method.name}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -889,20 +904,72 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
       </Dialog>
 
       {editingStatusOrder && (
-        <StatusEditDialog 
-          order={editingStatusOrder} 
-          onClose={() => setEditingStatusOrder(null)} 
-        />
+        <Dialog open={true} onOpenChange={() => setEditingStatusOrder(null)}>
+          <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="dark:text-white">{translations.editOrder}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="status">{translations.status}</Label>
+              <Select
+                value={editingStatusOrder?.status?.name || ''}
+                onValueChange={async (value) => {
+                  try {
+                    const selectedStatus = statuses.find(s => s.name === value);
+                    if (!selectedStatus) return;
+
+                    const response = await axios.put(`/api/orders/${editingStatusOrder.id}`, {
+                      statusId: selectedStatus.id
+                    });
+                    
+                    if (response.data) {
+                      setOrders(prevOrders => 
+                        prevOrders.map(o => 
+                          o.id === editingStatusOrder.id ? response.data : o
+                        )
+                      );
+                      setEditingStatusOrder(null);
+                    }
+                  } catch (error) {
+                    console.error('Error updating order:', error);
+                    alert('Error updating order');
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {editingStatusOrder?.status ? translateStatus(editingStatusOrder.status.name) : translations.selectStatus}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map(status => {
+                    const uniqueKey = `status-${status.id}-${status.name}`;
+                    return (
+                      <SelectItem 
+                        key={uniqueKey} 
+                        value={status.name}
+                        style={{
+                          backgroundColor: status.color,
+                          color: getContrastColor(status.color)
+                        }}
+                      >
+                        {translateStatus(status.name)}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Create Order Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[625px] bg-white text-black" aria-describedby="order-dialog-description">
+        <DialogContent className="sm:max-w-[625px] dark:bg-gray-800 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-black">
-              {translations.createNewOrder}
-            </DialogTitle>
-            <p id="order-dialog-description" className="text-sm text-gray-600">
+            <DialogTitle className="dark:text-white">{translations.createNewOrder}</DialogTitle>
+            <p className="text-sm dark:text-gray-400">
               {translations.createNewOrderDescription || 'Fill in the order details below'}
             </p>
           </DialogHeader>
@@ -953,11 +1020,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {deliveryMethods.map((method) => (
-                    <SelectItem key={method.id} value={method.id} className="text-black">
-                      {method.name}
-                    </SelectItem>
-                  ))}
+                  {deliveryMethods.map((method) => {
+                    const uniqueKey = `delivery-${method.id}-${method.name}`;
+                    return (
+                      <SelectItem key={uniqueKey} value={method.id} className="text-black">
+                        {method.name}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -1058,11 +1128,14 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ translations, initi
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {paymentMethods.map((method) => (
-                      <SelectItem key={method.id} value={method.id} className="text-black">
-                        {method.name}
-                      </SelectItem>
-                    ))}
+                    {paymentMethods.map(method => {
+                      const uniqueKey = `payment-${method.id}-${method.name}`;
+                      return (
+                        <SelectItem key={uniqueKey} value={method.id}>
+                          {method.name}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
