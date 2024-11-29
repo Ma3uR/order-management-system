@@ -716,7 +716,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 <Label className="text-sm">{translations.deliveryPostNumber}</Label>
                 <Input
                   name="deliveryPostNumber"
-                  value={newOrder.deliveryPostNumber}
+                  value={newOrder.deliveryPostNumber || ''}
                   onChange={handleInputChange}
                   placeholder={translations.deliveryPostNumber}
                   className="bg-background border-input"
