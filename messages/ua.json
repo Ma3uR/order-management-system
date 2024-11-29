@@ -95,7 +95,11 @@
     "priority": "Пріоритет",
     "priorityPlaceholder": "Введіть пріоритет (0-99)",
     "statusPriority": "Пріоритет статусу",
-    "statusColor": "Колір статусу"
+    "statusColor": "Колір статусу",
+    "sources": "Джерела",
+    "sourceName": "Назва джерела",
+    "sourceUrl": "URL джерела",
+    "addSource": "Додати джерело"
   },
   "Blacklist": {
     "title": "Управління чорним списком",

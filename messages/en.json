@@ -98,7 +98,11 @@
     "priority": "Priority",
     "priorityPlaceholder": "Enter priority (0-99)",
     "statusPriority": "Status Priority",
-    "statusColor": "Status Color"
+    "statusColor": "Status Color",
+    "sources": "Sources",
+    "sourceName": "Source Name",
+    "sourceUrl": "Source URL",
+    "addSource": "Add Source"
   },
   "Blacklist": {
     "title": "Blacklist Management",

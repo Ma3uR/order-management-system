@@ -133,6 +133,14 @@ interface Status {
   priority: number;
 }
 
+interface Source {
+  id: string;
+  name: string;
+  url?: string;
+  created: string;
+  updated: string;
+}
+
 function getContrastColor(hexcolor: string): string {
   // Remove the hash if it exists
   const hex = hexcolor.replace('#', '');
@@ -184,6 +192,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
   const [newOrder, setNewOrder] = useState<Partial<Order>>({
     orderNumber: '',
     source: '',
+    sourceId: '',
     deliveryMethod: { id: '', name: '' },
     deliveryPostNumber: '',
     phoneNumber: '',
@@ -209,6 +218,18 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     minAmount: undefined,
     maxAmount: undefined
   });
+  const [sources, setSources] = useState<Source[]>([]);
+
+  const fetchSources = async () => {
+    try {
+      const response = await fetch('/api/sources');
+      if (!response.ok) throw new Error('Failed to fetch sources');
+      const data = await response.json();
+      setSources(data);
+    } catch (error) {
+      console.error('Error fetching sources:', error);
+    }
+  };
 
   useEffect(() => {
     let isSubscribed = true;
@@ -236,6 +257,9 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
         setPaymentMethods(paymentMethods);
         setDefaultCurrency(defaultCurrency);
         setStatuses(statuses);
+
+        // Fetch sources separately
+        await fetchSources();
 
         // Set up realtime subscriptions
         const unsubOrders = await pb.collection('orders').subscribe('*', async (e) => {
@@ -302,6 +326,17 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
           }
         });
         subscriptions.push(unsubStatus);
+
+        // Subscribe to sources collection
+        const unsubSources = await pb.collection('sources').subscribe('*', (e) => {
+          if (!isSubscribed) return;
+          if (e.action === 'create') {
+            setSources(prev => [...prev, e.record as unknown as Source]);
+          } else if (e.action === 'delete') {
+            setSources(prev => prev.filter(s => s.id !== e.record.id));
+          }
+        });
+        subscriptions.push(unsubSources);
 
       } catch (error) {
         if (isSubscribed) {
@@ -426,8 +461,9 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     if (!newOrder.deliveryMethod?.id || 
         !newOrder.paymentMethod?.id || 
         !newOrder.productsText || 
-        !statuses[0]?.id) {
-      alert('Please fill in all required fields: Delivery Method, Payment Method, Products, and Status');
+        !statuses[0]?.id ||
+        !newOrder.sourceId) {
+      alert('Please fill in all required fields: Delivery Method, Payment Method, Products, Source, and Status');
       return;
     }
 
@@ -435,20 +471,21 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
       const orderData: OrderData = {
         orderNumber: newOrder.orderNumber || '',
         source: newOrder.source || '',
-        deliveryMethod: newOrder.deliveryMethod.id,  // Now guaranteed to exist
+        sourceId: newOrder.sourceId,
+        deliveryMethod: newOrder.deliveryMethod.id,
         deliveryPostNumber: newOrder.deliveryPostNumber || '',
         phoneNumber: newOrder.phoneNumber || '',
         fullName: newOrder.fullName || '',
-        products: newOrder.productsText.split('\n')  // Parse products immediately
+        products: newOrder.productsText.split('\n')
           .filter(line => line.trim())
           .map(line => {
             const [name, quantity = "1", price = "0"] = line.split(',').map(s => s.trim());
             return { name, quantity: parseInt(quantity) || 1, price: parseFloat(price) || 0 };
           }),
         numberOfItems: Number(newOrder.numberOfItems) || 0,
-        paymentMethod: newOrder.paymentMethod.id,    // Now guaranteed to exist
+        paymentMethod: newOrder.paymentMethod.id,
         amount: Number(newOrder.amount) || 0,
-        status: statuses[0].id,                      // Now guaranteed to exist
+        status: statuses[0].id,
         currency: defaultCurrency?.id || ''
       };
 
@@ -470,6 +507,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     setNewOrder({
       orderNumber: '',
       source: '',
+      sourceId: '',
       deliveryMethod: { id: '', name: '' },
       deliveryPostNumber: '',
       phoneNumber: '',
@@ -524,6 +562,11 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
 
   // Calculate max amount from orders for slider
   const maxPossibleAmount = Math.max(...orders.map(order => order.amount), 5000);
+
+  // Add a debug log when sources state changes
+  useEffect(() => {
+    console.log('Current sources state:', sources);
+  }, [sources]);
 
   if (!isClient) {
     return null
@@ -673,13 +716,36 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm">{translations.source}</Label>
-                  <Input
-                    name="source"
-                    value={newOrder.source}
-                    onChange={handleInputChange}
-                    placeholder={translations.source}
-                    className="bg-background border-input"
-                  />
+                  <Select
+                    value={newOrder.sourceId || ''}
+                    onValueChange={(value) => {
+                      const selectedSource = sources.find(s => s.id === value);
+                      setNewOrder(prev => ({
+                        ...prev,
+                        sourceId: value,
+                        source: selectedSource?.name || ''
+                      }));
+                    }}
+                  >
+                    <SelectTrigger className="w-full bg-background border-input">
+                      <SelectValue placeholder={translations.source} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sources.length > 0 ? (
+                        sources.map(source => (
+                          <SelectItem 
+                            key={source.id} 
+                            value={source.id}
+                            className="text-foreground"
+                          >
+                            {source.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>No sources available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

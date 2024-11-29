@@ -34,6 +34,16 @@ interface DeliveryMethod {
   name: string;
 }
 
+interface Source {
+  id: string;
+  name: string;
+  url?: string;
+  created: string;
+  updated: string;
+  collectionId: string;
+  collectionName: string;
+}
+
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const { data: session, update } = useSession();
@@ -44,6 +54,7 @@ export default function SettingsPage() {
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
+  const [sources, setSources] = useState<Source[]>([]);
 
   const [newCurrency, setNewCurrency] = useState({ code: '', name: '', symbol: '' });
   const [newStatus, setNewStatus] = useState({ 
@@ -53,6 +64,7 @@ export default function SettingsPage() {
   });
   const [newPaymentMethod, setNewPaymentMethod] = useState({ name: '' });
   const [newDeliveryMethod, setNewDeliveryMethod] = useState({ name: '' });
+  const [newSource, setNewSource] = useState({ name: '', url: '' });
 
   const [flashMessage, setFlashMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -68,6 +80,7 @@ export default function SettingsPage() {
     fetchStatuses();
     fetchPaymentMethods();
     fetchDeliveryMethods();
+    fetchSources();
   }, []);
 
   const showFlashMessage = (message: string, type: 'success' | 'error' = 'success') => {
@@ -102,6 +115,18 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error fetching delivery methods:', error);
+    }
+  };
+
+  const fetchSources = async () => {
+    try {
+      const response = await fetch('/api/sources');
+      if (!response.ok) throw new Error('Failed to fetch sources');
+      const data = await response.json();
+      setSources(data);
+    } catch (error) {
+      console.error('Error fetching sources:', error);
+      showFlashMessage(t('updateError'), 'error');
     }
   };
 
@@ -217,6 +242,25 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAddSource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/sources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSource),
+      });
+      if (!response.ok) throw new Error('Failed to add source');
+      const record = await response.json();
+      setSources([...sources, record]);
+      setNewSource({ name: '', url: '' });
+      showFlashMessage('Source added successfully!', 'success');
+    } catch (error) {
+      console.error('Error adding source:', error);
+      showFlashMessage(error instanceof Error ? error.message : 'An error occurred', 'error');
+    }
+  };
+
   const handleDeleteStatus = async (id: string) => {
     try {
       const response = await fetch('/api/statuses', {
@@ -279,6 +323,20 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteSource = async (id: string) => {
+    try {
+      const response = await fetch(`/api/sources/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete source');
+      setSources(sources.filter(source => source.id !== id));
+      showFlashMessage('Source deleted successfully!', 'success');
+    } catch (error) {
+      console.error('Error deleting source:', error);
+      showFlashMessage('Error deleting source', 'error');
+    }
+  };
+
   const handleEditStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStatus) return;
@@ -321,12 +379,13 @@ export default function SettingsPage() {
       <div className="space-y-4">
         <Tabs defaultValue="profile">
           <TabsList>
-            <div className="grid w-full grid-cols-5">
+            <div className="grid w-full grid-cols-6">
               <TabsTrigger value="profile">{t('profile')}</TabsTrigger>
               <TabsTrigger value="currencies">{t('currencies')}</TabsTrigger>
               <TabsTrigger value="statuses">{t('statuses')}</TabsTrigger>
               <TabsTrigger value="paymentMethods">{t('paymentMethods')}</TabsTrigger>
               <TabsTrigger value="deliveryMethods">{t('deliveryMethods')}</TabsTrigger>
+              <TabsTrigger value="sources">{t('sources')}</TabsTrigger>
             </div>
           </TabsList>
           <TabsContent value="profile">
@@ -561,6 +620,47 @@ export default function SettingsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeleteDeliveryMethod(method.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </li>
+              )) : null}
+            </ul>
+          </TabsContent>
+          <TabsContent value="sources">
+            <form onSubmit={handleAddSource} className="space-y-4 mb-4">
+              <div className="flex space-x-2">
+                <Input
+                  placeholder={t('sourceName')}
+                  value={newSource.name}
+                  onChange={(e) => setNewSource({ ...newSource, name: e.target.value })}
+                  className="flex-grow"
+                />
+                <Input
+                  placeholder={t('sourceUrl')}
+                  value={newSource.url}
+                  onChange={(e) => setNewSource({ ...newSource, url: e.target.value })}
+                  className="flex-grow"
+                />
+                <Button type="submit">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  {t('addSource')}
+                </Button>
+              </div>
+            </form>
+            <ul className="space-y-2">
+              {Array.isArray(sources) ? sources.map((source) => (
+                <li key={source.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                  <div>
+                    <span className="font-medium">{source.name}</span>
+                    {source.url && (
+                      <span className="ml-2 text-gray-500">{source.url}</span>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteSource(source.id)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
