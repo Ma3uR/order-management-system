@@ -29,6 +29,7 @@ interface Order {
   id: string
   orderNumber: string
   source: string
+  sourceId?: string
   deliveryMethod?: {
     id: string;
     name: string;
@@ -184,6 +185,70 @@ interface FilterOptions {
   };
   minAmount?: number;
   maxAmount?: number;
+}
+
+function getMonthlyStats(orders: Order[]) {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  const currentMonthOrders = orders.filter(order => {
+    const orderDate = new Date(order.createdAt);
+    return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+  });
+
+  const lastMonthOrders = orders.filter(order => {
+    const orderDate = new Date(order.createdAt);
+    return orderDate.getMonth() === lastMonth && orderDate.getFullYear() === lastMonthYear;
+  });
+
+  const currentMonthAmount = currentMonthOrders.reduce((sum, order) => sum + order.amount, 0);
+  const lastMonthAmount = lastMonthOrders.reduce((sum, order) => sum + order.amount, 0);
+  
+  const amountChange = lastMonthAmount === 0 
+    ? 100 
+    : ((currentMonthAmount - lastMonthAmount) / lastMonthAmount) * 100;
+
+  const orderCountChange = lastMonthOrders.length === 0 
+    ? 100 
+    : ((currentMonthOrders.length - lastMonthOrders.length) / lastMonthOrders.length) * 100;
+
+  // Get daily data for the current month's graph
+  const dailyAmounts = new Array(31).fill(0);
+  const dailyOrders = new Array(31).fill(0);
+
+  currentMonthOrders.forEach(order => {
+    const day = new Date(order.createdAt).getDate() - 1;
+    dailyAmounts[day] += order.amount;
+    dailyOrders[day] += 1;
+  });
+
+  // Compress the daily data into 6 points for the graph
+  const compressData = (data: number[]) => {
+    const result = new Array(6).fill(0);
+    const pointSize = Math.ceil(data.length / 6);
+    
+    for (let i = 0; i < 6; i++) {
+      const start = i * pointSize;
+      const end = Math.min(start + pointSize, data.length);
+      const slice = data.slice(start, end);
+      result[i] = slice.reduce((sum, val) => sum + val, 0) / slice.length;
+    }
+    
+    return result;
+  };
+
+  return {
+    currentMonthAmount,
+    amountChange,
+    amountChangePositive: amountChange >= 0,
+    orderCountChange,
+    orderCountChangePositive: orderCountChange >= 0,
+    graphDataAmount: compressData(dailyAmounts),
+    graphDataOrders: compressData(dailyOrders)
+  };
 }
 
 export function OrdersManagement({ translations, initialOrders }: OrdersManagementProps) {
@@ -374,10 +439,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     console.log('Current payment methods:', paymentMethods);
   }, [deliveryMethods, paymentMethods]);
 
-  const totalAmount = orders.reduce((sum, order) => sum + order.amount, 0)
-  const monthlyData = [4200, 4500, 4800, 4600, 4400, 4700]
-  const orderData = [10, 15, 8, 12, 9, 11]
-  const customerData = [120, 140, 160, 155, 170, 180]
+  const stats = getMonthlyStats(orders);
 
   const filteredOrders = orders.filter(order => {
     let matches = true;
@@ -477,8 +539,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     try {
       const orderData: OrderData = {
         orderNumber: newOrder.orderNumber || '',
-        source: newOrder.source || '',
-        sourceId: newOrder.sourceId,
+        source: newOrder.sourceId || '',
         deliveryMethod: newOrder.deliveryMethod.id,
         deliveryPostNumber: newOrder.deliveryPostNumber || '',
         phoneNumber: newOrder.phoneNumber || '',
@@ -606,16 +667,22 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
         <div className="grid gap-4 md:grid-cols-3">
           <StatsCard
             title={translations.totalAmount}
-            value={`€${totalAmount.toFixed(2)}`}
-            change={{ value: "+1.25%", positive: true }}
-            data={orderData}
+            value={`${orders[0]?.currency?.symbol || '€'}${stats.currentMonthAmount.toFixed(2)}`}
+            change={{ 
+              value: `${stats.amountChange >= 0 ? '+' : ''}${stats.amountChange.toFixed(1)}%`,
+              positive: stats.amountChangePositive 
+            }}
+            data={stats.graphDataAmount}
           />
           <div className="space-y-4">
             <StatsCard
               title="Total Orders"
               value={orders.length.toString()}
-              change={{ value: "+2.5%", positive: true }}
-              data={orderData}
+              change={{ 
+                value: `${stats.orderCountChange >= 0 ? '+' : ''}${stats.orderCountChange.toFixed(1)}%`,
+                positive: stats.orderCountChangePositive 
+              }}
+              data={stats.graphDataOrders}
             />
             <Card 
               className="bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:bg-accent/50 transition-colors cursor-pointer" 
