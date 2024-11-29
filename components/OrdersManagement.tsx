@@ -17,6 +17,7 @@ import Link from "next/link"
 import axios from 'axios'
 import pb from '@/lib/pocketbase'
 import { Slider } from "@/components/ui/slider"
+import { StatusSelect } from "@/components/StatusSelect"
 
 interface Product {
   name: string;
@@ -574,6 +575,25 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     console.log('Current sources state:', sources);
   }, [sources]);
 
+  const handleStatusChange = async (orderId: string, statusId: string) => {
+    try {
+      const response = await axios.put(`/api/orders/${orderId}`, {
+        statusId: statusId
+      });
+      
+      if (response.data) {
+        setOrders(prevOrders => 
+          prevOrders.map(o => 
+            o.id === orderId ? response.data : o
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Error updating order');
+    }
+  };
+
   if (!isClient) {
     return null
   }
@@ -692,6 +712,10 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
           }}
           onDeleteOrder={handleDeleteOrder}
           translations={translations}
+          statuses={statuses}
+          onStatusChange={handleStatusChange}
+          translateStatus={translateStatus}
+          getContrastColor={getContrastColor}
         />
       </div>
 
@@ -954,20 +978,13 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
 
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.status}</Label>
-                <Badge 
-                  style={{ 
-                    backgroundColor: selectedOrder.status?.color?.startsWith('#') 
-                      ? selectedOrder.status.color 
-                      : '#cbd5e1',
-                    color: getContrastColor(selectedOrder.status?.color || '#cbd5e1'),
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => setEditingStatusOrder(selectedOrder)}
-                >
-                  {selectedOrder.status ? translateStatus(selectedOrder.status.name) : ''}
-                </Badge>
+                <StatusSelect
+                  status={selectedOrder?.status}
+                  statuses={statuses}
+                  onStatusChange={(statusId) => handleStatusChange(selectedOrder!.id, statusId)}
+                  translateStatus={translateStatus}
+                  getContrastColor={getContrastColor}
+                />
               </div>
 
               <div className="grid grid-cols-2 items-center gap-4">
@@ -1135,68 +1152,6 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Status Edit Modal */}
-      {editingStatusOrder && (
-        <Dialog open={true} onOpenChange={() => setEditingStatusOrder(null)}>
-          <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:border-gray-700">
-            <DialogHeader>
-              <DialogTitle className="dark:text-white">{translations.editOrder}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="status">{translations.status}</Label>
-              <Select
-                value={editingStatusOrder?.status?.name || ''}
-                onValueChange={async (value) => {
-                  try {
-                    const selectedStatus = statuses.find(s => s.name === value);
-                    if (!selectedStatus) return;
-
-                    const response = await axios.put(`/api/orders/${editingStatusOrder.id}`, {
-                      statusId: selectedStatus.id
-                    });
-                    
-                    if (response.data) {
-                      setOrders(prevOrders => 
-                        prevOrders.map(o => 
-                          o.id === editingStatusOrder.id ? response.data : o
-                        )
-                      );
-                      setEditingStatusOrder(null);
-                    }
-                  } catch (error) {
-                    console.error('Error updating order:', error);
-                    alert('Error updating order');
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {editingStatusOrder?.status ? translateStatus(editingStatusOrder.status.name) : translations.selectStatus}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {statuses.map(status => {
-                    const uniqueKey = `status-${status.id}-${status.name}`;
-                    return (
-                      <SelectItem 
-                        key={uniqueKey} 
-                        value={status.name}
-                        style={{
-                          backgroundColor: status.color,
-                          color: getContrastColor(status.color)
-                        }}
-                      >
-                        {translateStatus(status.name)}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   )
 }

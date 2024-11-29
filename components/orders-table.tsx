@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { StatusSelect } from "@/components/StatusSelect"
 
 interface Order {
   id: string
@@ -38,6 +39,10 @@ interface OrdersTableProps {
     details: string
     delete: string
   }
+  statuses: Status[]
+  onStatusChange: (orderId: string, statusId: string) => Promise<void>
+  translateStatus: (status: string) => string
+  getContrastColor: (color: string) => string
 }
 
 export function OrdersTable({
@@ -45,6 +50,10 @@ export function OrdersTable({
   onViewDetails,
   onDeleteOrder,
   translations,
+  statuses,
+  onStatusChange,
+  translateStatus,
+  getContrastColor
 }: OrdersTableProps) {
   return (
     <Table>
@@ -64,14 +73,13 @@ export function OrdersTable({
             <TableCell className="font-medium">{order.orderNumber}</TableCell>
             <TableCell>{order.fullName}</TableCell>
             <TableCell>
-              <Badge
-                style={{
-                  backgroundColor: order.status?.color,
-                  color: '#fff'
-                }}
-              >
-                {order.status?.name}
-              </Badge>
+              <StatusSelect
+                status={order.status}
+                statuses={statuses}
+                onStatusChange={(statusId) => onStatusChange(order.id, statusId)}
+                translateStatus={translateStatus}
+                getContrastColor={getContrastColor}
+              />
             </TableCell>
             <TableCell>
               {order.currency.symbol}
