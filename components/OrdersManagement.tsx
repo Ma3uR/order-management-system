@@ -18,6 +18,7 @@ import axios from 'axios'
 import pb from '@/lib/pocketbase'
 import { Slider } from "@/components/ui/slider"
 import { StatusSelect } from "@/components/StatusSelect"
+import { cn } from "@/lib/utils"
 
 interface Product {
   name: string;
@@ -251,6 +252,25 @@ function getMonthlyStats(orders: Order[]) {
   };
 }
 
+interface ProductInput {
+  title: string;
+  quantity: number;
+  price: number;
+}
+
+// Add this interface for validation errors
+interface ValidationErrors {
+  orderNumber?: string;
+  source?: string;
+  deliveryMethod?: string;
+  deliveryPostNumber?: string;
+  phoneNumber?: string;
+  products?: string;
+  paymentMethod?: string;
+  fullName?: string;
+  submit?: string;
+}
+
 export function OrdersManagement({ translations, initialOrders }: OrdersManagementProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isClient, setIsClient] = useState(false)
@@ -267,9 +287,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     phoneNumber: '',
     fullName: '',
     products: [],
-    numberOfItems: 0,
     paymentMethod: { id: '', name: '' },
-    amount: 0,
     status: { id: '', name: 'Being processed by manager', color: 'yellow' },
     currency: { id: '', code: '', symbol: '' },
     productsText: '',
@@ -288,6 +306,10 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     maxAmount: undefined
   });
   const [sources, setSources] = useState<Source[]>([]);
+  const [productInputs, setProductInputs] = useState<ProductInput[]>([
+    { title: '', quantity: 1, price: 0 }
+  ]);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   const fetchSources = async () => {
     try {
@@ -490,9 +512,10 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setNewOrder(prev => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setNewOrder(prev => ({ ...prev, [name]: value }));
+    setValidationErrors(prev => ({ ...prev, [name]: undefined }));
+  };
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === 'deliveryMethod') {
@@ -523,37 +546,90 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     }));
   };
 
+  // Add validation function
+  const validateOrder = (): boolean => {
+    const errors: ValidationErrors = {};
+    let isValid = true;
+
+    if (!newOrder.orderNumber?.trim()) {
+      errors.orderNumber = 'Order number is required';
+      isValid = false;
+    }
+
+    if (!newOrder.sourceId) {
+      errors.source = 'Please select a source';
+      isValid = false;
+    }
+
+    if (!newOrder.deliveryMethod?.id) {
+      errors.deliveryMethod = 'Please select a delivery method';
+      isValid = false;
+    }
+
+    if (!newOrder.phoneNumber?.match(/^\+?[0-9]{10,15}$/)) {
+      errors.phoneNumber = 'Phone number must be between 10 and 15 digits';
+      isValid = false;
+    }
+
+    if (!newOrder.fullName?.trim()) {
+      errors.fullName = 'Full name is required';
+      isValid = false;
+    }
+
+    if (!productInputs.length || !productInputs.some(p => p.title && p.quantity > 0 && p.price > 0)) {
+      errors.products = 'At least one valid product is required';
+      isValid = false;
+    }
+
+    if (!newOrder.paymentMethod?.id) {
+      errors.paymentMethod = 'Please select a payment method';
+      isValid = false;
+    }
+
+    if (newOrder.deliveryPostNumber) {
+      const postNumber = parseInt(newOrder.deliveryPostNumber);
+      if (isNaN(postNumber) || !Number.isInteger(postNumber) || postNumber <= 0) {
+        errors.deliveryPostNumber = 'Post number must be a positive integer';
+        isValid = false;
+      }
+    }
+
+    setValidationErrors(errors);
+    return isValid;
+  };
+
+  // Update the handleCreateOrder function
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!newOrder.deliveryMethod?.id || 
-        !newOrder.paymentMethod?.id || 
-        !newOrder.productsText || 
-        !statuses[0]?.id ||
-        !newOrder.sourceId) {
-      alert('Please fill in all required fields: Delivery Method, Payment Method, Products, Source, and Status');
+    // Clear any previous validation errors
+    setValidationErrors({});
+    
+    if (!validateOrder()) {
       return;
     }
 
     try {
-      const orderData: OrderData = {
+      // Calculate totals from product inputs
+      const totalItems = productInputs.reduce((sum, p) => sum + p.quantity, 0);
+      const totalAmount = productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0);
+
+      const orderData = {
         orderNumber: newOrder.orderNumber || '',
-        source: newOrder.sourceId || '',
-        deliveryMethod: newOrder.deliveryMethod.id,
+        source: newOrder.sourceId,
+        deliveryMethod: newOrder.deliveryMethod?.id,
         deliveryPostNumber: newOrder.deliveryPostNumber || '',
         phoneNumber: newOrder.phoneNumber || '',
         fullName: newOrder.fullName || '',
-        products: newOrder.productsText.split('\n')
-          .filter(line => line.trim())
-          .map(line => {
-            const [name, quantity = "1", price = "0"] = line.split(',').map(s => s.trim());
-            return { name, quantity: parseInt(quantity) || 1, price: parseFloat(price) || 0 };
-          }),
-        numberOfItems: Number(newOrder.numberOfItems) || 0,
-        paymentMethod: newOrder.paymentMethod.id,
-        amount: Number(newOrder.amount) || 0,
-        status: statuses[0].id,
+        products: productInputs.map(p => ({
+          name: p.title,
+          quantity: p.quantity,
+          price: p.price
+        })),
+        numberOfItems: totalItems,
+        paymentMethod: newOrder.paymentMethod?.id,
+        amount: totalAmount,
+        status: statuses[0]?.id, // Get default status
         currency: defaultCurrency?.id || ''
       };
 
@@ -563,11 +639,16 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
       });
 
       setOrders([...orders, createdOrder as unknown as Order]);
+      setValidationErrors({}); // Clear validation errors on success
       setIsCreateModalOpen(false);
       resetNewOrderForm();
+      // Also reset product inputs
+      setProductInputs([{ title: '', quantity: 1, price: 0 }]);
     } catch (error) {
       console.error('Error creating order:', error);
-      alert('Error creating order: ' + (error as Error).message);
+      setValidationErrors({
+        submit: 'Error creating order: ' + (error as Error).message
+      });
     }
   };
 
@@ -581,13 +662,12 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
       phoneNumber: '',
       fullName: '',
       products: [],
-      numberOfItems: 0,
       paymentMethod: { id: '', name: '' },
-      amount: 0,
       status: { id: '', name: 'Being processed by manager', color: 'yellow' },
       currency: { id: '', code: '', symbol: '' },
-      productsText: '',
     });
+    setProductInputs([{ title: '', quantity: 1, price: 0 }]);
+    setValidationErrors({}); // Clear all validation errors
   };
 
   useEffect(() => {
@@ -652,6 +732,46 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     } catch (error) {
       console.error('Error updating order:', error);
       alert('Error updating order');
+    }
+  };
+
+  const handleProductInputChange = (index: number, field: keyof ProductInput, value: string) => {
+    setProductInputs(prev => {
+      const updated = [...prev];
+      if (field === 'quantity' || field === 'price') {
+        updated[index][field] = Math.max(0, Number(value));
+      } else {
+        updated[index][field] = value;
+      }
+      return updated;
+    });
+
+    // Clear product validation error when user makes changes
+    setValidationErrors(prev => ({ ...prev, products: undefined }));
+
+    // Update newOrder with calculated values
+    const totalItems = productInputs.reduce((sum, product) => sum + product.quantity, 0);
+    const totalAmount = productInputs.reduce((sum, product) => sum + (product.quantity * product.price), 0);
+    
+    setNewOrder(prev => ({
+      ...prev,
+      products: productInputs.map(p => ({
+        name: p.title,
+        quantity: p.quantity,
+        price: p.price
+      })),
+      numberOfItems: totalItems,
+      amount: totalAmount
+    }));
+  };
+
+  const addProductInput = () => {
+    setProductInputs(prev => [...prev, { title: '', quantity: 1, price: 0 }]);
+  };
+
+  const removeProductInput = (index: number) => {
+    if (productInputs.length > 1) {
+      setProductInputs(prev => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -787,156 +907,309 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
       </div>
 
       {/* Create Order Modal */}
-      {isCreateModalOpen && (
-        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogContent className="sm:max-w-[600px] bg-background border-border">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
-                {translations.createNewOrder}
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                {translations.orderDetails}
-              </p>
-            </DialogHeader>
+      <Dialog 
+        open={isCreateModalOpen} 
+        onOpenChange={(open) => {
+          setIsCreateModalOpen(open);
+          if (!open) {
+            resetNewOrderForm();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[600px] bg-background border-border max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+              {translations.createNewOrder}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {translations.orderDetails}
+            </p>
+          </DialogHeader>
 
+          <div className="flex-1 overflow-y-auto pr-2">
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm">{translations.orderNumber}</Label>
-                  <Input
-                    name="orderNumber"
-                    value={newOrder.orderNumber}
-                    onChange={handleInputChange}
-                    placeholder={translations.orderNumber}
-                    className="bg-background border-input"
-                  />
+                  <Label className={cn(validationErrors.orderNumber && "text-destructive")}>
+                    {translations.orderNumber}
+                  </Label>
+                  <div className="space-y-2">
+                    <Input
+                      name="orderNumber"
+                      value={newOrder.orderNumber}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        setValidationErrors(prev => ({ ...prev, orderNumber: undefined }));
+                      }}
+                      className={cn(validationErrors.orderNumber && "border-destructive")}
+                      placeholder={translations.orderNumber}
+                    />
+                    {validationErrors.orderNumber && (
+                      <p className="text-sm text-destructive">{validationErrors.orderNumber}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm">{translations.source}</Label>
-                  <Select
-                    value={newOrder.sourceId || ''}
-                    onValueChange={(value) => {
-                      const selectedSource = sources.find(s => s.id === value);
-                      setNewOrder(prev => ({
-                        ...prev,
-                        sourceId: value,
-                        source: selectedSource?.name || ''
-                      }));
-                    }}
-                  >
-                    <SelectTrigger className="w-full bg-background border-input">
-                      <SelectValue placeholder={translations.source} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sources.length > 0 ? (
-                        sources.map(source => (
-                          <SelectItem 
-                            key={source.id} 
+                  <Label className={cn(validationErrors.source && "text-destructive")}>
+                    {translations.source}
+                  </Label>
+                  <div className="space-y-2">
+                    <Select
+                      value={newOrder.sourceId || ''}
+                      onValueChange={(value) => {
+                        const selectedSource = sources.find(s => s.id === value);
+                        setNewOrder(prev => ({
+                          ...prev,
+                          sourceId: value,
+                          source: selectedSource?.name || ''
+                        }));
+                        setValidationErrors(prev => ({ ...prev, source: undefined }));
+                      }}
+                    >
+                      <SelectTrigger className={cn(
+                        "w-full bg-background/60 border border-input",
+                        validationErrors.source && "border-destructive"
+                      )}>
+                        <SelectValue placeholder={translations.selectSource} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
+                        {sources.map(source => (
+                          <SelectItem
+                            key={source.id}
                             value={source.id}
-                            className="text-foreground"
+                            className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
                           >
                             {source.name}
                           </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="" disabled>No sources available</SelectItem>
-                      )}
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {validationErrors.source && (
+                      <p className="text-sm text-destructive">{validationErrors.source}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className={cn(validationErrors.deliveryMethod && "text-destructive")}>
+                  {translations.deliveryMethod}
+                </Label>
+                <div className="space-y-2">
+                  <Select
+                    value={newOrder.deliveryMethod?.id}
+                    onValueChange={(value) => {
+                      const method = deliveryMethods.find(m => m.id === value);
+                      setNewOrder(prev => ({
+                        ...prev,
+                        deliveryMethod: method
+                      }));
+                      setValidationErrors(prev => ({ ...prev, deliveryMethod: undefined }));
+                    }}
+                  >
+                    <SelectTrigger className={cn(
+                      "w-full bg-background/60 border border-input",
+                      validationErrors.deliveryMethod && "border-destructive"
+                    )}>
+                      <SelectValue placeholder={translations.selectDeliveryMethod} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
+                      {deliveryMethods.map(method => (
+                        <SelectItem 
+                          key={method.id} 
+                          value={method.id}
+                          className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                        >
+                          {method.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {validationErrors.deliveryMethod && (
+                    <p className="text-sm text-destructive">{validationErrors.deliveryMethod}</p>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm">{translations.deliveryMethod}</Label>
-                <Select
-                  value={newOrder.deliveryMethod?.id}
-                  onValueChange={(value) => {
-                    const method = deliveryMethods.find(m => m.id === value);
-                    setNewOrder(prev => ({
-                      ...prev,
-                      deliveryMethod: method
-                    }));
-                  }}
-                >
-                  <SelectTrigger className="w-full bg-background border-input">
-                    <SelectValue placeholder={translations.selectDeliveryMethod} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {deliveryMethods.map(method => (
-                      <SelectItem 
-                        key={method.id} 
-                        value={method.id}
-                        className="text-foreground"
-                      >
-                        {method.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm">{translations.deliveryPostNumber}</Label>
-                <Input
-                  name="deliveryPostNumber"
-                  value={newOrder.deliveryPostNumber || ''}
-                  onChange={handleInputChange}
-                  placeholder={translations.deliveryPostNumber}
-                  className="bg-background border-input"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+                <Label className={cn(validationErrors.deliveryPostNumber && "text-destructive")}>
+                  {translations.deliveryPostNumber}
+                </Label>
                 <div className="space-y-2">
-                  <Label className="text-sm">{translations.phoneNumber}</Label>
                   <Input
-                    name="phoneNumber"
-                    value={newOrder.phoneNumber}
-                    onChange={handleInputChange}
-                    placeholder={translations.phoneNumber}
-                    className="bg-background border-input"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">{translations.fullName}</Label>
-                  <Input
-                    name="fullName"
-                    value={newOrder.fullName}
-                    onChange={handleInputChange}
-                    placeholder={translations.fullName}
-                    className="bg-background border-input"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm">{translations.products}</Label>
-                <textarea
-                  value={newOrder.productsText || ''}
-                  onChange={(e) => setNewOrder(prev => ({ ...prev, productsText: e.target.value }))}
-                  placeholder="Product Name 1, 2, 19.99&#10;Product Name 2, 1, 29.99"
-                  rows={4}
-                  className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter each product on a new line in format: name, quantity, price
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">{translations.numberOfItems}</Label>
-                  <Input
+                    name="deliveryPostNumber"
                     type="number"
-                    name="numberOfItems"
-                    value={newOrder.numberOfItems}
-                    onChange={handleInputChange}
+                    value={newOrder.deliveryPostNumber || ''}
+                    onChange={(e) => {
+                      handleInputChange(e);
+                      setValidationErrors(prev => ({ ...prev, deliveryPostNumber: undefined }));
+                    }}
+                    placeholder={translations.deliveryPostNumber}
+                    className={cn(
+                      "bg-background border-input",
+                      validationErrors.deliveryPostNumber && "border-destructive"
+                    )}
                     min="1"
-                    className="bg-background border-input"
+                    step="1"
+                    onKeyDown={(e) => {
+                      // Prevent decimal point and negative numbers
+                      if (e.key === '.' || e.key === '-' || e.key === 'e') {
+                        e.preventDefault();
+                      }
+                    }}
                   />
+                  {validationErrors.deliveryPostNumber && (
+                    <p className="text-sm text-destructive">{validationErrors.deliveryPostNumber}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className={cn(validationErrors.phoneNumber && "text-destructive")}>
+                    {translations.phoneNumber}
+                  </Label>
+                  <div className="space-y-2">
+                    <Input
+                      name="phoneNumber"
+                      value={newOrder.phoneNumber}
+                      onChange={handleInputChange}
+                      placeholder={translations.phoneNumber}
+                      className={cn(
+                        "bg-background border-input",
+                        validationErrors.phoneNumber && "border-destructive"
+                      )}
+                    />
+                    {validationErrors.phoneNumber && (
+                      <p className="text-sm text-destructive">{validationErrors.phoneNumber}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm">{translations.paymentMethod}</Label>
+                  <Label className={cn(validationErrors.fullName && "text-destructive")}>
+                    {translations.fullName}
+                  </Label>
+                  <div className="space-y-2">
+                    <Input
+                      name="fullName"
+                      value={newOrder.fullName}
+                      onChange={handleInputChange}
+                      placeholder={translations.fullName}
+                      className={cn(
+                        "bg-background border-input",
+                        validationErrors.fullName && "border-destructive"
+                      )}
+                    />
+                    {validationErrors.fullName && (
+                      <p className="text-sm text-destructive">{validationErrors.fullName}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label className={cn(validationErrors.products && "text-destructive")}>
+                    {translations.products}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addProductInput}
+                    className="h-8 bg-background/60 border border-input hover:bg-accent flex items-center"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                </div>
+                
+                <div className={cn(
+                  "rounded-md border border-border overflow-hidden",
+                  validationErrors.products && "border-destructive"
+                )}>
+                  {/* Table Header */}
+                  <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 bg-muted/30 border-b border-border">
+                    <div className="text-sm font-medium text-foreground">Product</div>
+                    <div className="text-sm font-medium text-foreground">Quantity</div>
+                    <div className="text-sm font-medium text-foreground">Price</div>
+                    <div></div>
+                  </div>
+                  
+                  {/* Table Body */}
+                  <div className="divide-y divide-border bg-background/40">
+                    {productInputs.map((product, index) => (
+                      <div key={index} className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 items-center hover:bg-muted/20">
+                        <Input
+                          placeholder="Product name"
+                          value={product.title}
+                          onChange={(e) => handleProductInputChange(index, 'title', e.target.value)}
+                          className="bg-background border-input focus:bg-background"
+                        />
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Qty"
+                          value={product.quantity}
+                          onChange={(e) => handleProductInputChange(index, 'quantity', e.target.value)}
+                          className="bg-background border-input focus:bg-background"
+                        />
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="Price"
+                          value={product.price}
+                          onChange={(e) => handleProductInputChange(index, 'price', e.target.value)}
+                          className="bg-background border-input focus:bg-background"
+                        />
+                        {productInputs.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeProductInput(index)}
+                            className="h-8 w-8 p-0 hover:bg-destructive/20 hover:text-destructive"
+                          >
+                            ×
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {validationErrors.products && (
+                  <p className="text-sm text-destructive">{validationErrors.products}</p>
+                )}
+
+                {/* Totals */}
+                <div className="grid grid-cols-2 gap-4 mt-4 bg-muted/20 p-4 rounded-md border border-border">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">{translations.numberOfItems}</Label>
+                    <Input
+                      type="number"
+                      value={productInputs.reduce((sum, p) => sum + p.quantity, 0)}
+                      readOnly
+                      className="bg-background/60 border-input focus:bg-background"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">{translations.amount}</Label>
+                    <Input
+                      type="number"
+                      value={productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0)}
+                      readOnly
+                      className="bg-background/60 border-input focus:bg-background"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className={cn(validationErrors.paymentMethod && "text-destructive")}>
+                  {translations.paymentMethod}
+                </Label>
+                <div className="space-y-2">
                   <Select
                     value={newOrder.paymentMethod?.id}
                     onValueChange={(value) => {
@@ -945,51 +1218,50 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                         ...prev,
                         paymentMethod: method
                       }));
+                      setValidationErrors(prev => ({ ...prev, paymentMethod: undefined }));
                     }}
                   >
-                    <SelectTrigger className="w-full bg-background border-input">
+                    <SelectTrigger className={cn(
+                      "w-full bg-background border-input",
+                      validationErrors.paymentMethod && "border-destructive"
+                    )}>
                       <SelectValue placeholder={translations.selectPaymentMethod} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
                       {paymentMethods.map(method => (
                         <SelectItem 
                           key={method.id} 
                           value={method.id}
-                          className="text-foreground"
+                          className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
                         >
                           {method.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {validationErrors.paymentMethod && (
+                    <p className="text-sm text-destructive">{validationErrors.paymentMethod}</p>
+                  )}
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm">{translations.amount}</Label>
-                <Input
-                  type="number"
-                  name="amount"
-                  value={newOrder.amount}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="0.01"
-                  className="bg-background border-input"
-                />
-              </div>
             </div>
+          </div>
 
-            <DialogFooter>
-              <Button
-                onClick={handleCreateOrder}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {translations.createNewOrder}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+          <DialogFooter className="flex flex-col gap-4 mt-4 border-t pt-4">
+            {validationErrors.submit && (
+              <p className="text-sm text-destructive text-center">{validationErrors.submit}</p>
+            )}
+            <Button 
+              type="submit" 
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={handleCreateOrder}
+              disabled={!!validationErrors.submit}
+            >
+              {translations.createNewOrder}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Details Modal */}
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
@@ -1037,7 +1309,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                     ...selectedOrder,
                     fullName: e.target.value
                   })}
-                  pattern="^[A-Za-zА-Яа-яІїЇєЄ\s'-]+$"
+                  pattern="^[A-Za-zА-Яа-ІїЇєЄ\s'-]+$"
                   title="Full name can only contain letters, spaces, hyphens, and apostrophes"
                   required
                 />
@@ -1087,7 +1359,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                       {sources.find(s => s.id === selectedOrder.source)?.name || selectedOrder.sourceName}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
                     {sources.map(source => (
                       <SelectItem 
                         key={source.id} 
@@ -1115,7 +1387,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                   <SelectTrigger>
                     <SelectValue>{selectedOrder.deliveryMethod?.name}</SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
                     {deliveryMethods.map((method) => {
                       const uniqueKey = `delivery-${method.id}-${method.name}`;
                       return (
@@ -1194,7 +1466,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                   <SelectTrigger>
                     <SelectValue>{selectedOrder.paymentMethod?.name}</SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
                     {paymentMethods.map(method => {
                       const uniqueKey = `payment-${method.id}-${method.name}`;
                       return (
