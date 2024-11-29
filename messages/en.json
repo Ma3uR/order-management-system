@@ -46,7 +46,9 @@
     "createNewOrderDescription": "Fill in the details to create a new order. Click save when you're done.",
     "backToDashboard": "Back to Dashboard",
     "selectDeliveryMethod": "Select Delivery Method",
-    "selectPaymentMethod": "Select Payment Method"
+    "selectPaymentMethod": "Select Payment Method",
+    "selectSource": "Select Source",
+    "sourceRequired": "Source is required"
   },
   "Auth": {
     "signInTitle": "Sign in to your account",

@@ -55,6 +55,7 @@ interface Order {
   createdAt: string
   updatedAt: string
   productsText: string
+  sourceName?: string
 }
 
 interface OrdersManagementProps {
@@ -104,6 +105,8 @@ interface OrdersManagementProps {
     selectPaymentMethod: string
     createNewOrderDescription: string
     backToDashboard: string
+    selectSource: string
+    sourceRequired: string
   }
   initialOrders: Order[]
 }
@@ -239,7 +242,10 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     const fetchData = async () => {
       try {
         if (isSubscribed) {
-          setOrders(initialOrders);
+          setOrders(initialOrders.map(order => ({
+            ...order,
+            sourceName: sources.find(s => s.id === order.source)?.name || ''
+          })));
           setIsClient(true);
         }
 
@@ -981,14 +987,33 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
 
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>{translations.source}</Label>
-                <Input 
-                  value={selectedOrder.source} 
-                  onChange={(e) => setSelectedOrder({
-                    ...selectedOrder,
-                    source: e.target.value
-                  })}
-                  required
-                />
+                <Select
+                  value={selectedOrder.source || ''}
+                  onValueChange={(value) => {
+                    const selectedSource = sources.find(s => s.id === value);
+                    setSelectedOrder({
+                      ...selectedOrder,
+                      source: value,
+                      sourceName: selectedSource?.name || ''
+                    });
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={translations.selectSource}>
+                      {sources.find(s => s.id === selectedOrder.source)?.name || selectedOrder.sourceName}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sources.map(source => (
+                      <SelectItem 
+                        key={source.id} 
+                        value={source.id}
+                      >
+                        {source.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 items-center gap-4">

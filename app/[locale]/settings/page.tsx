@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { PlusCircle, Trash2, Edit2 } from 'lucide-react';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import axios from 'axios';
 
 interface Currency {
   id: string;
@@ -42,6 +45,14 @@ interface Source {
   updated: string;
   collectionId: string;
   collectionName: string;
+}
+
+interface OrdersManagementProps {
+  translations: {
+    // ... existing translations ...
+    selectSource: string;
+    // ... rest of translations ...
+  }
 }
 
 export default function SettingsPage() {

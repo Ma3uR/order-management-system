@@ -46,7 +46,9 @@
     "createNewOrderDescription": "Заповніть деталі для створення нового замовлення. Натисніть зберегти, коли закінчите.",
     "backToDashboard": "Повернутися до панелі керування",
     "selectDeliveryMethod": "Виберіть спосіб доставки",
-    "selectPaymentMethod": "Виберіть спосіб оплати"
+    "selectPaymentMethod": "Виберіть спосіб оплати",
+    "selectSource": "Виберіть джерело",
+    "sourceRequired": "Джерело обов'язкове"
   },
   "Auth": {
     "signInTitle": "Увійдіть у свій обліковий запис",
