@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function DashboardWrapper({
   children,
@@ -11,6 +11,15 @@ export default function DashboardWrapper({
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [showLoading, setShowLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === 'loading') {
+      setShowLoading(true);
+    } else {
+      setShowLoading(false);
+    }
+  }, [status]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -18,9 +27,9 @@ export default function DashboardWrapper({
     }
   }, [status, router]);
 
-  if (status === 'loading') {
+  if (showLoading) {
     return <div>Loading...</div>;
   }
 
-  return <>{session ? children : null}</>;
+  return session ? children : null;
 }

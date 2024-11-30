@@ -20,7 +20,7 @@ export function Header({ translations }: HeaderProps) {
           </Button>
         </Link>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex justify-between items-center gap-4 mr-8">
         <LanguageSwitcher />
       </div>
     </header>

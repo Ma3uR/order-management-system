@@ -11,6 +11,7 @@ import { StatsCard } from '@/components/stats-card';
 import pb from '@/lib/pocketbase';
 import { log } from 'console';
 import { AiChat } from "@/components/ai-chat"
+import { motion } from "framer-motion";
 
 interface Order {
   id: string;
@@ -192,6 +193,21 @@ export default function Dashboard() {
     return `hsl(${hue}, 80%, 60%)`;
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 }
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -200,8 +216,16 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 gap-6">
+      <motion.div 
+        className="space-y-4 md:space-y-6"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div 
+          className="grid grid-cols-1 gap-4 md:gap-6"
+          variants={itemVariants}
+        >
           <StatsCard
             title="Total Revenue"
             value={`${orders[0]?.currency?.symbol || '€'}${stats.totalRevenue.toFixed(2)}`}
@@ -211,45 +235,59 @@ export default function Dashboard() {
             }}
             data={stats.graphDataRevenue}
           />
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly Sales</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <BarChart
-                data={stats.monthlyData}
-                labels={months}
-                className="h-[300px]"
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Traffic Channel</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {stats.trafficData.length > 0 ? (
-                <DonutChart
-                  data={stats.trafficData}
-                  className="h-[250px]"
-                />
-              ) : (
-                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                  No traffic data available
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6"
+          variants={itemVariants}
+        >
+          <motion.div variants={itemVariants} className="w-full">
+            <Card className="h-full">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base md:text-lg">Monthly Sales</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px] md:h-[300px] w-full">
+                  <BarChart
+                    data={stats.monthlyData}
+                    labels={months}
+                    className="h-full w-full"
+                  />
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <div className="grid grid-cols-1 gap-6">
+          <motion.div variants={itemVariants} className="w-full">
+            <Card className="h-full">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base md:text-lg">Traffic Channel</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px] md:h-[300px] w-full">
+                  {stats.trafficData.length > 0 ? (
+                    <DonutChart
+                      data={stats.trafficData}
+                      className="h-full w-full"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                      No traffic data available
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+
+        <motion.div 
+          className="grid grid-cols-1 gap-4 md:gap-6"
+          variants={itemVariants}
+        >
           <AiChat />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
