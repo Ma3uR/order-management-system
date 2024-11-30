@@ -377,9 +377,9 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <h1 className="text-2xl font-bold mb-4">{t('title')}</h1>
-      <Link href="/dashboard" className="mb-4 inline-block text-blue-500 hover:underline">
+      <Link href="/dashboard" className="mb-6 inline-block text-blue-500 hover:underline">
         {t('backToDashboard')}
       </Link>
       {flashMessage && (
@@ -389,8 +389,8 @@ export default function SettingsPage() {
       )}
       <div className="space-y-4">
         <Tabs defaultValue="profile">
-          <TabsList>
-            <div className="grid w-full grid-cols-6">
+          <TabsList className="overflow-x-auto">
+            <div className="grid min-w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
               <TabsTrigger value="profile">{t('profile')}</TabsTrigger>
               <TabsTrigger value="currencies">{t('currencies')}</TabsTrigger>
               <TabsTrigger value="statuses">{t('statuses')}</TabsTrigger>
@@ -467,116 +467,168 @@ export default function SettingsPage() {
             </ul>
           </TabsContent>
           <TabsContent value="statuses">
-            <form onSubmit={handleAddStatus} className="space-y-4 mb-4">
-              <div className="flex space-x-2">
-                <Input
-                  placeholder={t('statusName')}
-                  value={newStatus.name}
-                  onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
-                  className="flex-grow"
-                />
-                <div className="flex flex-col space-y-1">
-                  <label className="text-sm text-gray-500">{t('statusColor')}</label>
-                  <Input
-                    type="color"
-                    value={newStatus.color}
-                    onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
-                    className="w-20 h-10"
-                  />
+            <div className="max-w-2xl mx-auto">
+              <form onSubmit={handleAddStatus} className="space-y-6 mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <h3 className="text-lg font-medium">{t('addNewStatus')}</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="statusName">{t('statusName')}</Label>
+                    <Input
+                      id="statusName"
+                      placeholder={t('statusName')}
+                      value={newStatus.name}
+                      onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="statusPriority">{t('statusPriority')}</Label>
+                    <Input
+                      id="statusPriority"
+                      type="number"
+                      placeholder={t('priorityPlaceholder')}
+                      value={newStatus.priority}
+                      onChange={(e) => setNewStatus({ 
+                        ...newStatus, 
+                        priority: Math.max(1, Math.min(99, parseInt(e.target.value) || 1)) 
+                      })}
+                      min="1"
+                      max="99"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col space-y-1">
-                  <label className="text-sm text-gray-500">{t('statusPriority')}</label>
-                  <Input
-                    type="number"
-                    placeholder={t('priorityPlaceholder')}
-                    value={newStatus.priority}
-                    onChange={(e) => setNewStatus({ 
-                      ...newStatus, 
-                      priority: Math.max(1, Math.min(99, parseInt(e.target.value) || 1)) 
-                    })}
-                    className="w-24"
-                    min="1"
-                    max="99"
-                  />
+
+                <div className="space-y-2">
+                  <Label htmlFor="statusColor">{t('statusColor')}</Label>
+                  <div className="flex items-center space-x-4">
+                    <Input
+                      id="statusColor"
+                      type="color"
+                      value={newStatus.color}
+                      onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
+                      className="w-20 h-10"
+                    />
+                    <div 
+                      className="w-10 h-10 rounded-full border"
+                      style={{ backgroundColor: newStatus.color }}
+                    />
+                  </div>
                 </div>
-                <Button type="submit">
+
+                <Button type="submit" className="w-full sm:w-auto">
                   <PlusCircle className="w-4 h-4 mr-2" />
                   {t('addStatus')}
                 </Button>
-              </div>
-            </form>
-            <ul className="space-y-2">
-              {statuses
-                .sort((a, b) => a.priority - b.priority)
-                .map((status) => (
-                  <li key={status.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-                    <div className="flex items-center space-x-2">
-                      <div 
-                        className="w-4 h-4 rounded-full" 
-                        style={{ backgroundColor: status.color }}
-                      />
-                      <span>{status.name}</span>
-                      <span className="text-sm text-gray-500">({t('priority')}: {status.priority})</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditingStatus(status);
-                          setEditStatusValues({
-                            name: status.name,
-                            color: status.color,
-                            priority: status.priority
-                          });
-                        }}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteStatus(status.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </li>
-              ))}
-            </ul>
-            {editingStatus && (
-              <form onSubmit={handleEditStatus} className="mt-4 space-y-4">
-                <div className="flex space-x-2">
-                  <Input
-                    value={editStatusValues.name}
-                    onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
-                    className="flex-grow"
-                  />
-                  <Input
-                    type="color"
-                    value={editStatusValues.color}
-                    onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
-                    className="w-20"
-                  />
-                  <Input
-                    type="number"
-                    value={editStatusValues.priority}
-                    onChange={(e) => setEditStatusValues({ 
-                      ...editStatusValues, 
-                      priority: Math.max(1, parseInt(e.target.value) || 1)
-                    })}
-                    className="w-24"
-                    min="1"
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <Button type="submit">Save Changes</Button>
-                  <Button type="button" variant="outline" onClick={() => setEditingStatus(null)}>
-                    Cancel
-                  </Button>
-                </div>
               </form>
-            )}
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">{t('existingStatuses')}</h3>
+                <ul className="grid gap-4 sm:grid-cols-2">
+                  {statuses
+                    .sort((a, b) => a.priority - b.priority)
+                    .map((status) => (
+                      <li key={status.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: status.color }}
+                            />
+                            <span className="font-medium">{status.name}</span>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingStatus(status);
+                                setEditStatusValues({
+                                  name: status.name,
+                                  color: status.color,
+                                  priority: status.priority
+                                });
+                              }}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteStatus(status.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-sm text-gray-500">
+                          {t('priority')}: {status.priority}
+                        </div>
+                      </li>
+                  ))}
+                </ul>
+              </div>
+
+              {editingStatus && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                    <h3 className="text-lg font-medium mb-4">{t('editStatus')}</h3>
+                    <form onSubmit={handleEditStatus} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="editStatusName">{t('statusName')}</Label>
+                        <Input
+                          id="editStatusName"
+                          value={editStatusValues.name}
+                          onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="editStatusColor">{t('statusColor')}</Label>
+                        <div className="flex items-center space-x-4">
+                          <Input
+                            id="editStatusColor"
+                            type="color"
+                            value={editStatusValues.color}
+                            onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
+                            className="w-20"
+                          />
+                          <div 
+                            className="w-10 h-10 rounded-full border"
+                            style={{ backgroundColor: editStatusValues.color }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="editStatusPriority">{t('statusPriority')}</Label>
+                        <Input
+                          id="editStatusPriority"
+                          type="number"
+                          value={editStatusValues.priority}
+                          onChange={(e) => setEditStatusValues({ 
+                            ...editStatusValues, 
+                            priority: Math.max(1, parseInt(e.target.value) || 1)
+                          })}
+                          min="1"
+                        />
+                      </div>
+
+                      <div className="flex space-x-2 pt-4">
+                        <Button type="submit" className="flex-1">{t('saveChanges')}</Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setEditingStatus(null)}
+                          className="flex-1"
+                        >
+                          {t('cancel')}
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
           </TabsContent>
           <TabsContent value="paymentMethods">
             <form onSubmit={handleAddPaymentMethod} className="space-y-4 mb-4">

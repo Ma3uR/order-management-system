@@ -117,7 +117,12 @@
     "sources": "Джерела",
     "sourceName": "Назва джерела",
     "sourceUrl": "URL джерела",
-    "addSource": "Додати джерело"
+    "addSource": "Додати джерело",
+    "addNewStatus": "Додати новий статус",
+    "existingStatuses": "Існуючі статуси",
+    "editStatus": "Редагувати статус",
+    "saveChanges": "Зберегти зміни",
+    "cancel": "Скасувати"
   },
   "Blacklist": {
     "title": "Управління чорним списком",

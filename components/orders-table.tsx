@@ -28,6 +28,13 @@ interface Order {
   createdAt: string
 }
 
+interface Status {
+  id: string
+  name: string
+  color: string
+  priority: number
+}
+
 interface OrdersTableProps {
   orders: Order[]
   onViewDetails: (order: Order) => void
