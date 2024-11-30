@@ -1,28 +1,73 @@
 "use client"
 
-import { Line, LineChart as RechartsLineChart, ResponsiveContainer } from "recharts"
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler
+);
 
 interface LineChartProps {
-  data: number[]
-  positive?: boolean
+  data: number[];
+  className?: string;
+  strokeColor?: string;
+  filled?: boolean;
 }
 
-export function LineChart({ data, positive = true }: LineChartProps) {
-  const chartData = data.map(value => ({ value }))
+export function LineChart({ data, className, strokeColor = '#4B6BFB', filled = false }: LineChartProps) {
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+    scales: {
+      x: {
+        display: false,
+      },
+      y: {
+        display: false,
+      },
+    },
+    elements: {
+      line: {
+        tension: 0.4,
+      },
+      point: {
+        radius: 0,
+      },
+    },
+  };
+
+  const chartData = {
+    labels: data.map((_, i) => i.toString()),
+    datasets: [
+      {
+        data: data,
+        borderColor: strokeColor,
+        backgroundColor: filled ? `${strokeColor}20` : 'transparent',
+        fill: filled,
+        borderWidth: 2,
+      },
+    ],
+  };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <RechartsLineChart data={chartData}>
-        <Line
-          type="monotone"
-          dataKey="value"
-          stroke={positive ? "rgb(16, 185, 129)" : "rgb(239, 68, 68)"}
-          strokeWidth={1.5}
-          dot={false}
-          activeDot={false}
-        />
-      </RechartsLineChart>
-    </ResponsiveContainer>
-  )
+    <div className={className}>
+      <Line options={options} data={chartData} />
+    </div>
+  );
 }
 

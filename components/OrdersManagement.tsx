@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Search, ArrowLeft } from 'lucide-react'
 import Link from "next/link"
 import axios from 'axios'
-import pb from '@/lib/pocketbase'
+import pb  from '@/lib/pocketbase'
 import { Slider } from "@/components/ui/slider"
 import { StatusSelect } from "@/components/StatusSelect"
 import { cn } from "@/lib/utils"

@@ -31,7 +31,11 @@ export function StatsCard({ title, value, change, data }: StatsCardProps) {
             Compared to last month
           </p>
           <div className="h-[40px] mt-2">
-            <LineChart data={data} positive={change.positive} />
+            <LineChart 
+              data={data} 
+              className="h-[40px]"
+              strokeColor={change.positive ? "#10B981" : "#EF4444"}
+            />
           </div>
         </div>
       </CardContent>
