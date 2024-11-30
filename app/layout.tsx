@@ -12,16 +12,5 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html lang={defaultLocale} suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <Providers>
-          <div className="fixed top-4 right-4 z-50">
-            <ThemeSwitcher />
-          </div>
-          {children}
-        </Providers>
-      </body>
-    </html>
-  );
+  return children;
 }

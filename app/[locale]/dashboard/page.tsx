@@ -227,7 +227,7 @@ export default function Dashboard() {
           variants={itemVariants}
         >
           <StatsCard
-            title="Total Revenue"
+            title={t('totalRevenue')}
             value={`${orders[0]?.currency?.symbol || '€'}${stats.totalRevenue.toFixed(2)}`}
             change={{
               value: `${stats.revenueChange >= 0 ? '+' : ''}${stats.revenueChange.toFixed(1)}%`,
@@ -244,7 +244,7 @@ export default function Dashboard() {
           <motion.div variants={itemVariants} className="w-full">
             <Card className="h-full">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base md:text-lg">Monthly Sales</CardTitle>
+                <CardTitle className="text-base md:text-lg">{t('monthlySales')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[200px] md:h-[300px] w-full">
@@ -261,7 +261,7 @@ export default function Dashboard() {
           <motion.div variants={itemVariants} className="w-full">
             <Card className="h-full">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base md:text-lg">Traffic Channel</CardTitle>
+                <CardTitle className="text-base md:text-lg">{t('trafficChannel')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[200px] md:h-[300px] w-full">
@@ -272,7 +272,7 @@ export default function Dashboard() {
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                      No traffic data available
+                      {t('noTrafficData')}
                     </div>
                   )}
                 </div>

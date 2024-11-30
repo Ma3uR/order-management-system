@@ -2,9 +2,16 @@
   "Orders": {
     "title": "Управління замовленнями",
     "totalAmount": "Загальна сума",
+    "totalOrders": "Всього замовлень",
     "filterOrders": "Фільтрувати замовлення",
     "filterOrdersPlaceholder": "Пошук за номером замовлення, ім'ям або статусом",
     "createNewOrder": "Створити нове замовлення",
+    "filters": "Фільтри",
+    "status": "Статус",
+    "selectStatus": "Оберіть статус",
+    "amountRange": "Діапазон суми",
+    "resetFilters": "Скинути фільтри",
+    "all": "Всі",
     "orders": "Замовлення",
     "orderNumber": "Номер замовлення",
     "fullName": "Повне ім'я",
@@ -50,14 +57,6 @@
     "selectSource": "Виберіть джерело",
     "sourceRequired": "Джерело обов'язкове"
   },
-  "Auth": {
-    "signInTitle": "Увійдіть у свій обліковий запис",
-    "emailLabel": "Електронна адреса",
-    "emailPlaceholder": "Електронна адреса",
-    "passwordLabel": "Пароль",
-    "passwordPlaceholder": "Пароль",
-    "signInButton": "Увійти"
-  },
   "Dashboard": {
     "title": "Панель керування",
     "welcome": "Ласкаво просимо до вашої панелі керування",
@@ -67,7 +66,24 @@
     "projects": "Проекти",
     "settings": "Налаштування",
     "blacklist": "Чорний список",
-    "languageSwitcher": "Змінити мову"
+    "languageSwitcher": "Змінити мову",
+    "totalRevenue": "Загальний дохід",
+    "monthlySales": "Щомісячні продажі",
+    "trafficChannel": "Канали трафіку",
+    "noTrafficData": "Дані про трафік відсутні",
+    "aiHelper": "AI Помічник",
+    "soon": "Скоро",
+    "welcomeMessage": "Привіт! Я AI помічник, але я ще не працюю! Скоро я буду тут, щоб допомогти вам з будь-якими питаннями."
+  },
+  "Auth": {
+    "signInTitle": "Увійдіть у свій обліковий запис",
+    "emailLabel": "Електронна адреса",
+    "emailPlaceholder": "Електронна адреса",
+    "passwordLabel": "Пароль",
+    "passwordPlaceholder": "Пароль",
+    "signInButton": "Увійти",
+    "invalidCredentials": "Невірна електронна адреса або пароль",
+    "signInError": "Під час входу сталася помилка"
   },
   "Settings": {
     "title": "Налаштування",
@@ -106,12 +122,34 @@
   "Blacklist": {
     "title": "Управління чорним списком",
     "fullNamePlaceholder": "Повне ім'я",
-    "phoneNumberPlaceholder": "Номер телефону", 
+    "phoneNumberPlaceholder": "Номер телефону",
     "addToBlacklist": "Додати до чорного списку",
     "remove": "Видалити",
     "backToDashboard": "Повернутися до панелі керування",
     "adding": "Додавання...",
     "blacklist": "Чорний список"
+  },
+  "Common": {
+    "loading": "Завантаження...",
+    "error": "Помилка",
+    "success": "Успішно",
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "create": "Створити",
+    "update": "Оновити",
+    "search": "Пошук",
+    "filter": "Фільтр",
+    "noResults": "Немає результатів",
+    "required": "Обов'язкове поле"
+  },
+  "Navigation": {
+    "dashboard": "Панель керування",
+    "orders": "Замовлення",
+    "settings": "Налаштування",
+    "logout": "Вийти",
+    "profile": "Профіль"
   },
   "AiChat": {
     "title": "AI Помічник",

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTranslations } from 'next-intl';
 import { Header } from "./header"
 import { StatsCard } from "./stats-card"
 import { OrdersTable } from "./orders-table"
@@ -272,6 +273,7 @@ interface ValidationErrors {
 }
 
 export function OrdersManagement({ translations, initialOrders }: OrdersManagementProps) {
+  const t = useTranslations('Orders');
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isClient, setIsClient] = useState(false)
   const [filterText, setFilterText] = useState("")
@@ -798,7 +800,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
           </div>
           <div className="space-y-4 md:col-span-1 col-span-full">
             <StatsCard
-              title="Total Orders"
+              title={t('totalOrders')}
               value={orders.length.toString()}
               change={{ 
                 value: `${stats.orderCountChange >= 0 ? '+' : ''}${stats.orderCountChange.toFixed(1)}%`,
@@ -824,20 +826,22 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
           </div>
           <Card className="bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-muted-foreground">Filters</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {t('filters')}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs font-medium">Status</Label>
+                <Label className="text-xs font-medium">{t('status')}</Label>
                 <Select
                   value={filters.status}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
                 >
                   <SelectTrigger className="w-full bg-background/60">
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t('selectStatus')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All</SelectItem>
+                    <SelectItem value="">{t('all')}</SelectItem>
                     {statuses.map(status => (
                       <SelectItem 
                         key={status.id} 
@@ -856,7 +860,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
 
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <Label className="text-xs font-medium">Amount Range</Label>
+                  <Label className="text-xs font-medium">{t('amountRange')}</Label>
                   <span className="text-xs text-muted-foreground">
                     {formatCurrency(filters.minAmount || 0)} - {formatCurrency(filters.maxAmount || maxPossibleAmount)}
                   </span>
@@ -887,7 +891,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 })}
                 className="w-full text-xs bg-background/60"
               >
-                Reset Filters
+                {t('resetFilters')}
               </Button>
             </CardContent>
           </Card>

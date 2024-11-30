@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import pb from "@/lib/pocketbase";
 import { DefaultUser, DefaultSession } from "next-auth"
@@ -18,7 +18,7 @@ declare module "next-auth" {
   }
 }
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -32,13 +32,11 @@ const handler = NextAuth({
         }
 
         try {
-          // Authenticate with PocketBase
           const authData = await pb.collection('users').authWithPassword(
             credentials.email,
             credentials.password
           );
 
-          // Return user data in the format NextAuth expects
           return {
             id: authData.record.id,
             email: authData.record.email,
@@ -74,6 +72,8 @@ const handler = NextAuth({
   pages: {
     signIn: '/auth/signin',
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
