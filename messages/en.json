@@ -114,5 +114,12 @@
     "remove": "Remove",
     "backToDashboard": "Back to Dashboard",
     "adding": "Adding..."
+  },
+  "AiChat": {
+    "title": "AI Assistant",
+    "comingSoon": "Coming Soon",
+    "placeholder": "Chat coming soon...",
+    "send": "Send",
+    "initialMessage": "Hello! I'm an AI agent, but I'm not working yet! I'll be here soon to help you with any questions you might have."
   }
 }
