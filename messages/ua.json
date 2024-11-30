@@ -125,14 +125,15 @@
     "cancel": "Скасувати"
   },
   "Blacklist": {
-    "title": "Управління чорним списком",
+    "title": "Чорний список",
     "fullNamePlaceholder": "Повне ім'я",
     "phoneNumberPlaceholder": "Номер телефону",
     "addToBlacklist": "Додати до чорного списку",
     "remove": "Видалити",
     "backToDashboard": "Повернутися до панелі керування",
     "adding": "Додавання...",
-    "blacklist": "Чорний список"
+    "noEntries": "Немає записів у чорному списку",
+    "loading": "Завантаження..."
   },
   "Common": {
     "loading": "Завантаження...",
