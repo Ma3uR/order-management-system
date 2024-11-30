@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import Link from 'next/link'
 import LanguageSwitcher from "@/components/LanguageSwitcher"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface HeaderProps {
   translations: {
@@ -16,12 +17,13 @@ export function Header({ translations }: HeaderProps) {
         <Link href="/dashboard" passHref>
           <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
-            {translations.backToDashboard}
+            <span className="hidden sm:inline">{translations.backToDashboard}</span>
           </Button>
         </Link>
       </div>
-      <div className="flex justify-between items-center gap-4 mr-8">
+      <div className="flex items-center gap-4">
         <LanguageSwitcher />
+        <ThemeToggle />
       </div>
     </header>
   )

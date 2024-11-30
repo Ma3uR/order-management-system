@@ -784,17 +784,19 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
       <div className="space-y-4">
         <Header translations={translations} />
         
-        <div className="grid gap-4 md:grid-cols-3">
-          <StatsCard
-            title={translations.totalAmount}
-            value={`${orders[0]?.currency?.symbol || '€'}${stats.currentMonthAmount.toFixed(2)}`}
-            change={{ 
-              value: `${stats.amountChange >= 0 ? '+' : ''}${stats.amountChange.toFixed(1)}%`,
-              positive: stats.amountChangePositive 
-            }}
-            data={stats.graphDataAmount}
-          />
-          <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-1">
+          <div className="md:col-span-1 col-span-full">
+            <StatsCard
+              title={translations.totalAmount}
+              value={`${orders[0]?.currency?.symbol || '€'}${stats.currentMonthAmount.toFixed(2)}`}
+              change={{ 
+                value: `${stats.amountChange >= 0 ? '+' : ''}${stats.amountChange.toFixed(1)}%`,
+                positive: stats.amountChangePositive 
+              }}
+              data={stats.graphDataAmount}
+            />
+          </div>
+          <div className="space-y-4 md:col-span-1 col-span-full">
             <StatsCard
               title="Total Orders"
               value={orders.length.toString()}

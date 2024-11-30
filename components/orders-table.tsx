@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { StatusSelect } from "@/components/StatusSelect"
+import { Eye, Trash2 } from 'lucide-react'
+import { cn } from "@/lib/utils"
 
 interface Order {
   id: string
@@ -60,18 +62,36 @@ export function OrdersTable({
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead>{translations.orderNumber}</TableHead>
-          <TableHead>{translations.fullName}</TableHead>
+          <TableHead className="hidden sm:table-cell">{translations.fullName}</TableHead>
           <TableHead>{translations.status}</TableHead>
-          <TableHead>{translations.amount}</TableHead>
-          <TableHead>{translations.createdAt}</TableHead>
+          <TableHead className="hidden sm:table-cell">{translations.amount}</TableHead>
+          <TableHead className="hidden sm:table-cell">{translations.createdAt}</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {orders.map((order) => (
-          <TableRow key={order.id}>
-            <TableCell className="font-medium">{order.orderNumber}</TableCell>
-            <TableCell>{order.fullName}</TableCell>
+          <TableRow 
+            key={order.id}
+            className="sm:hover:bg-accent/50 cursor-pointer"
+            onClick={(e) => {
+              // Only trigger on mobile and if not clicking buttons
+              if (window.innerWidth < 640 && !(e.target as HTMLElement).closest('button')) {
+                onViewDetails(order);
+              }
+            }}
+          >
+            <TableCell>
+              <div className="space-y-1">
+                <div className="font-medium">{order.orderNumber}</div>
+                <div className="sm:hidden text-sm text-muted-foreground">
+                  {order.fullName}
+                </div>
+              </div>
+            </TableCell>
+            <TableCell className="hidden sm:table-cell">
+              {order.fullName}
+            </TableCell>
             <TableCell>
               <StatusSelect
                 status={order.status}
@@ -81,26 +101,38 @@ export function OrdersTable({
                 getContrastColor={getContrastColor}
               />
             </TableCell>
-            <TableCell>
+            <TableCell className="hidden sm:table-cell">
               {order.currency.symbol}
               {order.amount.toFixed(2)}
             </TableCell>
-            <TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
+            <TableCell className="hidden sm:table-cell">
+              {new Date(order.createdAt).toLocaleString()}
+            </TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
-                  size="sm"
-                  onClick={() => onViewDetails(order)}
+                  size="icon"
+                  className="h-8 w-8 sm:flex hidden"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewDetails(order);
+                  }}
+                  title={translations.details}
                 >
-                  {translations.details}
+                  <Eye className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
-                  onClick={() => onDeleteOrder(order.id)}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteOrder(order.id);
+                  }}
+                  title={translations.delete}
                 >
-                  {translations.delete}
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </TableCell>

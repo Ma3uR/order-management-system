@@ -2,12 +2,7 @@
 
 import { Globe } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
 import { useLocale } from 'next-intl'
 
 interface Language {
@@ -32,26 +27,16 @@ export default function LanguageSwitcher() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50">
-        <Globe className="h-4 w-4" />
-        <span className="text-sm">{currentLocale === 'ua' ? 'Українська' : 'English'}</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[180px]">
-        {languages.map((language) => (
-          <DropdownMenuItem
-            key={language.code}
-            onClick={() => changeLanguage(language)}
-            className="flex items-center py-1.5 px-2"
-          >
-            <span className="mr-2">{language.flag}</span>
-            <span className="text-sm">{language.name}</span>
-            {currentLocale === language.code && (
-              <span className="ml-auto">✓</span>
-            )}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      onClick={() => changeLanguage(languages[currentLocale === 'en' ? 1 : 0])}
+      variant="ghost"
+      size="sm"
+      className="flex items-center gap-2"
+    >
+      <Globe className="h-4 w-4" />
+      <span className="hidden sm:inline">
+        {currentLocale === 'en' ? 'Українська' : 'English'}
+      </span>
+    </Button>
   )
 }
