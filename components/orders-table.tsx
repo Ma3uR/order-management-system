@@ -118,7 +118,7 @@ export function OrdersTable({
             <TableCell className="text-right">
               <div className="flex justify-end gap-2">
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="icon"
                   className="h-8 w-8 sm:flex hidden"
                   onClick={(e) => {
@@ -130,7 +130,7 @@ export function OrdersTable({
                   <Eye className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
                   className="h-8 w-8"
                   onClick={(e) => {

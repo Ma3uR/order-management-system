@@ -9,11 +9,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
-interface BlacklistEntry {
-  id: string;
+interface BlacklistItem {
+  id: string | number;
+  fullName: string;
   phoneNumber: string;
-  reason: string;
-  createdAt: string;
 }
 
 const BlacklistManagement: React.FC = () => {
@@ -24,7 +23,7 @@ const BlacklistManagement: React.FC = () => {
       router.push('/auth/signin');
     },
   });
-  const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
+  const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
   const [newItem, setNewItem] = useState({ fullName: '', phoneNumber: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +117,7 @@ const BlacklistManagement: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">{t('title')}</h1>
         <Link href="/dashboard">
-          <Button variant="outline">{t('backToDashboard')}</Button>
+          <Button variant="default">{t('backToDashboard')}</Button>
         </Link>
       </div>
       {error && (
@@ -157,7 +156,7 @@ const BlacklistManagement: React.FC = () => {
               <span>{item.fullName} - {item.phoneNumber}</span>
               <Button 
                 onClick={() => handleRemoveItem(item.id)} 
-                variant="outline" 
+                variant="default" 
                 className="text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
               >
                 {t('remove')}

@@ -3,7 +3,7 @@ import pb from '@/lib/pocketbase';
 
 export async function GET() {
   try {
-    const defaultCurrency = await pb.collection('currencies').getFirstListItem('isDefault=true');
+    const defaultCurrency = await pb.collection('currency_options').getFirstListItem('isDefault=true');
 
     if (!defaultCurrency) {
       return NextResponse.json(

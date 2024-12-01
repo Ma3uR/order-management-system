@@ -923,7 +923,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
               </div>
 
               <Button 
-                variant="outline" 
+                variant="default" 
                 onClick={() => setFilters({
                   status: undefined,
                   dateRange: { from: null, to: null },
@@ -1161,7 +1161,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                   </Label>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="default"
                     size="sm"
                     onClick={addProductInput}
                     className="h-8 bg-background/60 border border-input hover:bg-accent flex items-center"
