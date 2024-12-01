@@ -52,6 +52,9 @@ export default async function OrdersPage() {
     backToDashboard: t('backToDashboard'),
     selectDeliveryMethod: t('selectDeliveryMethod'),
     selectPaymentMethod: t('selectPaymentMethod'),
+    selectSource: "Select Source",
+    sourceRequired: "Source is required",
+    blacklistedCustomerWarning: "Warning: Customer is blacklisted",
   };
 
   return (
