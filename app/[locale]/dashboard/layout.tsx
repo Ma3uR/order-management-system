@@ -10,6 +10,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Footer } from '@/components/footer';
 
 export default function DashboardLayout({
   children,
@@ -143,6 +144,7 @@ export default function DashboardLayout({
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gray-100 dark:bg-gray-900">
           {children}
         </main>
+        <Footer />
       </div>
     </div>
   );

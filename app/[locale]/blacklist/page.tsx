@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { default as dynamicImport } from 'next/dynamic';
 import { auth } from '@/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
+import { Footer } from '@/components/footer';
 
 const BlacklistManagement = dynamicImport(() => import('@/components/BlacklistManagement'), { 
   ssr: false,
@@ -23,8 +24,11 @@ export default async function BlacklistPage({ params: { locale } }: { params: { 
   }
 
   return (
-    <div className="p-8">
-      <BlacklistManagement />
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 p-8">
+        <BlacklistManagement />
+      </div>
+      <Footer />
     </div>
   );
 }
