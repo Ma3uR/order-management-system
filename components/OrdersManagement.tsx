@@ -482,11 +482,6 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     };
   }, [initialOrders]);
 
-  useEffect(() => {
-    console.log('Current delivery methods:', deliveryMethods);
-    console.log('Current payment methods:', paymentMethods);
-  }, [deliveryMethods, paymentMethods]);
-
   const stats = getMonthlyStats(orders);
 
   const filteredOrders = orders.filter(order => {
@@ -763,11 +758,6 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
 
   // Calculate max amount from orders for slider
   const maxPossibleAmount = Math.max(...orders.map(order => order.amount), 5000);
-
-  // Add a debug log when sources state changes
-  useEffect(() => {
-    console.log('Current sources state:', sources);
-  }, [sources]);
 
   const handleStatusChange = async (orderId: string, statusId: string) => {
     try {
