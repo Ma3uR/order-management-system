@@ -239,12 +239,17 @@ export default function SettingsPage() {
       const response = await fetch(`/api/statuses/${id}`, {
         method: 'DELETE',
       });
-      if (!response.ok) throw new Error('Failed to delete status');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete status');
+      }
+      
       setStatuses(statuses.filter(status => status.id !== id));
       showFlashMessage(t('settingsUpdated'), 'success');
     } catch (error) {
       console.error('Error deleting status:', error);
-      showFlashMessage(t('deleteError'), 'error');
+      showFlashMessage(error instanceof Error ? error.message : t('deleteError'), 'error');
     }
   };
 
@@ -361,12 +366,17 @@ export default function SettingsPage() {
       const response = await fetch(`/api/sources/${id}`, {
         method: 'DELETE',
       });
-      if (!response.ok) throw new Error('Failed to delete source');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete source');
+      }
+      
       setSources(sources.filter(source => source.id !== id));
       showFlashMessage(t('settingsUpdated'), 'success');
     } catch (error) {
       console.error('Error deleting source:', error);
-      showFlashMessage(t('deleteError'), 'error');
+      showFlashMessage(error instanceof Error ? error.message : t('deleteError'), 'error');
     }
   };
 

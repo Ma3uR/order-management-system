@@ -75,7 +75,12 @@
     "trafficChannel": "Traffic Channel",
     "noTrafficData": "No traffic data available",
     "statistics": "Statistics",
-    "aiChat": "AI Chat"
+    "aiChat": "AI Chat",
+    "navigation": "Navigation",
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "blacklist": "Blacklist",
+    "settings": "Settings"
   },
   "Settings": {
     "title": "Settings",
@@ -139,5 +144,37 @@
     "signingIn": "Signing in...",
     "invalidCredentials": "Invalid email or password",
     "signInError": "An error occurred while signing in"
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "blacklist": "Blacklist",
+    "settings": "Settings",
+    "signOut": "Sign Out"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "Charts": {
+    "jan": "Jan",
+    "feb": "Feb",
+    "mar": "Mar",
+    "apr": "Apr",
+    "may": "May",
+    "jun": "Jun",
+    "jul": "Jul",
+    "aug": "Aug",
+    "sep": "Sep",
+    "oct": "Oct",
+    "nov": "Nov",
+    "dec": "Dec"
   }
 }
