@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
 import pb from '@/lib/pocketbase';
 
+type OrderData = {
+  id: string;
+  status: string;
+};
+
+const dummyUser = {
+  id: '123',
+  email: 'test@test.com',
+  username: 'test',
+  name: 'test'
+};
+
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }

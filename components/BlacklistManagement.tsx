@@ -9,10 +9,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
-interface BlacklistItem {
-  id: string | number;
-  fullName: string;
+interface BlacklistEntry {
+  id: string;
   phoneNumber: string;
+  reason: string;
+  createdAt: string;
 }
 
 const BlacklistManagement: React.FC = () => {
@@ -23,7 +24,7 @@ const BlacklistManagement: React.FC = () => {
       router.push('/auth/signin');
     },
   });
-  const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
+  const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
   const [newItem, setNewItem] = useState({ fullName: '', phoneNumber: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
