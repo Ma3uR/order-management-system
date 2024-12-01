@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import pb from '@/lib/pocketbase';
+
+type OrderData = {
+  id: string;
+  status: string;
+};
+
+const dummyUser = {
+  id: '123',
+  email: 'test@test.com',
+  username: 'test',
+  name: 'test'
+};
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: params.id },
-    });
+    const order = await pb.collection('orders').getOne(params.id);
     
     if (!order) {
       return NextResponse.json(
@@ -35,44 +45,30 @@ export async function PUT(
     const data = await request.json();
     
     // Create update data object
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     
     // Handle status update
     if (data.statusId) {
-      updateData.status = {
-        connect: { id: data.statusId }
-      };
+      updateData.status = data.statusId;
     }
     
     // Handle full order update
     if (data.orderNumber) {
-      updateData.orderNumber = data.orderNumber;
-      updateData.source = data.source;
-      updateData.deliveryMethod = {
-        connect: { id: data.deliveryMethod.id }
-      };
-      updateData.deliveryPostNumber = data.deliveryPostNumber;
-      updateData.phoneNumber = data.phoneNumber;
-      updateData.fullName = data.fullName;
-      updateData.products = data.products;
-      updateData.numberOfItems = data.numberOfItems;
-      updateData.paymentMethod = {
-        connect: { id: data.paymentMethod.id }
-      };
-      updateData.amount = data.amount;
+      Object.assign(updateData, {
+        orderNumber: data.orderNumber,
+        source: data.source,
+        deliveryMethod: data.deliveryMethod.id,
+        deliveryPostNumber: data.deliveryPostNumber,
+        phoneNumber: data.phoneNumber,
+        fullName: data.fullName,
+        products: data.products,
+        numberOfItems: data.numberOfItems,
+        paymentMethod: data.paymentMethod.id,
+        amount: data.amount
+      });
     }
 
-    const order = await prisma.order.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        deliveryMethod: true,
-        paymentMethod: true,
-        status: true,
-        currency: true,
-      },
-    });
-
+    const order = await pb.collection('orders').update(params.id, updateData);
     return NextResponse.json(order);
   } catch (error) {
     console.error('Error updating order:', error);
@@ -88,9 +84,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await prisma.order.delete({
-      where: { id: params.id },
-    });
+    await pb.collection('orders').delete(params.id);
     return NextResponse.json({ message: 'Order deleted successfully' });
   } catch (error) {
     console.error('Error deleting order:', error);

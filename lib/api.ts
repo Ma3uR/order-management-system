@@ -1,41 +1,77 @@
-import prisma from './prisma'; // Assuming you have a Prisma client setup
+import pb from './pocketbase';
+
+interface PocketBaseRecord {
+  id: string;
+  created: string;
+  updated: string;
+  orderNumber: string;
+  source: string;
+  deliveryMethod: string;
+  deliveryPostNumber: string;
+  phoneNumber: string;
+  fullName: string;
+  products: string | any[];
+  numberOfItems: number;
+  paymentMethod: string;
+  amount: number;
+  status: string;
+  currency: string;
+  expand?: {
+    deliveryMethod?: { id: string; name: string };
+    paymentMethod?: { id: string; name: string };
+    status?: { id: string; name: string; color: string };
+    currency?: { id: string; code: string; symbol: string };
+  };
+}
+
+interface ApiResponse {
+  data?: unknown;
+  status: number;
+}
 
 export async function fetchOrders() {
   try {
-    const orders = await prisma.order.findMany({
-      include: {
-        status: {
-          select: {
-            id: true,
-            name: true,
-            color: true
-          }
-        },
-        paymentMethod: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        deliveryMethod: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        currency: {
-          select: {
-            id: true,
-            code: true,
-            symbol: true
-          }
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+    const records = await pb.collection('orders').getFullList<PocketBaseRecord>({
+      sort: '-created',
+      expand: 'deliveryMethod,paymentMethod,status,currency'
     });
-    return orders;
+    
+    return records.map(record => ({
+      id: record.id,
+      orderNumber: record.orderNumber || '',
+      source: record.source || '',
+      deliveryMethod: {
+        id: record.expand?.deliveryMethod?.id || '',
+        name: record.expand?.deliveryMethod?.name || ''
+      },
+      deliveryPostNumber: record.deliveryPostNumber || '',
+      phoneNumber: record.phoneNumber || '',
+      fullName: record.fullName || '',
+      products: typeof record.products === 'string' 
+        ? JSON.parse(record.products) 
+        : record.products || [],
+      numberOfItems: record.numberOfItems || 0,
+      paymentMethod: {
+        id: record.expand?.paymentMethod?.id || '',
+        name: record.expand?.paymentMethod?.name || ''
+      },
+      amount: record.amount || 0,
+      status: {
+        id: record.expand?.status?.id || '',
+        name: record.expand?.status?.name || '',
+        color: record.expand?.status?.color || '#cbd5e1'
+      },
+      currency: {
+        id: record.expand?.currency?.id || '',
+        code: record.expand?.currency?.code || '',
+        symbol: record.expand?.currency?.symbol || ''
+      },
+      createdAt: record.created,
+      updatedAt: record.updated,
+      productsText: typeof record.products === 'string' 
+        ? record.products 
+        : JSON.stringify(record.products || [], null, 2)
+    }));
   } catch (error) {
     console.error('Error fetching orders:', error);
     return [];

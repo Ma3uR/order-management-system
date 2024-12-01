@@ -6,14 +6,23 @@ import { Input } from '@/components/ui/input';
 import { useTranslations } from 'next-intl';
 import axios from 'axios';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 interface BlacklistItem {
-  id: number;
+  id: string | number;
   fullName: string;
   phoneNumber: string;
 }
 
 const BlacklistManagement: React.FC = () => {
+  const router = useRouter();
+  const { data: session, status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      router.push('/auth/signin');
+    },
+  });
   const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
   const [newItem, setNewItem] = useState({ fullName: '', phoneNumber: '' });
   const [isLoading, setIsLoading] = useState(false);
@@ -21,16 +30,31 @@ const BlacklistManagement: React.FC = () => {
   const t = useTranslations('Blacklist');
 
   useEffect(() => {
-    fetchBlacklist();
-  }, []);
+    if (status === 'authenticated') {
+      fetchBlacklist();
+    }
+  }, [status]);
 
   const fetchBlacklist = async () => {
     try {
-      const response = await axios.get('/api/blacklist');
+      setIsLoading(true);
+      setError(null);
+      const response = await axios.get('/api/blacklist', {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       setBlacklist(response.data);
     } catch (error: any) {
       console.error('Error fetching blacklist:', error);
-      setError(`Failed to fetch blacklist: ${error.response?.data?.details || error.message}`);
+      if (error?.response?.status === 401) {
+        router.push('/auth/signin');
+        return;
+      }
+      setError(error?.response?.data?.error || 'Failed to fetch blacklist');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -44,21 +68,35 @@ const BlacklistManagement: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await axios.post('/api/blacklist', newItem);
+        const response = await axios.post('/api/blacklist', newItem, {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
         setBlacklist(prev => [...prev, response.data]);
         setNewItem({ fullName: '', phoneNumber: '' });
       } catch (error: any) {
-        console.error('Error adding item to blacklist:', error);
-        setError(`Failed to add item to blacklist: ${error.response?.data?.details || error.message}`);
+        if (error?.response?.status === 401) {
+          router.push('/auth/signin');
+          return;
+        }
+        setError(error?.response?.data?.error || 'Failed to add item to blacklist');
       } finally {
         setIsLoading(false);
       }
     }
   };
 
-  const handleRemoveItem = async (id: number) => {
+  const handleRemoveItem = async (id: string | number) => {
     try {
-      await axios.delete('/api/blacklist', { data: { id } });
+      await axios.delete('/api/blacklist', { 
+        data: { id },
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       setBlacklist(prev => prev.filter(item => item.id !== id));
     } catch (error: any) {
       console.error('Error removing item from blacklist:', error);
@@ -66,12 +104,20 @@ const BlacklistManagement: React.FC = () => {
     }
   };
 
+  if (status === 'loading' || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-center py-4">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">{t('title')}</h1>
         <Link href="/dashboard">
-          <Button variant="outline">{t('backToDashboard')}</Button>
+          <Button variant="default">{t('backToDashboard')}</Button>
         </Link>
       </div>
       {error && (
@@ -99,14 +145,26 @@ const BlacklistManagement: React.FC = () => {
           {isLoading ? t('adding') : t('addToBlacklist')}
         </Button>
       </div>
-      <ul className="space-y-2">
-        {blacklist.map(item => (
-          <li key={item.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-            <span>{item.fullName} - {item.phoneNumber}</span>
-            <Button onClick={() => handleRemoveItem(item.id)} variant="destructive">{t('remove')}</Button>
-          </li>
-        ))}
-      </ul>
+      {isLoading ? (
+        <div className="text-center py-4">Loading...</div>
+      ) : blacklist.length === 0 ? (
+        <div className="text-center py-4 text-gray-500">No entries in blacklist</div>
+      ) : (
+        <ul className="space-y-2">
+          {blacklist.map(item => (
+            <li key={item.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
+              <span>{item.fullName} - {item.phoneNumber}</span>
+              <Button 
+                onClick={() => handleRemoveItem(item.id)} 
+                variant="default" 
+                className="text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
+              >
+                {t('remove')}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };

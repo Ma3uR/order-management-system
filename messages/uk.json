@@ -1,0 +1,83 @@
+{
+  "Orders": {
+    "title": "Замовлення",
+    "totalAmount": "Загальна сума",
+    "filterOrders": "Фільтрувати замовлення",
+    "filterOrdersPlaceholder": "Пошук за номером замовлення, ім'ям...",
+    "createNewOrder": "Створити нове замовлення",
+    "orders": "Замовлення",
+    "orderNumber": "Номер замовлення",
+    "fullName": "Повне ім'я",
+    "status": "Статус",
+    "amount": "Сума",
+    "createdAt": "Створено",
+    "actions": "Дії",
+    "details": "Деталі",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "deleteConfirmation": "Ви впевнені, що хочете видалити це замовлення?",
+    "deleteError": "Помилка при видаленні замовлення",
+    "orderDetails": "Деталі замовлення",
+    "source": "Джерело",
+    "deliveryMethod": "Спосіб доставки",
+    "deliveryPostNumber": "Номер відділення",
+    "phoneNumber": "Номер телефону",
+    "products": "Товари",
+    "numberOfItems": "Кількість товарів",
+    "paymentMethod": "Спосіб оплати",
+    "editOrder": "Редагувати замовлення",
+    "selectStatus": "Оберіть статус",
+    "updateOrder": "Оновити замовлення",
+    "statuses": {
+      "beingProcessed": "В обробці",
+      "shipped": "Відправлено",
+      "delivered": "Доставлено",
+      "cancelled": "Скасовано"
+    },
+    "deliveryMethods": {
+      "ukrposhta": "Укрпошта",
+      "novaPoshta": "Нова Пошта",
+      "parcelLocker": "Поштомат",
+      "rozetka": "Rozetka Доставка",
+      "mistExpress": "Міст Експрес"
+    },
+    "selectDeliveryMethod": "Оберіть спосіб доставки",
+    "selectPaymentMethod": "Оберіть спосіб оплати",
+    "createNewOrderDescription": "Створіть нове замовлення, заповнивши форму нижче",
+    "backToDashboard": "Повернутися до панелі керування",
+    "selectSource": "Оберіть джерело",
+    "sourceRequired": "Джерело обов'язкове"
+  },
+  "Dashboard": {
+    "title": "Панель керування",
+    "totalRevenue": "Загальний дохід",
+    "monthlySales": "Щомісячні продажі",
+    "trafficChannel": "Канали трафіку",
+    "aiHelper": "AI Помічник",
+    "soon": "Скоро",
+    "welcomeMessage": "Привіт! Я AI помічник, але я ще не працюю! Скоро я буду тут, щоб допомогти вам з будь-якими питаннями.",
+    "noTrafficData": "Дані про трафік відсутні"
+  },
+  "Common": {
+    "loading": "Завантаження...",
+    "error": "Помилка",
+    "success": "Успішно",
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "create": "Створити",
+    "update": "Оновити",
+    "search": "Пошук",
+    "filter": "Фільтр",
+    "noResults": "Немає результатів",
+    "required": "Обов'язкове поле"
+  },
+  "Navigation": {
+    "dashboard": "Панель керування",
+    "orders": "Замовлення",
+    "settings": "Налаштування",
+    "logout": "Вийти",
+    "profile": "Профіль"
+  }
+} 

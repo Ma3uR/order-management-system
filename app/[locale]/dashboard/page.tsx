@@ -1,12 +1,13 @@
-import { useTranslations } from 'next-intl';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import Dashboard from './Dashboard';
 
-export default function Dashboard() {
-  const t = useTranslations('Dashboard');
-
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">{t('title')}</h1>
-      <p>{t('welcome')}</p>
-    </div>
-  );
+export default async function DashboardPage({
+  params: { locale }
+}: {
+  params: { locale: string }
+}) {
+  setRequestLocale(locale);
+  await getTranslations('Dashboard');
+  
+  return <Dashboard />;
 }

@@ -1,20 +1,38 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import pb from '@/lib/pocketbase';
+
+interface Product {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+function parseProductsText(text: string): Product[] {
+  try {
+    // Split by new lines and parse each line
+    return text.split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        const [name, quantity = "1", price = "0"] = line.split(',').map(s => s.trim());
+        return {
+          name,
+          quantity: parseInt(quantity) || 1,
+          price: parseFloat(price) || 0
+        };
+      });
+  } catch (error) {
+    console.error('Error parsing products text:', error);
+    return [];
+  }
+}
 
 export async function GET() {
   try {
-    const orders = await prisma.order.findMany({
-      include: {
-        deliveryMethod: true,
-        paymentMethod: true,
-        status: true,
-        currency: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+    const records = await pb.collection('orders').getFullList({
+      sort: '-created',
+      expand: 'deliveryMethod,paymentMethod,status,currency'
     });
-    return NextResponse.json(orders);
+    return NextResponse.json(records);
   } catch (error) {
     console.error('Error fetching orders:', error);
     return NextResponse.json(
@@ -27,81 +45,46 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    console.log('Received order data:', data);
-
-    // Get the default currency if not provided
-    if (!data.currencyId) {
-      const defaultCurrency = await prisma.currency.findFirst({
-        where: { isDefault: true }
-      });
-      if (!defaultCurrency) {
-        return NextResponse.json(
-          { error: 'Default currency not found' },
-          { status: 400 }
-        );
+    
+    // Handle products data
+    if (data.productsText) {
+      // Convert text input to structured products data
+      data.products = parseProductsText(data.productsText);
+      delete data.productsText; // Remove the text input from data
+      
+      // Calculate total items
+      data.numberOfItems = data.products.reduce((sum: number, product: Product) => 
+        sum + product.quantity, 0);
+        
+      // Calculate total amount if not provided
+      if (!data.amount) {
+        data.amount = data.products.reduce((sum: number, product: Product) => 
+          sum + (product.price * product.quantity), 0);
       }
-      data.currencyId = defaultCurrency.id;
     }
 
-    // Get the default status if not provided
-    if (!data.statusId) {
-      const status = await prisma.status.findFirst({
-        where: { name: 'Being processed by manager' }
-      });
-      if (!status) {
-        return NextResponse.json(
-          { error: 'Default status not found' },
-          { status: 400 }
-        );
-      }
-      data.statusId = status.id;
+    // Get default currency if not provided
+    if (!data.currency) {
+      const defaultCurrency = await pb.collection('currency_options').getFirstListItem('isDefault=true');
+      data.currency = defaultCurrency.id;
     }
 
-    // Create the order with the correct relationships
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: data.orderNumber,
-        source: data.source,
-        deliveryMethod: {
-          connect: {
-            id: data.deliveryMethod.id
-          }
-        },
-        deliveryPostNumber: data.deliveryPostNumber,
-        phoneNumber: data.phoneNumber,
-        fullName: data.fullName,
-        products: data.products, // Already stringified from frontend
-        numberOfItems: Number(data.numberOfItems),
-        paymentMethod: {
-          connect: {
-            id: data.paymentMethod.id
-          }
-        },
-        amount: Number(data.amount),
-        status: {
-          connect: {
-            id: data.statusId
-          }
-        },
-        currency: {
-          connect: {
-            id: data.currencyId
-          }
-        },
-      },
-      include: {
-        deliveryMethod: true,
-        paymentMethod: true,
-        status: true,
-        currency: true,
-      },
+    // Get default status if not provided
+    if (!data.status) {
+      const defaultStatus = await pb.collection('status_options').getFirstListItem('name="Being processed by manager"');
+      data.status = defaultStatus.id;
+    }
+
+    const record = await pb.collection('orders').create(data);
+    const createdOrder = await pb.collection('orders').getOne(record.id, {
+      expand: 'deliveryMethod,paymentMethod,status,currency'
     });
 
-    return NextResponse.json(order);
+    return NextResponse.json(createdOrder);
   } catch (error) {
     console.error('Error creating order:', error);
     return NextResponse.json(
-      { error: 'Error creating order', details: error },
+      { error: 'Failed to create order' },
       { status: 500 }
     );
   }
@@ -110,10 +93,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { id, ...data } = await request.json();
-    const order = await prisma.order.update({
-      where: { id },
-      data,
-    });
+    const order = await pb.collection('orders').update(id, data);
     return NextResponse.json(order);
   } catch (error) {
     console.error('Error updating order:', error);
@@ -127,9 +107,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
-    await prisma.order.delete({
-      where: { id },
-    });
+    await pb.collection('orders').delete(id);
     return NextResponse.json({ message: 'Order deleted successfully' });
   } catch (error) {
     console.error('Error deleting order:', error);

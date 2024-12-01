@@ -46,7 +46,15 @@
     "createNewOrderDescription": "Fill in the details to create a new order. Click save when you're done.",
     "backToDashboard": "Back to Dashboard",
     "selectDeliveryMethod": "Select Delivery Method",
-    "selectPaymentMethod": "Select Payment Method"
+    "selectPaymentMethod": "Select Payment Method",
+    "selectSource": "Select Source",
+    "sourceRequired": "Source is required",
+    "blacklistedCustomerWarning": "Customer is blacklisted. Only prepayment is allowed.",
+    "totalOrders": "Total Orders",
+    "filters": "Filters",
+    "all": "All",
+    "amountRange": "Amount Range",
+    "resetFilters": "Reset Filters"
   },
   "Auth": {
     "signInTitle": "Sign in to your account",
@@ -54,20 +62,32 @@
     "emailPlaceholder": "Email address",
     "passwordLabel": "Password",
     "passwordPlaceholder": "Password",
-    "signInButton": "Sign in"
+    "signInButton": "Sign in",
+    "invalidCredentials": "Invalid email or password",
+    "signInError": "An error occurred during sign in"
   },
   "Dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome to your dashboard", 
-    "navigation": "Navigation",
-    "dashboard": "Dashboard",
-    "orders": "Orders",
-    "projects": "Projects",
-    "settings": "Settings",
-    "blacklist": "Blacklist",
-    "languageSwitcher": "Switch Language"
+    "totalRevenue": "Total Revenue",
+    "monthlySales": "Monthly Sales",
+    "trafficChannel": "Traffic Channel",
+    "noTrafficData": "No traffic data available",
+    "statistics": "Statistics",
+    "aiChat": "AI Chat"
   },
   "Settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "currencies": "Currencies",
+    "statuses": "Statuses",
+    "paymentMethods": "Payment Methods",
+    "deliveryMethods": "Delivery Methods",
+    "sources": "Sources",
+    "name": "Name",
+    "email": "Email",
+    "saveChanges": "Save Changes",
+    "default": "Default",
+    "backToDashboard": "Back to Dashboard",
     "deleteError": "Error deleting item",
     "settingsUpdated": "Settings updated successfully",
     "updateError": "Error updating settings",
@@ -80,23 +100,15 @@
     "addStatus": "Add Status",
     "paymentMethodName": "Payment Method Name",
     "addPaymentMethod": "Add Payment Method",
-    "title": "Settings",
-    "profile": "Profile",
-    "currencies": "Currencies",
-    "statuses": "Statuses",
-    "paymentMethods": "Payment Methods",
-    "name": "Name",
-    "email": "Email",
-    "saveChanges": "Save Changes",
-    "default": "Default",
-    "backToDashboard": "Back to Dashboard",
-    "deliveryMethods": "Delivery Methods",
     "deliveryMethodName": "Delivery Method Name",
     "addDeliveryMethod": "Add Delivery Method",
     "priority": "Priority",
     "priorityPlaceholder": "Enter priority (0-99)",
     "statusPriority": "Status Priority",
-    "statusColor": "Status Color"
+    "statusColor": "Status Color",
+    "sourceName": "Source Name",
+    "sourceUrl": "Source URL",
+    "addSource": "Add Source"
   },
   "Blacklist": {
     "title": "Blacklist Management",
@@ -106,5 +118,12 @@
     "remove": "Remove",
     "backToDashboard": "Back to Dashboard",
     "adding": "Adding..."
+  },
+  "AiChat": {
+    "title": "AI Assistant",
+    "comingSoon": "Coming Soon",
+    "placeholder": "Chat coming soon...",
+    "send": "Send",
+    "initialMessage": "Hello! I'm an AI agent, but I'm not working yet! I'll be here soon to help you with any questions you might have."
   }
 }

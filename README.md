@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Order Management System
+
+A Next.js-based order management system with internationalization support and comprehensive order tracking capabilities.
+
+## Features
+
+- 🌐 Multi-language Support (English, Ukrainian)
+- 📊 Dashboard with Analytics
+- 📦 Order Management
+- ⚫ Blacklist Management  
+- 🔒 Authentication & Authorization
+- 💳 Payment Method Management
+- 🚚 Delivery Method Management
+- 🎨 Theme Customization
+- 📱 Responsive Design
+
+## Tech Stack
+
+- **Framework**: Next.js 13+ with App Router
+- **Authentication**: NextAuth.js
+- **Database**: Prisma ORM with PocketBase
+- **Styling**: Tailwind CSS
+- **Charts**: React Charts
+- **State Management**: React Context
+- **API**: REST endpoints
+- **Internationalization**: next-intl
 
 ## Getting Started
 
-First, run the development server:
-
+1. Clone the repository
+2. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Set up environment variables:
+```
+Copy .env.example to .env and fill in required values
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+4. Run migrations:
+```bash
+npx prisma migrate dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+5. Start the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+- `/app` - Next.js app router pages and API routes
+- `/components` - Reusable UI components
+- `/lib` - Utility functions and shared logic
+- `/messages` - Internationalization files
+- `/prisma` - Database schema and migrations
+- `/styles` - Global styles and Tailwind config
+- `/utils` - Helper functions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API Routes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/api/auth/*` - Authentication endpoints
+- `/api/orders/*` - Order management
+- `/api/blacklist/*` - Blacklist management
+- `/api/currencies/*` - Currency settings
+- `/api/delivery-methods/*` - Delivery options
+- `/api/payment-methods/*` - Payment methods
+- `/api/sources/*` - Order sources
+- `/api/statuses/*` - Order status management
+- `/api/user/*` - User management
 
-## Deploy on Vercel
+## Contributing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

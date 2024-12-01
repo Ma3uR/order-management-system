@@ -9,16 +9,16 @@ export default function Home() {
       <h1 className="text-4xl font-bold mb-8 text-center">Welcome to SMM System</h1>
       <div className="flex flex-col items-center space-y-4">
         <Link href="/dashboard">
-          <Button size="lg">Go to Dashboard</Button>
+          <Button size="default">Go to Dashboard</Button>
         </Link>
         <Link href="/projects">
-          <Button variant="outline" size="lg">Projects</Button>
+          <Button size="default">Projects</Button>
         </Link>
         <Link href="/login">
-          <Button variant="secondary" size="lg">Login</Button>
+          <Button size="default">Login</Button>
         </Link>
         <Link href="/register">
-          <Button variant="link" size="lg">Register</Button>
+          <Button size="default">Register</Button>
         </Link>
       </div>
     </div>

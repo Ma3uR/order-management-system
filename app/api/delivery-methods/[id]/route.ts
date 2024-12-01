@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import pb from '@/lib/pocketbase';
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    await prisma.deliveryMethod.delete({
-      where: { id: params.id },
-    });
+    await pb.collection('delivery_options').delete(params.id);
     return NextResponse.json({ message: 'Delivery method deleted successfully' });
   } catch (error) {
     console.error('Error deleting delivery method:', error);

@@ -1,25 +1,33 @@
 import React, { createContext, useContext, useState } from 'react';
+import { cn } from "@/lib/utils"
 
 const TabsContext = createContext<{
   activeTab: string;
   setActiveTab: (tab: string) => void;
 } | undefined>(undefined);
 
-export function Tabs({ children, defaultValue }: { children: React.ReactNode; defaultValue: string }) {
+export function Tabs({ children, defaultValue, className }: { children: React.ReactNode; defaultValue: string; className?: string }) {
   const [activeTab, setActiveTab] = useState(defaultValue);
 
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab }}>
-      <div className="w-full">{children}</div>
+      <div className={cn("w-full", className)}>{children}</div>
     </TabsContext.Provider>
   );
 }
 
-export function TabsList({ children }: { children: React.ReactNode }) {
-  return <div className="flex border-b">{children}</div>;
+export function TabsList({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn(
+      "flex border-b dark:border-gray-700",
+      className
+    )}>
+      {children}
+    </div>
+  );
 }
 
-export function TabsTrigger({ value, children }: { value: string; children: React.ReactNode }) {
+export function TabsTrigger({ value, children, className }: { value: string; children: React.ReactNode; className?: string }) {
   const context = useContext(TabsContext);
   if (!context) throw new Error('TabsTrigger must be used within Tabs');
 
@@ -27,9 +35,13 @@ export function TabsTrigger({ value, children }: { value: string; children: Reac
 
   return (
     <button
-      className={`px-4 py-2 ${
-        activeTab === value ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'
-      }`}
+      className={cn(
+        "px-4 py-2 transition-colors",
+        activeTab === value 
+          ? "border-b-2 border-primary text-primary dark:border-primary dark:text-primary-foreground" 
+          : "text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-gray-200",
+        className
+      )}
       onClick={() => setActiveTab(value)}
     >
       {children}
@@ -37,7 +49,7 @@ export function TabsTrigger({ value, children }: { value: string; children: Reac
   );
 }
 
-export function TabsContent({ value, children }: { value: string; children: React.ReactNode }) {
+export function TabsContent({ value, children, className }: { value: string; children: React.ReactNode; className?: string }) {
   const context = useContext(TabsContext);
   if (!context) throw new Error('TabsContent must be used within Tabs');
 
@@ -45,5 +57,9 @@ export function TabsContent({ value, children }: { value: string; children: Reac
 
   if (activeTab !== value) return null;
 
-  return <div className="mt-4">{children}</div>;
+  return (
+    <div className={cn("mt-4", className)}>
+      {children}
+    </div>
+  );
 }
