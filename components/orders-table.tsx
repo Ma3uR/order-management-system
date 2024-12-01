@@ -79,7 +79,7 @@ export function OrdersTable({
       <TableBody>
         {orders.map((order) => (
           <TableRow 
-            key={order.id}
+            key={`${order.id}-${order.createdAt}`}
             className="sm:hover:bg-accent/50 cursor-pointer"
             onClick={(e) => {
               // Only trigger on mobile and if not clicking buttons

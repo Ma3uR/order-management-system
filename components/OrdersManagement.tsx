@@ -111,6 +111,7 @@ interface OrdersManagementProps {
     backToDashboard: string
     selectSource: string
     sourceRequired: string
+    blacklistedCustomerWarning: string
   }
   initialOrders: Order[]
 }
@@ -272,6 +273,29 @@ interface ValidationErrors {
   submit?: string;
 }
 
+// Replace the checkBlacklist function with this version
+const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/blacklist/check', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fullName, phoneNumber }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to check blacklist');
+    }
+    
+    const data = await response.json();
+    return data.isBlacklisted;
+  } catch (error) {
+    console.error('Error checking blacklist:', error);
+    return false;
+  }
+};
+
 export function OrdersManagement({ translations, initialOrders }: OrdersManagementProps) {
   const t = useTranslations('Orders');
   const [orders, setOrders] = useState<Order[]>(initialOrders)
@@ -312,6 +336,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     { title: '', quantity: 1, price: 0 }
   ]);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [isBlacklisted, setIsBlacklisted] = useState(false);
 
   const fetchSources = async () => {
     try {
@@ -513,10 +538,37 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewOrder(prev => ({ ...prev, [name]: value }));
     setValidationErrors(prev => ({ ...prev, [name]: undefined }));
+
+    // Check blacklist when fullName or phoneNumber changes
+    if (name === 'fullName' || name === 'phoneNumber') {
+      const currentFullName = name === 'fullName' ? value : newOrder.fullName || '';
+      const currentPhoneNumber = name === 'phoneNumber' ? value : newOrder.phoneNumber || '';
+      
+      if (currentFullName || currentPhoneNumber) {
+        const isInBlacklist = await checkBlacklist(currentFullName, currentPhoneNumber);
+        setIsBlacklisted(isInBlacklist);
+        
+        if (isInBlacklist) {
+          // Find the prepayment method
+          const prepaymentMethod = paymentMethods.find(method => 
+            method.name.toLowerCase().includes('prepayment') || 
+            method.name.toLowerCase().includes('передоплата')
+          );
+          
+          if (prepaymentMethod) {
+            setNewOrder(prev => ({
+              ...prev,
+              [name]: value,
+              paymentMethod: prepaymentMethod
+            }));
+          }
+        }
+      }
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -1219,13 +1271,19 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                   <Select
                     value={newOrder.paymentMethod?.id}
                     onValueChange={(value) => {
-                      const method = paymentMethods.find(m => m.id === value);
-                      setNewOrder(prev => ({
-                        ...prev,
-                        paymentMethod: method
-                      }));
-                      setValidationErrors(prev => ({ ...prev, paymentMethod: undefined }));
+                      if (isBlacklisted) {
+                        const prepaymentMethod = paymentMethods.find(method => 
+                          method.name.toLowerCase().includes('prepayment') || 
+                          method.name.toLowerCase().includes('предоплата')
+                        );
+                        if (prepaymentMethod) {
+                          handleSelectChange('paymentMethod', prepaymentMethod.id);
+                        }
+                        return;
+                      }
+                      handleSelectChange('paymentMethod', value);
                     }}
+                    disabled={isBlacklisted}
                   >
                     <SelectTrigger className={cn(
                       "w-full bg-background border-input",
@@ -1234,19 +1292,31 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                       <SelectValue placeholder={translations.selectPaymentMethod} />
                     </SelectTrigger>
                     <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
-                      {paymentMethods.map(method => (
-                        <SelectItem 
-                          key={method.id} 
-                          value={method.id}
-                          className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
-                        >
-                          {method.name}
-                        </SelectItem>
-                      ))}
+                      {paymentMethods
+                        .filter(method => !isBlacklisted || 
+                          method.name.toLowerCase().includes('prepayment') || 
+                          method.name.toLowerCase().includes('предоплата')
+                        )
+                        .map(method => (
+                          <SelectItem 
+                            key={method.id} 
+                            value={method.id}
+                            className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {method.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   {validationErrors.paymentMethod && (
                     <p className="text-sm text-destructive">{validationErrors.paymentMethod}</p>
+                  )}
+                  {isBlacklisted && (
+                    <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/50 p-3">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        {translations.blacklistedCustomerWarning || 'Customer is blacklisted. Only prepayment is allowed.'}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

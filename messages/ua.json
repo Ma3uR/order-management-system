@@ -55,7 +55,20 @@
     "selectDeliveryMethod": "Виберіть спосіб доставки",
     "selectPaymentMethod": "Виберіть спосіб оплати",
     "selectSource": "Виберіть джерело",
-    "sourceRequired": "Джерело обов'язкове"
+    "sourceRequired": "Джерело обов'язкове",
+    "blacklistedCustomerWarning": "Клієнт у чорному списку. Дозволена тільки передоплата.",
+    "blacklist": {
+      "title": "Чорний список",
+      "checkFailed": "Помилка перевірки чорного списку",
+      "customerBlacklisted": "Клієнт у чорному списку",
+      "onlyPrepaymentAllowed": "Для цього клієнта дозволена тільки передоплата",
+      "prepaymentRequired": "Необхідна передоплата",
+      "warning": "Увага: клієнт знаходиться в чорному списку",
+      "checkingStatus": "Перевірка статусу клієнта...",
+      "customerStatus": "Статус клієнта",
+      "inBlacklist": "В чорному списку",
+      "notInBlacklist": "Не в чорному списку"
+    }
   },
   "Dashboard": {
     "title": "Панель керування",

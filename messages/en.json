@@ -48,7 +48,8 @@
     "selectDeliveryMethod": "Select Delivery Method",
     "selectPaymentMethod": "Select Payment Method",
     "selectSource": "Select Source",
-    "sourceRequired": "Source is required"
+    "sourceRequired": "Source is required",
+    "blacklistedCustomerWarning": "Customer is blacklisted. Only prepayment is allowed."
   },
   "Auth": {
     "signInTitle": "Sign in to your account",
