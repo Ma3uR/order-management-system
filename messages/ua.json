@@ -122,15 +122,15 @@
     "addSource": "Додати джерело"
   },
   "Auth": {
-    "signInTitle": "Увійти в систему",
-    "signInDescription": "Введіть свої дані для входу",
-    "emailLabel": "Email адреса",
-    "emailPlaceholder": "Введіть email",
+    "signInTitle": "Вхід",
+    "signInDescription": "Введіть свої дані для входу в обліковий запис",
+    "emailLabel": "Електронна пошта",
+    "emailPlaceholder": "Введіть електронну пошту",
     "passwordLabel": "Пароль",
     "passwordPlaceholder": "Введіть пароль",
     "signInButton": "Увійти",
     "signingIn": "Вхід...",
-    "invalidCredentials": "Невірний email або пароль",
-    "signInError": "Помилка під час входу"
+    "invalidCredentials": "Невірна електронна пошта або пароль",
+    "signInError": "Виникла помилка під час входу"
   }
 }

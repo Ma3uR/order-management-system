@@ -1,36 +1,39 @@
 import { NextResponse } from 'next/server';
-import PocketBase from 'pocketbase';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/options';
+import pb from '@/lib/pocketbase';
 
-const pb = new PocketBase('http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io');
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const source = await pb.collection('sources').getOne(params.id);
+    return NextResponse.json(source);
+  } catch (error) {
+    return NextResponse.json({ error: 'Source not found' }, { status: 404 });
+  }
+}
 
-const adminEmail = process.env.POCKETBASE_ADMIN_EMAIL;
-const adminPassword = process.env.POCKETBASE_ADMIN_PASSWORD;
-
-async function authenticateAdmin() {
-    if (!adminEmail || !adminPassword) {
-        throw new Error('Admin credentials not configured');
-    }
-    await pb.admins.authWithPassword(adminEmail, adminPassword);
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await request.json();
+    const source = await pb.collection('sources').update(params.id, body);
+    return NextResponse.json(source);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update source' }, { status: 500 });
+  }
 }
 
 export async function DELETE(
-    request: Request,
-    { params }: { params: { id: string } }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
-    try {
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return new NextResponse('Unauthorized', { status: 401 });
-        }
-
-        await authenticateAdmin();
-        await pb.collection('sources').delete(params.id);
-
-        return new NextResponse(null, { status: 204 });
-    } catch (error) {
-        console.error('Error in DELETE /api/sources/[id]:', error);
-        return new NextResponse('Internal Server Error', { status: 500 });
-    }
+  try {
+    await pb.collection('sources').delete(params.id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete source' }, { status: 500 });
+  }
 } 
