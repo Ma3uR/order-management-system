@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { PlusCircle, Trash2, Edit2 } from 'lucide-react';
 import { Label } from "@/components/ui/label";
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Currency {
   id: string;
@@ -369,13 +371,25 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-8">
-      <h1 className="text-2xl font-bold mb-4">{t('title')}</h1>
-      <Link href="/dashboard" className="mb-6 inline-block text-blue-500 hover:underline">
-        {t('backToDashboard')}
-      </Link>
+    <div className="p-4 sm:p-8 dark:text-gray-100">
+      <div className="flex flex-col gap-4 sm:gap-6 mb-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+        </div>
+        <Link href="/dashboard" className="text-blue-500 dark:text-blue-400 hover:underline">
+          {t('backToDashboard')}
+        </Link>
+      </div>
       {flashMessage && (
-        <div className={`mb-4 p-2 rounded ${flashMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        <div className={`mb-4 p-2 rounded ${
+          flashMessage.type === 'success' 
+            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' 
+            : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100'
+        }`}>
           {flashMessage.message}
         </div>
       )}
@@ -394,7 +408,7 @@ export default function SettingsPage() {
           <TabsContent value="profile">
             <form onSubmit={handleUserUpdate} className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t('name')}
                 </label>
                 <Input
@@ -405,7 +419,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t('email')}
                 </label>
                 <Input
@@ -445,7 +459,7 @@ export default function SettingsPage() {
             </form>
             <ul className="space-y-2">
               {Array.isArray(currencies) ? currencies.map((currency) => (
-                <li key={currency.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                <li key={currency.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
                   <span>{currency.name} ({currency.code}) {currency.symbol}</span>
                   <span>{currency.isDefault ? t('default') : ''}</span>
                   <Button
@@ -462,7 +476,7 @@ export default function SettingsPage() {
 
           <TabsContent value="statuses">
             <div className="max-w-2xl mx-auto">
-              <form onSubmit={handleAddStatus} className="space-y-6 mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <form onSubmit={handleAddStatus} className="space-y-6 mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="statusName">{t('statusName')}</Label>
@@ -518,19 +532,20 @@ export default function SettingsPage() {
                 {statuses
                   .sort((a, b) => a.priority - b.priority)
                   .map((status) => (
-                    <li key={status.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                    <li key={status.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div 
                             className="w-4 h-4 rounded-full" 
                             style={{ backgroundColor: status.color }}
                           />
-                          <span className="font-medium">{status.name}</span>
+                          <span className="font-medium dark:text-gray-100">{status.name}</span>
                         </div>
                         <div className="flex space-x-2">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="text-white"
                             onClick={() => {
                               setEditingStatus(status);
                               setEditStatusValues({
@@ -545,13 +560,14 @@ export default function SettingsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="text-white"
                             onClick={() => handleDeleteStatus(status.id)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
-                      <div className="mt-2 text-sm text-gray-500">
+                      <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                         {t('priority')}: {status.priority}
                       </div>
                     </li>
@@ -577,7 +593,7 @@ export default function SettingsPage() {
             </form>
             <ul className="space-y-2">
               {paymentMethods.map((method) => (
-                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded dark:text-gray-100">
                   <span>{method.name}</span>
                   <Button
                     variant="ghost"
@@ -608,7 +624,7 @@ export default function SettingsPage() {
             </form>
             <ul className="space-y-2">
               {Array.isArray(deliveryMethods) ? deliveryMethods.map((method) => (
-                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded dark:text-gray-100">
                   <span>{method.name}</span>
                   <Button
                     variant="ghost"
@@ -645,11 +661,11 @@ export default function SettingsPage() {
             </form>
             <ul className="space-y-2">
               {Array.isArray(sources) ? sources.map((source) => (
-                <li key={source.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
+                <li key={source.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
                   <div>
-                    <span className="font-medium">{source.name}</span>
+                    <span className="font-medium dark:text-gray-100">{source.name}</span>
                     {source.url && (
-                      <span className="ml-2 text-gray-500">{source.url}</span>
+                      <span className="ml-2 text-gray-500 dark:text-gray-400">{source.url}</span>
                     )}
                   </div>
                   <Button
