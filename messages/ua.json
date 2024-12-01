@@ -120,5 +120,17 @@
     "sourceName": "Назва джерела",
     "sourceUrl": "URL джерела",
     "addSource": "Додати джерело"
+  },
+  "Auth": {
+    "signInTitle": "Увійти в систему",
+    "signInDescription": "Введіть свої дані для входу",
+    "emailLabel": "Email адреса",
+    "emailPlaceholder": "Введіть email",
+    "passwordLabel": "Пароль",
+    "passwordPlaceholder": "Введіть пароль",
+    "signInButton": "Увійти",
+    "signingIn": "Вхід...",
+    "invalidCredentials": "Невірний email або пароль",
+    "signInError": "Помилка під час входу"
   }
 }

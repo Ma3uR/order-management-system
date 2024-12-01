@@ -2,9 +2,7 @@ import '@/styles/globals.css';
 import { NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
 import { locales } from '@/config';
-import { Footer } from '@/components/footer';
 import { Providers } from '../providers';
-import { ThemeSwitcher } from '@/components/theme-switcher';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -30,13 +28,7 @@ export default async function LocaleLayout({
         <Providers>
           <NextIntlClientProvider locale={locale} messages={messages}>
             <div className="flex flex-col min-h-screen">
-              <div className="fixed top-4 right-4 z-50">
-                <ThemeSwitcher />
-              </div>
-              <div className="flex-1">
-                {children}
-              </div>
-              <Footer />
+              {children}
             </div>
           </NextIntlClientProvider>
         </Providers>

@@ -58,11 +58,13 @@
   },
   "Auth": {
     "signInTitle": "Sign in to your account",
+    "signInDescription": "Enter your credentials to sign in",
     "emailLabel": "Email address",
-    "emailPlaceholder": "Email address",
+    "emailPlaceholder": "Enter your email",
     "passwordLabel": "Password",
-    "passwordPlaceholder": "Password",
+    "passwordPlaceholder": "Enter your password",
     "signInButton": "Sign in",
+    "signingIn": "Signing in...",
     "invalidCredentials": "Invalid email or password",
     "signInError": "An error occurred during sign in"
   },

@@ -1,7 +1,7 @@
 import { Providers } from './providers';
-import { locales, defaultLocale } from '@/config';
-import { ThemeSwitcher } from '@/components/theme-switcher';
+import { locales } from '@/config';
 import './globals.css';
+import { ThemeProvider } from "@/components/theme-provider"
 
 export async function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -12,5 +12,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
 }
