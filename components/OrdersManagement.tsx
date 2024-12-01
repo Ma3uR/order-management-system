@@ -314,7 +314,6 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     fullName: '',
     products: [],
     paymentMethod: { id: '', name: '' },
-    status: { id: '', name: 'Being processed by manager', color: 'yellow' },
     currency: { id: '', code: '', symbol: '' },
     productsText: '',
   })
@@ -656,17 +655,18 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Clear any previous validation errors
-    setValidationErrors({});
-    
     if (!validateOrder()) {
       return;
     }
 
     try {
-      // Calculate totals from product inputs
       const totalItems = productInputs.reduce((sum, p) => sum + p.quantity, 0);
       const totalAmount = productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0);
+
+      // Find the status with the lowest priority
+      const initialStatus = statuses.reduce((lowest, current) => 
+        current.priority < lowest.priority ? current : lowest
+      );
 
       const orderData = {
         orderNumber: newOrder.orderNumber || '',
@@ -683,7 +683,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
         numberOfItems: totalItems,
         paymentMethod: newOrder.paymentMethod?.id,
         amount: totalAmount,
-        status: statuses[0]?.id, // Get default status
+        status: initialStatus.id, // Use the status with lowest priority
         currency: defaultCurrency?.id || ''
       };
 
@@ -717,7 +717,6 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
       fullName: '',
       products: [],
       paymentMethod: { id: '', name: '' },
-      status: { id: '', name: 'Being processed by manager', color: 'yellow' },
       currency: { id: '', code: '', symbol: '' },
     });
     setProductInputs([{ title: '', quantity: 1, price: 0 }]);
