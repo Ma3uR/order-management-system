@@ -3,21 +3,9 @@ import pb from '@/lib/pocketbase';
 
 export async function GET() {
   try {
-    const defaultCurrency = await pb.collection('currency_options').getFirstListItem('isDefault=true');
-
-    if (!defaultCurrency) {
-      return NextResponse.json(
-        { error: 'No default currency found' },
-        { status: 404 }
-      );
-    }
-
+    const defaultCurrency = await pb.collection('currencies').getFirstListItem('isDefault=true');
     return NextResponse.json(defaultCurrency);
   } catch (error) {
-    console.error('Error fetching default currency:', error);
-    return NextResponse.json(
-      { error: 'Error fetching default currency' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Default currency not found' }, { status: 404 });
   }
 } 
