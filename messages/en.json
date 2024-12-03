@@ -54,7 +54,9 @@
     "filters": "Filters",
     "all": "All",
     "amountRange": "Amount Range",
-    "resetFilters": "Reset Filters"
+    "resetFilters": "Reset Filters",
+    "notes": "Notes",
+    "notesPlaceholder": "Add any additional notes about the order..."
   },
   "Auth": {
     "signInTitle": "Sign in to your account",

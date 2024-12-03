@@ -16,6 +16,7 @@ interface PocketBaseRecord {
   amount: number;
   status: string;
   currency: string;
+  notes?: string;
   expand?: {
     deliveryMethod?: { id: string; name: string };
     paymentMethod?: { id: string; name: string };
@@ -56,21 +57,26 @@ export async function fetchOrders() {
         name: record.expand?.paymentMethod?.name || ''
       },
       amount: record.amount || 0,
-      status: {
-        id: record.expand?.status?.id || '',
-        name: record.expand?.status?.name || '',
-        color: record.expand?.status?.color || '#cbd5e1'
+      status: record.expand?.status ? {
+        id: record.expand.status.id,
+        name: record.expand.status.name,
+        color: record.expand.status.color
+      } : {
+        id: '',
+        name: '',
+        color: '#cbd5e1'
       },
       currency: {
         id: record.expand?.currency?.id || '',
         code: record.expand?.currency?.code || '',
         symbol: record.expand?.currency?.symbol || ''
       },
-      createdAt: record.created,
-      updatedAt: record.updated,
+      createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+      updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
       productsText: typeof record.products === 'string' 
         ? record.products 
-        : JSON.stringify(record.products || [], null, 2)
+        : JSON.stringify(record.products || [], null, 2),
+      notes: record.notes || ''
     }));
   } catch (error) {
     console.error('Error fetching orders:', error);
