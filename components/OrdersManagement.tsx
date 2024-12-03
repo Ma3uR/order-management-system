@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslations } from 'next-intl';
 import { Header } from "./header"
 import { StatsCard } from "./stats-card"
@@ -21,6 +21,7 @@ import { Slider } from "@/components/ui/slider"
 import { StatusSelect } from "@/components/StatusSelect"
 import { cn } from "@/lib/utils"
 import { Footer } from "./footer"
+import debounce from "lodash/debounce";
 
 interface Product {
   name: string;
@@ -274,9 +275,13 @@ interface ValidationErrors {
   submit?: string;
 }
 
-// Replace the checkBlacklist function with this version
+// Replace the checkBlacklist function
 const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<boolean> => {
   try {
+    if (!fullName && !phoneNumber) {
+      return false;
+    }
+
     const response = await fetch('/api/blacklist/check', {
       method: 'POST',
       headers: {
@@ -286,16 +291,17 @@ const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<bo
     });
     
     if (!response.ok) {
-      throw new Error('Failed to check blacklist');
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
     return data.isBlacklisted;
   } catch (error) {
-    console.error('Error checking blacklist:', error);
     return false;
   }
 };
+
+const DEBOUNCE_DELAY = 500; // milliseconds
 
 export function OrdersManagement({ translations, initialOrders }: OrdersManagementProps) {
   const t = useTranslations('Orders');
@@ -337,6 +343,22 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
   ]);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [isBlacklisted, setIsBlacklisted] = useState(false);
+
+  // Update the debouncedCheckBlacklist
+  const debouncedCheckBlacklist = useCallback(
+    debounce(async (fullName: string, phoneNumber: string, callback: (result: boolean) => void) => {
+      console.log('Debounced blacklist check triggered for:', { fullName, phoneNumber });
+      try {
+        const result = await checkBlacklist(fullName, phoneNumber);
+        console.log('Blacklist check result:', result);
+        callback(result);
+      } catch (error) {
+        console.error('Error in debounced blacklist check:', error);
+        callback(false);
+      }
+    }, DEBOUNCE_DELAY),
+    []
+  );
 
   const fetchSources = async () => {
     try {
@@ -533,35 +555,39 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     }
   };
 
+  // Update handleInputChange function
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewOrder(prev => ({ ...prev, [name]: value }));
     setValidationErrors(prev => ({ ...prev, [name]: undefined }));
 
-    // Check blacklist when fullName or phoneNumber changes
     if (name === 'fullName' || name === 'phoneNumber') {
       const currentFullName = name === 'fullName' ? value : newOrder.fullName || '';
-      const currentPhoneNumber = name === 'phoneNumber' ? value : newOrder.phoneNumber || '';
+      let currentPhoneNumber = name === 'phoneNumber' ? value : newOrder.phoneNumber || '';
+      currentPhoneNumber = currentPhoneNumber.replace(/[^\d+]/g, '');
       
-      if (currentFullName || currentPhoneNumber) {
-        const isInBlacklist = await checkBlacklist(currentFullName, currentPhoneNumber);
-        setIsBlacklisted(isInBlacklist);
-        
-        if (isInBlacklist) {
-          // Find the prepayment method
-          const prepaymentMethod = paymentMethods.find(method => 
-            method.name.toLowerCase().includes('prepayment') || 
-            method.name.toLowerCase().includes('передоплата')
-          );
+      if (currentPhoneNumber.length >= 10 || currentFullName.length >= 3) {
+        debouncedCheckBlacklist(currentFullName, currentPhoneNumber, (isInBlacklist) => {
+          setIsBlacklisted(isInBlacklist);
           
-          if (prepaymentMethod) {
-            setNewOrder(prev => ({
-              ...prev,
-              [name]: value,
-              paymentMethod: prepaymentMethod
-            }));
+          if (isInBlacklist) {
+            const prepaymentMethod = paymentMethods.find(method => 
+              method.name.toLowerCase().includes('prepayment') || 
+              method.name.toLowerCase().includes('передоплата')
+            );
+            
+            if (prepaymentMethod) {
+              setNewOrder(prev => ({
+                ...prev,
+                paymentMethod: {
+                  id: prepaymentMethod.id,
+                  name: prepaymentMethod.name
+                }
+              }));
+              setPaymentMethod(prepaymentMethod.id);
+            }
           }
-        }
+        });
       }
     }
   };
@@ -1254,61 +1280,68 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 </div>
 
                 <div className="space-y-2">
+                  {isBlacklisted && (
+                    <div className="mb-4 rounded-md bg-yellow-50 dark:bg-yellow-900/50 p-4 border-l-4 border-yellow-400 dark:border-yellow-600">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          {/* You can add an warning icon here if you want */}
+                          ⚠️
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                            {translations.blacklistedCustomerWarning || 'Customer is blacklisted. Only prepayment is allowed.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <Label className={cn(validationErrors.paymentMethod && "text-destructive")}>
                     {translations.paymentMethod}
                   </Label>
-                  <div className="space-y-2">
-                    <Select
-                      value={newOrder.paymentMethod?.id}
-                      onValueChange={(value) => {
-                        if (isBlacklisted) {
-                          const prepaymentMethod = paymentMethods.find(method => 
-                            method.name.toLowerCase().includes('prepayment') || 
-                            method.name.toLowerCase().includes('предоплата')
-                          );
-                          if (prepaymentMethod) {
-                            handleSelectChange('paymentMethod', prepaymentMethod.id);
-                          }
-                          return;
+                  <Select
+                    value={newOrder.paymentMethod?.id || ''}
+                    onValueChange={(value) => {
+                      if (isBlacklisted) {
+                        const prepaymentMethod = paymentMethods.find(method => 
+                          method.name.toLowerCase().includes('prepayment') || 
+                          method.name.toLowerCase().includes('передоплата')
+                        );
+                        if (prepaymentMethod) {
+                          handleSelectChange('paymentMethod', prepaymentMethod.id);
                         }
-                        handleSelectChange('paymentMethod', value);
-                      }}
-                      disabled={isBlacklisted}
-                    >
-                      <SelectTrigger className={cn(
-                        "w-full bg-background border-input",
-                        validationErrors.paymentMethod && "border-destructive"
-                      )}>
-                        <SelectValue placeholder={translations.selectPaymentMethod} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
-                        {paymentMethods
-                          .filter(method => !isBlacklisted || 
-                            method.name.toLowerCase().includes('prepayment') || 
-                            method.name.toLowerCase().includes('предоплата')
-                          )
-                          .map(method => (
-                            <SelectItem 
-                              key={method.id} 
-                              value={method.id}
-                              className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
-                            >
-                              {method.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    {validationErrors.paymentMethod && (
-                      <p className="text-sm text-destructive">{validationErrors.paymentMethod}</p>
-                    )}
-                    {isBlacklisted && (
-                      <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/50 p-3">
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          {translations.blacklistedCustomerWarning || 'Customer is blacklisted. Only prepayment is allowed.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                        return;
+                      }
+                      handleSelectChange('paymentMethod', value);
+                    }}
+                    disabled={isBlacklisted}
+                  >
+                    <SelectTrigger className={cn(
+                      "w-full bg-background border-input",
+                      validationErrors.paymentMethod && "border-destructive",
+                      isBlacklisted && "bg-yellow-50 dark:bg-yellow-900/50"
+                    )}>
+                      <SelectValue placeholder={translations.selectPaymentMethod} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods
+                        .filter(method => !isBlacklisted || 
+                          method.name.toLowerCase().includes('prepayment') || 
+                          method.name.toLowerCase().includes('передоплата')
+                        )
+                        .map(method => (
+                          <SelectItem 
+                            key={method.id} 
+                            value={method.id}
+                            className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {method.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {validationErrors.paymentMethod && (
+                    <p className="text-sm text-destructive">{validationErrors.paymentMethod}</p>
+                  )}
                 </div>
               </div>
             </div>
