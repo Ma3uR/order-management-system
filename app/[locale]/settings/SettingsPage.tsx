@@ -220,17 +220,19 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStatus),
       });
+      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add status');
+        throw new Error(errorData.details || errorData.error || 'Failed to add status');
       }
+      
       const addedStatus = await response.json();
       setStatuses([...statuses, addedStatus]);
       setNewStatus({ name: '', color: '#000000', priority: 1 });
       showFlashMessage(t('settingsUpdated'), 'success');
     } catch (error) {
       console.error('Error adding status:', error);
-      showFlashMessage(t('addError'), 'error');
+      showFlashMessage(error instanceof Error ? error.message : t('addError'), 'error');
     }
   };
 

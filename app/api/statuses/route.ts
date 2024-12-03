@@ -29,10 +29,24 @@ export async function POST(request: Request) {
       });
     }
 
+    // Check if priority already exists
+    const existingStatus = await pb.collection('status_options').getList(1, 1, {
+      filter: `priority = ${priorityValue}`
+    });
+
+    if (existingStatus.totalItems > 0) {
+      return NextResponse.json({ 
+        error: 'Priority already exists',
+        details: `A status with priority ${priorityValue} already exists`
+      }, { 
+        status: 400 
+      });
+    }
+
     const data = {
       name,
       color,
-      priority: priorityValue // This must be a number
+      priority: priorityValue
     };
 
     console.log('Creating status with data:', data);
