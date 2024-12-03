@@ -27,6 +27,11 @@ export const auth: AuthOptions = {
     signIn: '/auth/signin',
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
+    },
     async session({ session, token }) {
       return session;
     },
