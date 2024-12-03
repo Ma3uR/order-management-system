@@ -419,7 +419,24 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 expand: 'deliveryMethod,paymentMethod,status,currency',
                 $autoCancel: false
               });
-              setOrders(prev => [...prev, record as unknown as Order]);
+              
+              // Format the record before adding to state
+              const formattedOrder = {
+                ...record,
+                status: record.expand?.status ? {
+                  id: record.expand.status.id,
+                  name: record.expand.status.name,
+                  color: record.expand.status.color
+                } : {
+                  id: '',
+                  name: '',
+                  color: '#cbd5e1'
+                },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+              };
+              
+              setOrders(prev => [...prev, formattedOrder as unknown as Order]);
             } catch (error) {
               console.error('Error fetching created order:', error);
             }
@@ -429,8 +446,25 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 expand: 'deliveryMethod,paymentMethod,status,currency',
                 $autoCancel: false
               });
+              
+              // Format the record before updating state
+              const formattedOrder = {
+                ...record,
+                status: record.expand?.status ? {
+                  id: record.expand.status.id,
+                  name: record.expand.status.name,
+                  color: record.expand.status.color
+                } : {
+                  id: '',
+                  name: '',
+                  color: '#cbd5e1'
+                },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+              };
+              
               setOrders(prev => prev.map(order => 
-                order.id === record.id ? (record as unknown as Order) : order
+                order.id === record.id ? (formattedOrder as unknown as Order) : order
               ));
             } catch (error) {
               console.error('Error fetching updated order:', error);
@@ -1454,10 +1488,42 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const response = await axios.put(`/api/orders/${selectedOrder.id}`, selectedOrder);
+                  // Create update payload
+                  const updateData = {
+                    ...selectedOrder,
+                    notes: selectedOrder.notes || '',
+                    // Ensure other required fields are included
+                    orderNumber: selectedOrder.orderNumber,
+                    fullName: selectedOrder.fullName,
+                    phoneNumber: selectedOrder.phoneNumber,
+                    deliveryPostNumber: selectedOrder.deliveryPostNumber,
+                    products: selectedOrder.products,
+                    numberOfItems: selectedOrder.numberOfItems,
+                    amount: selectedOrder.amount
+                  };
+
+                  const response = await axios.put(`/api/orders/${selectedOrder.id}`, updateData);
+                  
                   if (response.data) {
+                    const updatedOrder = await pb.collection('orders').getOne(selectedOrder.id, {
+                      expand: 'deliveryMethod,paymentMethod,status,currency',
+                      $autoCancel: false
+                    });
+                    
+                    const formattedOrder = {
+                      ...updatedOrder,
+                      status: updatedOrder.expand?.status ? {
+                        id: updatedOrder.expand.status.id,
+                        name: updatedOrder.expand.status.name,
+                        color: updatedOrder.expand.status.color
+                      } : selectedOrder.status,
+                      createdAt: updatedOrder.created ? new Date(updatedOrder.created).toISOString() : selectedOrder.createdAt,
+                      updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : new Date().toISOString(),
+                      notes: updatedOrder.notes || ''
+                    };
+
                     setOrders(prevOrders => 
-                      prevOrders.map(o => o.id === selectedOrder.id ? response.data : o)
+                      prevOrders.map(o => o.id === selectedOrder.id ? formattedOrder as unknown as Order : o)
                     );
                     setIsDetailsModalOpen(false);
                   }
@@ -1486,11 +1552,18 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                   <Label>{translations.fullName}</Label>
                   <Input 
                     value={selectedOrder.fullName} 
-                    onChange={(e) => setSelectedOrder({
-                      ...selectedOrder,
-                      fullName: e.target.value
-                    })}
-                    pattern="^[A-Za-z\u0400-\u04FF\s'-]+$"
+                    onChange={(e) => {
+                      // Validate the input using JavaScript instead of pattern attribute
+                      const value = e.target.value;
+                      const isValid = /^[A-Za-z\u0400-\u04FF\s'-]*$/.test(value);
+                      
+                      if (isValid || value === '') {
+                        setSelectedOrder({
+                          ...selectedOrder,
+                          fullName: value
+                        });
+                      }
+                    }}
                     title="Full name can only contain letters, spaces, hyphens, and apostrophes"
                     required
                   />
