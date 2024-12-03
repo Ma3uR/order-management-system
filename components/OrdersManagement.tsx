@@ -282,7 +282,8 @@ interface ValidationErrors {
 // Replace the checkBlacklist function
 const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<boolean> => {
   try {
-    if (!fullName && !phoneNumber) {
+    // Don't make the request if both values are empty
+    if (!fullName?.trim() && !phoneNumber?.trim()) {
       return false;
     }
 
@@ -291,7 +292,10 @@ const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<bo
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ fullName, phoneNumber }),
+      body: JSON.stringify({ 
+        fullName: fullName?.trim() || '', 
+        phoneNumber: phoneNumber?.trim() || '' 
+      }),
     });
     
     if (!response.ok) {
@@ -301,6 +305,7 @@ const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<bo
     const data = await response.json();
     return data.isBlacklisted;
   } catch (error) {
+    console.error('Blacklist check error:', error);
     return false;
   }
 };
@@ -352,10 +357,14 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
   // Update the debouncedCheckBlacklist
   const debouncedCheckBlacklist = useCallback(
     debounce(async (fullName: string, phoneNumber: string, callback: (result: boolean) => void) => {
-      console.log('Debounced blacklist check triggered for:', { fullName, phoneNumber });
       try {
+        // Only check if at least one field has content
+        if (!fullName?.trim() && !phoneNumber?.trim()) {
+          callback(false);
+          return;
+        }
+        
         const result = await checkBlacklist(fullName, phoneNumber);
-        console.log('Blacklist check result:', result);
         callback(result);
       } catch (error) {
         console.error('Error in debounced blacklist check:', error);
