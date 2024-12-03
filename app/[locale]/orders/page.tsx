@@ -58,6 +58,8 @@ export default async function OrdersPage() {
     selectSource: t('selectSource'),
     sourceRequired: t('sourceRequired'),
     blacklistedCustomerWarning: t('blacklistedCustomerWarning'),
+    notes: t('notes'),
+    notesPlaceholder: t('notesPlaceholder')
   };
 
   return (
