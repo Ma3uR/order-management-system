@@ -58,6 +58,8 @@ export default async function OrdersPage() {
     selectSource: t('selectSource'),
     sourceRequired: t('sourceRequired'),
     blacklistedCustomerWarning: t('blacklistedCustomerWarning'),
+    notes: t('notes'),
+    notesPlaceholder: t('notesPlaceholder')
   };
 
   return (
@@ -98,7 +100,8 @@ export default async function OrdersPage() {
           updatedAt: order.updatedAt || new Date().toISOString(),
           productsText: typeof order.products === 'string' 
             ? order.products 
-            : JSON.stringify(order.products || [], null, 2)
+            : JSON.stringify(order.products || [], null, 2),
+          notes: order.notes || ''
         }))} 
       />
     </ErrorBoundaryClient>

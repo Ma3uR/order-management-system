@@ -45,31 +45,27 @@ export async function PUT(
     const data = await request.json();
     
     // Create update data object
-    const updateData: Record<string, unknown> = {};
+    const updateData: any = {};
     
-    // Handle status update
-    if (data.statusId) {
-      updateData.status = data.statusId;
-    }
-    
-    // Handle full order update
-    if (data.orderNumber) {
-      Object.assign(updateData, {
-        orderNumber: data.orderNumber,
-        source: data.source,
-        deliveryMethod: data.deliveryMethod.id,
-        deliveryPostNumber: data.deliveryPostNumber,
-        phoneNumber: data.phoneNumber,
-        fullName: data.fullName,
-        products: data.products,
-        numberOfItems: data.numberOfItems,
-        paymentMethod: data.paymentMethod.id,
-        amount: data.amount
-      });
-    }
+    // Add fields that can be updated
+    if (data.orderNumber) updateData.orderNumber = data.orderNumber;
+    if (data.fullName) updateData.fullName = data.fullName;
+    if (data.phoneNumber) updateData.phoneNumber = data.phoneNumber;
+    if (data.deliveryPostNumber) updateData.deliveryPostNumber = data.deliveryPostNumber;
+    if (data.products) updateData.products = data.products;
+    if (data.numberOfItems) updateData.numberOfItems = data.numberOfItems;
+    if (data.amount) updateData.amount = data.amount;
+    if (data.statusId) updateData.status = data.statusId;
+    if (data.notes !== undefined) updateData.notes = data.notes;
 
-    const order = await pb.collection('orders').update(params.id, updateData);
-    return NextResponse.json(order);
+    const record = await pb.collection('orders').update(params.id, updateData);
+    
+    // Fetch the updated record with expanded relations
+    const updatedRecord = await pb.collection('orders').getOne(params.id, {
+      expand: 'deliveryMethod,paymentMethod,status,currency'
+    });
+
+    return NextResponse.json(updatedRecord);
   } catch (error) {
     console.error('Error updating order:', error);
     return NextResponse.json(

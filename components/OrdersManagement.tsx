@@ -62,6 +62,7 @@ interface Order {
   updatedAt: string
   productsText: string
   sourceName?: string
+  notes?: string;
 }
 
 interface OrdersManagementProps {
@@ -114,6 +115,8 @@ interface OrdersManagementProps {
     selectSource: string
     sourceRequired: string
     blacklistedCustomerWarning: string
+    notes: string
+    notesPlaceholder: string
   }
   initialOrders: Order[]
 }
@@ -180,6 +183,7 @@ interface OrderData {
   amount: number;
   status: string;
   currency: string;
+  notes: string;
 }
 
 interface FilterOptions {
@@ -278,7 +282,8 @@ interface ValidationErrors {
 // Replace the checkBlacklist function
 const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<boolean> => {
   try {
-    if (!fullName && !phoneNumber) {
+    // Don't make the request if both values are empty
+    if (!fullName?.trim() && !phoneNumber?.trim()) {
       return false;
     }
 
@@ -287,7 +292,10 @@ const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<bo
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ fullName, phoneNumber }),
+      body: JSON.stringify({ 
+        fullName: fullName?.trim() || '', 
+        phoneNumber: phoneNumber?.trim() || '' 
+      }),
     });
     
     if (!response.ok) {
@@ -297,6 +305,7 @@ const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<bo
     const data = await response.json();
     return data.isBlacklisted;
   } catch (error) {
+    console.error('Blacklist check error:', error);
     return false;
   }
 };
@@ -323,6 +332,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     paymentMethod: { id: '', name: '' },
     currency: { id: '', code: '', symbol: '' },
     productsText: '',
+    notes: '',
   })
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([])
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -347,10 +357,14 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
   // Update the debouncedCheckBlacklist
   const debouncedCheckBlacklist = useCallback(
     debounce(async (fullName: string, phoneNumber: string, callback: (result: boolean) => void) => {
-      console.log('Debounced blacklist check triggered for:', { fullName, phoneNumber });
       try {
+        // Only check if at least one field has content
+        if (!fullName?.trim() && !phoneNumber?.trim()) {
+          callback(false);
+          return;
+        }
+        
         const result = await checkBlacklist(fullName, phoneNumber);
-        console.log('Blacklist check result:', result);
         callback(result);
       } catch (error) {
         console.error('Error in debounced blacklist check:', error);
@@ -414,7 +428,24 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 expand: 'deliveryMethod,paymentMethod,status,currency',
                 $autoCancel: false
               });
-              setOrders(prev => [...prev, record as unknown as Order]);
+              
+              // Format the record before adding to state
+              const formattedOrder = {
+                ...record,
+                status: record.expand?.status ? {
+                  id: record.expand.status.id,
+                  name: record.expand.status.name,
+                  color: record.expand.status.color
+                } : {
+                  id: '',
+                  name: '',
+                  color: '#cbd5e1'
+                },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+              };
+              
+              setOrders(prev => [...prev, formattedOrder as unknown as Order]);
             } catch (error) {
               console.error('Error fetching created order:', error);
             }
@@ -424,8 +455,25 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 expand: 'deliveryMethod,paymentMethod,status,currency',
                 $autoCancel: false
               });
+              
+              // Format the record before updating state
+              const formattedOrder = {
+                ...record,
+                status: record.expand?.status ? {
+                  id: record.expand.status.id,
+                  name: record.expand.status.name,
+                  color: record.expand.status.color
+                } : {
+                  id: '',
+                  name: '',
+                  color: '#cbd5e1'
+                },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+              };
+              
               setOrders(prev => prev.map(order => 
-                order.id === record.id ? (record as unknown as Order) : order
+                order.id === record.id ? (formattedOrder as unknown as Order) : order
               ));
             } catch (error) {
               console.error('Error fetching updated order:', error);
@@ -573,7 +621,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
           if (isInBlacklist) {
             const prepaymentMethod = paymentMethods.find(method => 
               method.name.toLowerCase().includes('prepayment') || 
-              method.name.toLowerCase().includes('передоплата')
+              method.name.toLowerCase().includes('пеедоплата')
             );
             
             if (prepaymentMethod) {
@@ -697,28 +745,31 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
         deliveryPostNumber: newOrder.deliveryPostNumber || '',
         phoneNumber: newOrder.phoneNumber || '',
         fullName: newOrder.fullName || '',
-        products: productInputs.map(p => ({
+        products: JSON.stringify(productInputs.map(p => ({
           name: p.title,
           quantity: p.quantity,
           price: p.price
-        })),
+        }))),
         numberOfItems: totalItems,
         paymentMethod: newOrder.paymentMethod?.id,
         amount: totalAmount,
-        status: initialStatus.id, // Use the status with lowest priority
-        currency: defaultCurrency?.id || ''
+        status: initialStatus.id,
+        currency: defaultCurrency?.id || '',
+        notes: newOrder.notes?.trim() || ''
       };
 
       const record = await pb.collection('orders').create(orderData);
+      
+      // Update this line to include notes in the expanded fields
       const createdOrder = await pb.collection('orders').getOne(record.id, {
-        expand: 'deliveryMethod,paymentMethod,status,currency'
+        expand: 'deliveryMethod,paymentMethod,status,currency',
+        fields: 'id,orderNumber,source,deliveryMethod,deliveryPostNumber,phoneNumber,fullName,products,numberOfItems,paymentMethod,amount,status,currency,createdAt,updatedAt,notes'
       });
 
       setOrders([...orders, createdOrder as unknown as Order]);
-      setValidationErrors({}); // Clear validation errors on success
+      setValidationErrors({});
       setIsCreateModalOpen(false);
       resetNewOrderForm();
-      // Also reset product inputs
       setProductInputs([{ title: '', quantity: 1, price: 0 }]);
     } catch (error) {
       console.error('Error creating order:', error);
@@ -740,6 +791,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
       products: [],
       paymentMethod: { id: '', name: '' },
       currency: { id: '', code: '', symbol: '' },
+      notes: '',
     });
     setProductInputs([{ title: '', quantity: 1, price: 0 }]);
     setValidationErrors({}); // Clear all validation errors
@@ -748,20 +800,69 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
   useEffect(() => {
     const connectRealtime = async () => {
       try {
-        await pb.collection('orders').subscribe('*', (e) => {
+        await pb.collection('orders').subscribe('*', async (e) => {
           if (e.action === 'create') {
-            setOrders(prev => [...prev, e.record as unknown as Order]);
+            try {
+              const record = await pb.collection('orders').getOne(e.record.id, {
+                expand: 'deliveryMethod,paymentMethod,status,currency',
+                $autoCancel: false
+              });
+              
+              // Format the record before adding to state
+              const formattedOrder = {
+                ...record,
+                status: record.expand?.status ? {
+                  id: record.expand.status.id,
+                  name: record.expand.status.name,
+                  color: record.expand.status.color
+                } : {
+                  id: '',
+                  name: '',
+                  color: '#cbd5e1'
+                },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+              };
+              
+              setOrders(prev => [...prev, formattedOrder as unknown as Order]);
+            } catch (error) {
+              console.error('Error fetching created order:', error);
+            }
           } else if (e.action === 'update') {
-            setOrders(prev => prev.map(order => 
-              order.id === e.record.id ? (e.record as unknown as Order) : order
-            ));
+            try {
+              const record = await pb.collection('orders').getOne(e.record.id, {
+                expand: 'deliveryMethod,paymentMethod,status,currency',
+                $autoCancel: false
+              });
+              
+              // Format the record before updating state
+              const formattedOrder = {
+                ...record,
+                status: record.expand?.status ? {
+                  id: record.expand.status.id,
+                  name: record.expand.status.name,
+                  color: record.expand.status.color
+                } : {
+                  id: '',
+                  name: '',
+                  color: '#cbd5e1'
+                },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+              };
+              
+              setOrders(prev => prev.map(order => 
+                order.id === record.id ? (formattedOrder as unknown as Order) : order
+              ));
+            } catch (error) {
+              console.error('Error fetching updated order:', error);
+            }
           } else if (e.action === 'delete') {
             setOrders(prev => prev.filter(order => order.id !== e.record.id));
           }
         });
       } catch (error) {
         console.error('Realtime connection error:', error);
-        // Try to reconnect after 5 seconds
         setTimeout(connectRealtime, 5000);
       }
     };
@@ -793,9 +894,22 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
       });
       
       if (response.data) {
+        const updatedOrder = await pb.collection('orders').getOne(orderId, {
+          expand: 'deliveryMethod,paymentMethod,status,currency',
+          $autoCancel: false
+        });
+        
         setOrders(prevOrders => 
           prevOrders.map(o => 
-            o.id === orderId ? response.data : o
+            o.id === orderId ? {
+              ...o,
+              status: updatedOrder.expand?.status ? {
+                id: updatedOrder.expand.status.id,
+                name: updatedOrder.expand.status.name,
+                color: updatedOrder.expand.status.color
+              } : o.status,
+              updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : o.updatedAt
+            } : o
           )
         );
       }
@@ -1343,6 +1457,17 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                     <p className="text-sm text-destructive">{validationErrors.paymentMethod}</p>
                   )}
                 </div>
+
+                <div className="grid gap-2">
+                  <Label>{t('notes')}</Label>
+                  <Textarea
+                    name="notes"
+                    value={newOrder.notes || ''}
+                    onChange={handleInputChange}
+                    placeholder={t('notesPlaceholder')}
+                    className="min-h-[100px]"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1372,10 +1497,42 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const response = await axios.put(`/api/orders/${selectedOrder.id}`, selectedOrder);
+                  // Create update payload
+                  const updateData = {
+                    ...selectedOrder,
+                    notes: selectedOrder.notes || '',
+                    // Ensure other required fields are included
+                    orderNumber: selectedOrder.orderNumber,
+                    fullName: selectedOrder.fullName,
+                    phoneNumber: selectedOrder.phoneNumber,
+                    deliveryPostNumber: selectedOrder.deliveryPostNumber,
+                    products: selectedOrder.products,
+                    numberOfItems: selectedOrder.numberOfItems,
+                    amount: selectedOrder.amount
+                  };
+
+                  const response = await axios.put(`/api/orders/${selectedOrder.id}`, updateData);
+                  
                   if (response.data) {
+                    const updatedOrder = await pb.collection('orders').getOne(selectedOrder.id, {
+                      expand: 'deliveryMethod,paymentMethod,status,currency',
+                      $autoCancel: false
+                    });
+                    
+                    const formattedOrder = {
+                      ...updatedOrder,
+                      status: updatedOrder.expand?.status ? {
+                        id: updatedOrder.expand.status.id,
+                        name: updatedOrder.expand.status.name,
+                        color: updatedOrder.expand.status.color
+                      } : selectedOrder.status,
+                      createdAt: updatedOrder.created ? new Date(updatedOrder.created).toISOString() : selectedOrder.createdAt,
+                      updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : new Date().toISOString(),
+                      notes: updatedOrder.notes || ''
+                    };
+
                     setOrders(prevOrders => 
-                      prevOrders.map(o => o.id === selectedOrder.id ? response.data : o)
+                      prevOrders.map(o => o.id === selectedOrder.id ? formattedOrder as unknown as Order : o)
                     );
                     setIsDetailsModalOpen(false);
                   }
@@ -1404,11 +1561,18 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                   <Label>{translations.fullName}</Label>
                   <Input 
                     value={selectedOrder.fullName} 
-                    onChange={(e) => setSelectedOrder({
-                      ...selectedOrder,
-                      fullName: e.target.value
-                    })}
-                    pattern="^[A-Za-zА-Яа-ІїЇєЄ\s'-]+$"
+                    onChange={(e) => {
+                      // Validate the input using JavaScript instead of pattern attribute
+                      const value = e.target.value;
+                      const isValid = /^[A-Za-z\u0400-\u04FF\s'-]*$/.test(value);
+                      
+                      if (isValid || value === '') {
+                        setSelectedOrder({
+                          ...selectedOrder,
+                          fullName: value
+                        });
+                      }
+                    }}
                     title="Full name can only contain letters, spaces, hyphens, and apostrophes"
                     required
                   />
@@ -1581,6 +1745,19 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
                 <div className="grid grid-cols-2 items-center gap-4">
                   <Label>{translations.createdAt}</Label>
                   <Input value={new Date(selectedOrder.createdAt).toLocaleString()} readOnly />
+                </div>
+
+                <div className="grid grid-cols-2 items-center gap-4">
+                  <Label>{t('notes')}</Label>
+                  <Textarea 
+                    value={selectedOrder.notes || ''} 
+                    onChange={(e) => setSelectedOrder({
+                      ...selectedOrder,
+                      notes: e.target.value
+                    })}
+                    placeholder={t('notesPlaceholder')}
+                    className="min-h-[100px]"
+                  />
                 </div>
 
                 <DialogFooter>
