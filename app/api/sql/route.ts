@@ -4,7 +4,7 @@ import { sqlAgent } from '@/lib/agents/sql-agent-v2';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { query, history = [] } = body;
+    const { query, history = [], user } = body;
 
     if (!query) {
       return NextResponse.json(
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     console.log('Processing query:', query);
     
     // Process the query to get collection and filters
-    const queryParams = await sqlAgent.processQuery(query, history);
+    const queryParams = await sqlAgent.processQuery(query, history, user);
     console.log('Query parameters:', queryParams);
     
     if (queryParams.error || !queryParams.collection) {

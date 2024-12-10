@@ -16,6 +16,15 @@ interface Message {
   timestamp?: number;
 }
 
+interface ChatMessageRecord {
+  id: string;
+  user: string;
+  role: string;
+  content: string;
+  conversation_id: string;
+  created: string;
+}
+
 export function AiChat() {
   const { data: session } = useSession()
   const t = useTranslations('AiChat')
@@ -33,26 +42,44 @@ export function AiChat() {
     return newId;
   });
 
-  // Load messages from localStorage on mount
-  useEffect(() => {
-    const storedMessages = localStorage.getItem(`chat_${conversationId}`);
-    if (storedMessages) {
-      try {
-        const parsedMessages = JSON.parse(storedMessages);
-        setMessages(parsedMessages);
-      } catch (error) {
-        console.error('Error parsing stored messages:', error);
+  // Load messages from API route
+  const loadMessages = async () => {
+    try {
+      console.log('Loading messages for conversation:', conversationId);
+      const response = await fetch(`/api/chat-messages?conversationId=${conversationId}`);
+      
+      if (!response.ok) {
+        console.error('Failed to fetch messages:', response.status, response.statusText);
+        throw new Error('Failed to fetch messages');
       }
+      
+      const data = await response.json();
+      console.log('Received messages data:', data);
+      
+      if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+        console.log('Found messages:', data.items.length);
+        const formattedMessages: Message[] = data.items.map((record: ChatMessageRecord) => ({
+          role: record.role as 'user' | 'assistant',
+          content: record.content,
+          timestamp: new Date(record.created).getTime()
+        }));
+        console.log('Formatted messages:', formattedMessages);
+        setMessages(formattedMessages);
+      } else {
+        // Just show the greeting message in UI without saving to DB
+        console.log('No messages found, showing greeting');
+        setMessages([{
+          role: 'assistant',
+          content: "Hello! I'm your AI assistant. I can help you with:\n- Viewing orders and their details\n- Checking sales statistics\n- Managing blacklist entries\n- And more!\n\nHow can I assist you today?",
+          timestamp: Date.now()
+        }]);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
     }
-  }, [conversationId]);
+  };
 
-  // Save messages to localStorage whenever they change
-  useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem(`chat_${conversationId}`, JSON.stringify(messages));
-    }
-  }, [messages, conversationId]);
-
+  // Save message using API route
   const saveMessage = async (message: Message) => {
     try {
       const response = await fetch('/api/chat-messages', {
@@ -61,25 +88,25 @@ export function AiChat() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_email: session?.user?.email || 'anonymous',
+          user: session?.user?.email || 'anonymous',
           role: message.role,
           content: message.content,
           conversation_id: conversationId
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server error:', errorData);
-        throw new Error(errorData.error || 'Failed to save message');
-      }
-
+      if (!response.ok) throw new Error('Failed to save message');
+      
       return await response.json();
     } catch (error) {
       console.error('Error saving message:', error);
-      throw error;
     }
   };
+
+  // Load messages from PocketBase on mount
+  useEffect(() => {
+    loadMessages();
+  }, [conversationId]);
 
   const formatPocketBaseResult = (result: any) => {
     if (!result || !result.records || result.records.length === 0) {
@@ -126,7 +153,7 @@ Created: ${record.created}`;
     setIsLoading(true)
 
     try {
-      // Save user message to PocketBase (optional, can be removed if not needed)
+      // Save user message to PocketBase
       await saveMessage(userMessage);
 
       // Get AI response
@@ -135,7 +162,8 @@ Created: ${record.created}`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: input,
-          history: messages.slice(-5) // Only use last 5 messages for context
+          history: messages.slice(-5), // Only use last 5 messages for context
+          user: session?.user?.email || 'anonymous' // Pass user info
         }),
       })
 
@@ -157,9 +185,10 @@ Created: ${record.created}`;
       };
       setMessages(prev => [...prev, assistantMessageObj])
 
-      // Save assistant message to PocketBase (optional, can be removed if not needed)
+      // Save assistant message to PocketBase
       await saveMessage(assistantMessageObj);
     } catch (error) {
+      console.error('Error:', error);
       const errorMessage: Message = { 
         role: 'assistant',
         content: 'Sorry, there was an error processing your request.',
