@@ -71,11 +71,8 @@ export async function POST(request: Request) {
   try {
     await initPocketBase();
     const data = await request.json();
-    
-    // Get or create user ID from email
     const userId = await getOrCreateUser(data.user);
     
-    // Create message with user ID instead of email
     const messageData = {
       user: userId,
       role: data.role,
@@ -83,12 +80,9 @@ export async function POST(request: Request) {
       conversation_id: data.conversation_id
     };
 
-    console.log('Creating message with data:', messageData);
     const record = await pb.collection('chat_messages').create(messageData);
-    
     return NextResponse.json(record);
   } catch (error) {
-    console.error('Error creating message:', error);
     return NextResponse.json({ 
       error: 'Failed to create message',
       details: error instanceof Error ? error.message : 'Unknown error'
