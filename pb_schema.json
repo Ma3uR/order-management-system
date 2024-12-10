@@ -38,6 +38,67 @@
         }
     },
     {
+        "id": "chat_messages",
+        "name": "chat_messages",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "id": "field_user",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "unique": false,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": false,
+                    "maxSelect": 1,
+                    "displayFields": ["email", "name"]
+                }
+            },
+            {
+                "id": "field_role",
+                "name": "role",
+                "type": "select",
+                "required": true,
+                "unique": false,
+                "options": {
+                    "values": ["user", "assistant"]
+                }
+            },
+            {
+                "id": "field_content",
+                "name": "content",
+                "type": "text",
+                "required": true,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "id": "field_conversation_id",
+                "name": "conversation_id",
+                "type": "text",
+                "required": true,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            }
+        ],
+        "listRule": "user = @request.auth.id",
+        "viewRule": "user = @request.auth.id",
+        "createRule": "user = @request.auth.id",
+        "updateRule": "user = @request.auth.id",
+        "deleteRule": "user = @request.auth.id",
+        "options": {}
+    },
+    {
         "id": "shipping_methods",
         "name": "delivery_options",
         "type": "base",

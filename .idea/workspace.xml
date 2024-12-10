@@ -5,13 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f8be0399-0da5-4a4e-a0d2-a1fac70f5b2a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/[locale]/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/[locale]/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/[locale]/orders/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/[locale]/orders/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/projects/[...].tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/OrdersManagement.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/OrdersManagement.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/next.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ai-chat.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ai-chat.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/auth.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/auth.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pb_schema.json" beforeDir="false" afterPath="$PROJECT_DIR$/pb_schema.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,7 +34,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "ai-agent",
     "last_opened_file_path": "/Users/macbook/misc/pet-projects/smm-system",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -65,6 +63,7 @@
       <updated>1729546798423</updated>
       <workItem from="1729546799439" duration="658000" />
       <workItem from="1729548344724" duration="9000" />
+      <workItem from="1733688328844" duration="30000" />
     </task>
     <servers />
   </component>
@@ -73,6 +72,7 @@
     <option name="exactExcludedFiles">
       <list>
         <option value="$PROJECT_DIR$/i18n.js" />
+        <option value="$PROJECT_DIR$/tailwind.config.js" />
       </list>
     </option>
   </component>

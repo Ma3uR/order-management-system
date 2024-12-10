@@ -17,6 +17,9 @@
     "seed:pb": "node scripts/seed-pocketbase.js"
   },
   "dependencies": {
+    "@langchain/core": "^0.3.20",
+    "@langchain/langgraph": "^0.2.24",
+    "@langchain/openai": "^0.3.14",
     "@next-auth/prisma-adapter": "^1.0.7",
     "@prisma/client": "^5.21.1",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -33,6 +36,7 @@
     "@shadcn/ui": "^0.0.4",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.6.0",
     "chart.js": "^4.4.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -51,8 +55,10 @@
     "react-error-boundary": "^4.1.2",
     "recharts": "^2.12.0",
     "sonner": "^1.7.0",
+    "sqlite3": "^5.1.7",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.6"
+    "tailwindcss-animate": "^1.0.6",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
@@ -61,6 +67,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/recharts": "^1.8.29",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.16.0",
     "@typescript-eslint/parser": "^8.16.0",
     "autoprefixer": "^10.4.14",
