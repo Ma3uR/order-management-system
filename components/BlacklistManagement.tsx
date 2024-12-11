@@ -153,7 +153,7 @@ const BlacklistManagement: React.FC = () => {
       pages.push(
         <Button
           key={i}
-          variant={pagination.page === i ? "default" : "outline"}
+          variant={pagination.page === i ? "default" : "ghost"}
           onClick={() => handlePageChange(i)}
           className="mx-1"
         >
@@ -165,7 +165,7 @@ const BlacklistManagement: React.FC = () => {
     return (
       <div className="flex justify-center items-center gap-2 mt-4">
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={() => handlePageChange(1)}
           disabled={pagination.page === 1}
           title={t('firstPage')}
@@ -173,7 +173,7 @@ const BlacklistManagement: React.FC = () => {
           «
         </Button>
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={() => handlePageChange(pagination.page - 1)}
           disabled={pagination.page === 1}
           title={t('previousPage')}
@@ -182,7 +182,7 @@ const BlacklistManagement: React.FC = () => {
         </Button>
         {pages}
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={() => handlePageChange(pagination.page + 1)}
           disabled={pagination.page === pagination.totalPages}
           title={t('nextPage')}
@@ -190,7 +190,7 @@ const BlacklistManagement: React.FC = () => {
           ›
         </Button>
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={() => handlePageChange(pagination.totalPages)}
           disabled={pagination.page === pagination.totalPages}
           title={t('lastPage')}

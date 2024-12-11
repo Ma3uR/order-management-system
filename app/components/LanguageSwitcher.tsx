@@ -32,7 +32,13 @@ export default function LanguageSwitcher() {
   )
 
   const changeLanguage = (language: Language) => {
-    const newPath = pathname.replace(`/${currentLocale}`, `/${language.code}`)
+    if (!pathname) return;
+    
+    // Handle the case where pathname might not include the locale
+    const newPath = pathname.includes(`/${currentLocale}`) 
+      ? pathname.replace(`/${currentLocale}`, `/${language.code}`)
+      : `/${language.code}${pathname}`;
+      
     setCurrentLanguage(language)
     router.push(newPath)
   }
