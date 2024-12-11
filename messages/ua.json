@@ -76,10 +76,14 @@
     "title": "Управління чорним списком",
     "fullNamePlaceholder": "Повне ім'я",
     "phoneNumberPlaceholder": "Номер телефону",
+    "cityPlaceholder": "Місто",
+    "totalOrderSumPlaceholder": "Загальна сума замовлень",
+    "notesPlaceholder": "Примітки (причина блокування)",
     "addToBlacklist": "Додати до чорного списку",
     "remove": "Видалити",
     "backToDashboard": "Повернутися до панелі керування",
-    "adding": "Додавання..."
+    "adding": "Додавання...",
+    "orderSum": "Сума замовлень"
   },
   "AiChat": {
     "title": "AI Помічник",

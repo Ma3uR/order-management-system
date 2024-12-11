@@ -13,6 +13,9 @@ interface BlacklistItem {
   id: string | number;
   fullName: string;
   phoneNumber: string;
+  city: string;
+  totalOrderSum: number;
+  notes: string;
 }
 
 const BlacklistManagement: React.FC = () => {
@@ -24,7 +27,13 @@ const BlacklistManagement: React.FC = () => {
     },
   });
   const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
-  const [newItem, setNewItem] = useState({ fullName: '', phoneNumber: '' });
+  const [newItem, setNewItem] = useState({ 
+    fullName: '', 
+    phoneNumber: '', 
+    city: '',
+    totalOrderSum: 0,
+    notes: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations('Blacklist');
@@ -75,7 +84,7 @@ const BlacklistManagement: React.FC = () => {
           }
         });
         setBlacklist(prev => [...prev, response.data]);
-        setNewItem({ fullName: '', phoneNumber: '' });
+        setNewItem({ fullName: '', phoneNumber: '', city: '', totalOrderSum: 0, notes: '' });
       } catch (error: any) {
         if (error?.response?.status === 401) {
           router.push('/auth/signin');
@@ -126,13 +135,14 @@ const BlacklistManagement: React.FC = () => {
           <span className="block sm:inline">{error}</span>
         </div>
       )}
-      <div className="flex space-x-2">
+      <div className="flex flex-wrap gap-2">
         <Input
           type="text"
           name="fullName"
           value={newItem.fullName}
           onChange={handleInputChange}
           placeholder={t('fullNamePlaceholder')}
+          className="flex-1"
         />
         <Input
           type="text"
@@ -140,6 +150,31 @@ const BlacklistManagement: React.FC = () => {
           value={newItem.phoneNumber}
           onChange={handleInputChange}
           placeholder={t('phoneNumberPlaceholder')}
+          className="flex-1"
+        />
+        <Input
+          type="text"
+          name="city"
+          value={newItem.city}
+          onChange={handleInputChange}
+          placeholder={t('cityPlaceholder')}
+          className="flex-1"
+        />
+        <Input
+          type="number"
+          name="totalOrderSum"
+          value={newItem.totalOrderSum}
+          onChange={handleInputChange}
+          placeholder={t('totalOrderSumPlaceholder')}
+          className="flex-1"
+        />
+        <Input
+          type="text"
+          name="notes"
+          value={newItem.notes}
+          onChange={handleInputChange}
+          placeholder={t('notesPlaceholder')}
+          className="flex-1"
         />
         <Button onClick={handleAddItem} disabled={isLoading}>
           {isLoading ? t('adding') : t('addToBlacklist')}
@@ -153,7 +188,13 @@ const BlacklistManagement: React.FC = () => {
         <ul className="space-y-2">
           {blacklist.map(item => (
             <li key={item.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
-              <span>{item.fullName} - {item.phoneNumber}</span>
+              <div className="flex flex-col">
+                <span className="font-medium">{item.fullName} - {item.phoneNumber}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {item.city} • {t('orderSum')}: ${item.totalOrderSum}
+                </span>
+                {item.notes && <span className="text-sm italic">{item.notes}</span>}
+              </div>
               <Button 
                 onClick={() => handleRemoveItem(item.id)} 
                 variant="default" 

@@ -123,10 +123,14 @@
     "title": "Blacklist Management",
     "fullNamePlaceholder": "Full Name",
     "phoneNumberPlaceholder": "Phone Number",
+    "cityPlaceholder": "City",
+    "totalOrderSumPlaceholder": "Total Order Sum",
+    "notesPlaceholder": "Notes (reason for blocking)",
     "addToBlacklist": "Add to Blacklist",
     "remove": "Remove",
     "backToDashboard": "Back to Dashboard",
-    "adding": "Adding..."
+    "adding": "Adding...",
+    "orderSum": "Order Sum"
   },
   "AiChat": {
     "title": "AI Assistant",
