@@ -130,7 +130,16 @@
     "remove": "Remove",
     "backToDashboard": "Back to Dashboard",
     "adding": "Adding...",
-    "orderSum": "Order Sum"
+    "orderSum": "Order Sum",
+    "showing": "Showing",
+    "of": "of",
+    "entries": "entries",
+    "noEntries": "No entries in blacklist",
+    "loading": "Loading...",
+    "firstPage": "First page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "lastPage": "Last page"
   },
   "AiChat": {
     "title": "AI Assistant",

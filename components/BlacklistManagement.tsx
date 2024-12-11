@@ -18,6 +18,15 @@ interface BlacklistItem {
   notes: string;
 }
 
+interface PaginationInfo {
+  page: number;
+  perPage: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+const ITEMS_PER_PAGE = 10;
+
 const BlacklistManagement: React.FC = () => {
   const router = useRouter();
   const { data: session, status } = useSession({
@@ -26,7 +35,14 @@ const BlacklistManagement: React.FC = () => {
       router.push('/auth/signin');
     },
   });
+  
   const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    perPage: ITEMS_PER_PAGE,
+    totalItems: 0,
+    totalPages: 0
+  });
   const [newItem, setNewItem] = useState({ 
     fullName: '', 
     phoneNumber: '', 
@@ -40,21 +56,27 @@ const BlacklistManagement: React.FC = () => {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      fetchBlacklist();
+      fetchBlacklist(pagination.page);
     }
-  }, [status]);
+  }, [status, pagination.page]);
 
-  const fetchBlacklist = async () => {
+  const fetchBlacklist = async (page: number) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await axios.get('/api/blacklist', {
+      const response = await axios.get(`/api/blacklist?page=${page}&perPage=${ITEMS_PER_PAGE}`, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
         }
       });
-      setBlacklist(response.data);
+      setBlacklist(response.data.items);
+      setPagination({
+        page,
+        perPage: ITEMS_PER_PAGE,
+        totalItems: response.data.totalItems,
+        totalPages: response.data.totalPages
+      });
     } catch (error: any) {
       console.error('Error fetching blacklist:', error);
       if (error?.response?.status === 401) {
@@ -65,6 +87,10 @@ const BlacklistManagement: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,6 +139,68 @@ const BlacklistManagement: React.FC = () => {
     }
   };
 
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, pagination.page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <Button
+          key={i}
+          variant={pagination.page === i ? "default" : "outline"}
+          onClick={() => handlePageChange(i)}
+          className="mx-1"
+        >
+          {i}
+        </Button>
+      );
+    }
+
+    return (
+      <div className="flex justify-center items-center gap-2 mt-4">
+        <Button
+          variant="outline"
+          onClick={() => handlePageChange(1)}
+          disabled={pagination.page === 1}
+          title={t('firstPage')}
+        >
+          «
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => handlePageChange(pagination.page - 1)}
+          disabled={pagination.page === 1}
+          title={t('previousPage')}
+        >
+          ‹
+        </Button>
+        {pages}
+        <Button
+          variant="outline"
+          onClick={() => handlePageChange(pagination.page + 1)}
+          disabled={pagination.page === pagination.totalPages}
+          title={t('nextPage')}
+        >
+          ›
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => handlePageChange(pagination.totalPages)}
+          disabled={pagination.page === pagination.totalPages}
+          title={t('lastPage')}
+        >
+          »
+        </Button>
+      </div>
+    );
+  };
+
   if (status === 'loading' || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -129,12 +217,14 @@ const BlacklistManagement: React.FC = () => {
           <Button variant="default">{t('backToDashboard')}</Button>
         </Link>
       </div>
+      
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <strong className="font-bold">Error: </strong>
           <span className="block sm:inline">{error}</span>
         </div>
       )}
+
       <div className="flex flex-wrap gap-2">
         <Input
           type="text"
@@ -180,31 +270,38 @@ const BlacklistManagement: React.FC = () => {
           {isLoading ? t('adding') : t('addToBlacklist')}
         </Button>
       </div>
+
       {isLoading ? (
-        <div className="text-center py-4">Loading...</div>
+        <div className="text-center py-4">{t('loading')}</div>
       ) : blacklist.length === 0 ? (
-        <div className="text-center py-4 text-gray-500">No entries in blacklist</div>
+        <div className="text-center py-4 text-gray-500">{t('noEntries')}</div>
       ) : (
-        <ul className="space-y-2">
-          {blacklist.map(item => (
-            <li key={item.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
-              <div className="flex flex-col">
-                <span className="font-medium">{item.fullName} - {item.phoneNumber}</span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {item.city} • {t('orderSum')}: ${item.totalOrderSum}
-                </span>
-                {item.notes && <span className="text-sm italic">{item.notes}</span>}
-              </div>
-              <Button 
-                onClick={() => handleRemoveItem(item.id)} 
-                variant="default" 
-                className="text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
-              >
-                {t('remove')}
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="space-y-2">
+            {blacklist.map(item => (
+              <li key={item.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                <div className="flex flex-col">
+                  <span className="font-medium">{item.fullName} - {item.phoneNumber}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {item.city} • {t('orderSum')}: ₴{item.totalOrderSum}
+                  </span>
+                  {item.notes && <span className="text-sm italic">{item.notes}</span>}
+                </div>
+                <Button 
+                  onClick={() => handleRemoveItem(item.id)} 
+                  variant="default" 
+                  className="text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
+                >
+                  {t('remove')}
+                </Button>
+              </li>
+            ))}
+          </ul>
+          {renderPagination()}
+          <div className="text-center text-sm text-gray-500 mt-2">
+            {t('showing')} {(pagination.page - 1) * pagination.perPage + 1} - {Math.min(pagination.page * pagination.perPage, pagination.totalItems)} {t('of')} {pagination.totalItems} {t('entries')}
+          </div>
+        </>
       )}
     </div>
   );

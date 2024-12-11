@@ -1,50 +1,40 @@
 import { NextResponse } from 'next/server';
-import PocketBase from 'pocketbase';
+import { pb, authenticateAdmin } from '@/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { auth } from '@/lib/auth';
 
-// Create a new PocketBase instance for admin operations
-const pb = new PocketBase('http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io');
-
-// Admin authentication
-async function authenticateAdmin() {
+export async function GET(request: Request) {
   try {
-    const adminEmail = process.env.POCKETBASE_ADMIN_EMAIL;
-    const adminPassword = process.env.POCKETBASE_ADMIN_PASSWORD;
-
-    if (!adminEmail || !adminPassword) {
-      throw new Error('Admin credentials not configured');
-    }
-
-    await pb.admins.authWithPassword(adminEmail, adminPassword);
-    
-    if (!pb.authStore.isValid) {
-      throw new Error('Admin authentication failed');
-    }
-  } catch (error) {
-    console.error('Admin authentication error:', error);
-    throw error;
-  }
-}
-
-export async function GET() {
-  try {
+    // Check user authentication
     const session = await getServerSession(auth);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Authenticate admin
     await authenticateAdmin();
-    console.log('Admin authenticated:', pb.authStore.isValid);
 
-    const records = await pb.collection('blacklist_entries').getFullList();
-    return NextResponse.json(records);
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const perPage = parseInt(searchParams.get('perPage') || '10');
+
+    const resultList = await pb.collection('blacklist_entries').getList(page, perPage, {
+      sort: '-created'
+    });
+
+    return NextResponse.json({
+      items: resultList.items,
+      page: resultList.page,
+      perPage: resultList.perPage,
+      totalItems: resultList.totalItems,
+      totalPages: resultList.totalPages
+    });
   } catch (error) {
     console.error('Error fetching blacklist:', error);
-    return NextResponse.json({ 
-      error: 'Error fetching blacklist',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch blacklist' },
+      { status: 500 }
+    );
   }
 }
 

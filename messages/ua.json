@@ -83,7 +83,16 @@
     "remove": "Видалити",
     "backToDashboard": "Повернутися до панелі керування",
     "adding": "Додавання...",
-    "orderSum": "Сума замовлень"
+    "orderSum": "Сума замовлень",
+    "showing": "Показано",
+    "of": "з",
+    "entries": "записів",
+    "noEntries": "Немає записів у чорному списку",
+    "loading": "Завантаження...",
+    "firstPage": "Перша сторінка",
+    "previousPage": "Попередня сторінка",
+    "nextPage": "Наступна сторінка",
+    "lastPage": "Остання сторінка"
   },
   "AiChat": {
     "title": "AI Помічник",
@@ -110,7 +119,7 @@
     "updateError": "Помилка оновлення",
     "addError": "Помилка додавання",
     "currencyCode": "Код валюти",
-    "currencyName": "Назва валюти",
+    "currencyName": "Назва вал��ти",
     "currencySymbol": "Символ валюти",
     "addCurrency": "Додати валюту",
     "statusName": "Назва статусу",
