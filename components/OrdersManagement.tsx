@@ -974,7 +974,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         <Button
           onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
-          variant="outline"
+          variant="ghost"
           size="sm"
         >
           Previous
@@ -982,7 +982,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         <Button
           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
           disabled={currentPage === totalPages}
-          variant="outline"
+          variant="ghost"
           size="sm"
         >
           Next
@@ -999,7 +999,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         <div>
           <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               className="rounded-l-md"
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -1010,7 +1010,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
-                variant={currentPage === page ? "default" : "outline"}
+                variant={currentPage === page ? "default" : "ghost"}
                 size="sm"
                 className="rounded-none"
                 onClick={() => setCurrentPage(page)}
@@ -1019,7 +1019,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               </Button>
             ))}
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               className="rounded-r-md"
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
