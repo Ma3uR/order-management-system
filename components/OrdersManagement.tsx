@@ -22,6 +22,7 @@ import { StatusSelect } from "@/components/StatusSelect"
 import { cn } from "@/lib/utils"
 import { Footer } from "./footer"
 import debounce from "lodash/debounce";
+import { RozetkaSync } from "@/components/RozetkaSync"
 
 interface Product {
   name: string;
@@ -60,7 +61,6 @@ interface Order {
   };
   createdAt: string
   updatedAt: string
-  productsText: string
   sourceName?: string
   notes?: string;
 }
@@ -333,7 +333,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     products: [],
     paymentMethod: { id: '', name: '' },
     currency: { id: '', code: '', symbol: '' },
-    productsText: '',
     notes: '',
   })
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([])
@@ -443,8 +442,10 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   name: '',
                   color: '#cbd5e1'
                 },
-                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
-                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+                createdAt: record.created,
+                updatedAt: record.updated,
+                notes: record.notes,
+                sourceName: sources.find(s => s.id === record.source)?.name || ''
               };
               
               setOrders(prev => [...prev, formattedOrder as unknown as Order]);
@@ -470,8 +471,10 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   name: '',
                   color: '#cbd5e1'
                 },
-                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
-                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+                createdAt: record.created,
+                updatedAt: record.updated,
+                notes: record.notes,
+                sourceName: sources.find(s => s.id === record.source)?.name || ''
               };
               
               setOrders(prev => prev.map(order => 
@@ -822,8 +825,10 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   name: '',
                   color: '#cbd5e1'
                 },
-                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
-                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+                createdAt: record.created,
+                updatedAt: record.updated,
+                notes: record.notes,
+                sourceName: sources.find(s => s.id === record.source)?.name || ''
               };
               
               setOrders(prev => [...prev, formattedOrder as unknown as Order]);
@@ -849,8 +854,10 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   name: '',
                   color: '#cbd5e1'
                 },
-                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
-                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
+                createdAt: record.created,
+                updatedAt: record.updated,
+                notes: record.notes,
+                sourceName: sources.find(s => s.id === record.source)?.name || ''
               };
               
               setOrders(prev => prev.map(order => 
@@ -1038,9 +1045,46 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header translations={{ backToDashboard: translations.backToDashboard }} />
-      <main className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-1 container mx-auto p-4 md:p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard" className="flex items-center text-sm">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                {translations.backToDashboard}
+              </Button>
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <RozetkaSync onSyncComplete={() => {
+              // Refresh orders after sync
+              pb.collection('orders').getFullList({
+                sort: '-created',
+                expand: 'deliveryMethod,paymentMethod,status,currency'
+              }).then(records => {
+                setOrders(records.map(record => ({
+                  id: record.id,
+                  orderNumber: record.orderNumber,
+                  source: record.source,
+                  deliveryPostNumber: record.deliveryPostNumber,
+                  phoneNumber: record.phoneNumber,
+                  fullName: record.fullName,
+                  products: record.products,
+                  numberOfItems: record.numberOfItems,
+                  amount: record.amount,
+                  status: record.expand?.status,
+                  paymentMethod: record.expand?.paymentMethod,
+                  currency: record.expand?.currency,
+                  createdAt: record.created,
+                  updatedAt: record.updated,
+                  notes: record.notes,
+                  sourceName: sources.find(s => s.id === record.source)?.name || ''
+                })));
+              });
+            }} />
+          </div>
+        </div>
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3 sm:grid-cols-1">
             <div className="md:col-span-1 col-span-full">
