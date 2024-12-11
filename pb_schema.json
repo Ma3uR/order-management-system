@@ -358,5 +358,105 @@
         "updateRule": "",
         "deleteRule": "",
         "options": {}
+    },
+    {
+        "id": "production_costs",
+        "name": "production_costs",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "id": "field_date",
+                "name": "date",
+                "type": "date",
+                "system": false,
+                "required": true,
+                "options": {
+                    "min": "",
+                    "max": ""
+                }
+            },
+            {
+                "id": "field_quarter",
+                "name": "quarter",
+                "type": "number",
+                "system": false,
+                "required": true,
+                "options": {
+                    "min": 1,
+                    "max": 4
+                }
+            },
+            {
+                "id": "field_year",
+                "name": "year",
+                "type": "number",
+                "system": false,
+                "required": true,
+                "options": {
+                    "min": 2000,
+                    "max": null
+                }
+            },
+            {
+                "id": "field_department",
+                "name": "department",
+                "type": "select",
+                "system": false,
+                "required": true,
+                "options": {
+                    "values": ["purchases", "production", "logistics", "sales", "management"]
+                }
+            },
+            {
+                "id": "field_cost_type",
+                "name": "costType",
+                "type": "select",
+                "system": false,
+                "required": true,
+                "options": {
+                    "values": [
+                        "raw_materials",
+                        "energy",
+                        "labor",
+                        "maintenance",
+                        "services",
+                        "taxes",
+                        "tech_losses",
+                        "natural_losses",
+                        "other"
+                    ]
+                }
+            },
+            {
+                "id": "field_amount",
+                "name": "amount",
+                "type": "number",
+                "system": false,
+                "required": true,
+                "options": {
+                    "min": 0,
+                    "max": null
+                }
+            },
+            {
+                "id": "field_description",
+                "name": "description",
+                "type": "text",
+                "system": false,
+                "required": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            }
+        ],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
     }
 ] 

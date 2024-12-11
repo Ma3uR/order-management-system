@@ -77,6 +77,15 @@ export default function DashboardLayout({
             </li>
             <li>
               <Link 
+                href="/production-costs" 
+                className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {t('productionCosts')}
+              </Link>
+            </li>
+            <li>
+              <Link 
                 href="/blacklist" 
                 className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -111,6 +120,11 @@ export default function DashboardLayout({
           <li>
             <Link href="/orders" className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
               {t('orders')}
+            </Link>
+          </li>
+          <li>
+            <Link href="/production-costs" className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
+              {t('productionCosts')}
             </Link>
           </li>
           <li>

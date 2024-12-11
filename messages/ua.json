@@ -8,10 +8,11 @@
     "statistics": "Статистика",
     "aiChat": "AI Помічник",
     "navigation": "Навігація",
-    "dashboard": "Панель керування",
+    "dashboard": "Головна",
     "orders": "Замовлення",
     "blacklist": "Чорний список",
-    "settings": "Налаштування"
+    "settings": "Налаштування",
+    "productionCosts": "Виробничі витрати"
   },
   "Orders": {
     "title": "Управління замовленнями",
@@ -117,9 +118,9 @@
     "deleteError": "Помилка видалення",
     "settingsUpdated": "Налаштування оновлено",
     "updateError": "Помилка оновлення",
-    "addError": "Помилка додавання",
-    "currencyCode": "Код валюти",
-    "currencyName": "Назва вал��ти",
+    "addError": "Помилка додаванн��",
+    "currencyCode": "Код валют",
+    "currencyName": "Назва валюти",
     "currencySymbol": "Символ валюти",
     "addCurrency": "Додати валюту",
     "statusName": "Назва статусу",
@@ -146,6 +147,37 @@
     "signInButton": "Увійти",
     "signingIn": "Вхід...",
     "invalidCredentials": "Невірна електронна пошта або пароль",
-    "signInError": "Виникла помилка під час входу"
+    "signInError": "Вникла помилка під час входу"
+  },
+  "ProductionCosts": {
+    "title": "Виробничі витрати",
+    "backToDashboard": "Назад до панелі",
+    "tabs": {
+      "table": "Таблиця витрат",
+      "analytics": "Аналітика"
+    },
+    "department": "Відділ",
+    "rawMaterials": "Сировина і матеріали",
+    "energy": "Енергоресурси",
+    "labor": "Оплата праці",
+    "maintenance": "Утримання та ремонт",
+    "services": "Послуги сторонніх",
+    "taxes": "Податки і збори",
+    "techLosses": "Технологічні втрати",
+    "naturalLosses": "Природні втрати",
+    "other": "Інші витрати",
+    "total": "Всього",
+    "year": "Рік",
+    "quarter": "Квартал",
+    "quarterN": "Кв.{n}",
+    "departments": {
+      "purchases": "Закупівлі",
+      "production": "Виробництво",
+      "logistics": "Логістика",
+      "sales": "Збут",
+      "management": "Управління"
+    },
+    "costsByDepartment": "Витрати за відділами",
+    "costsByType": "Витрати за типами"
   }
 }

@@ -82,7 +82,8 @@
     "dashboard": "Dashboard",
     "orders": "Orders",
     "blacklist": "Blacklist",
-    "settings": "Settings"
+    "settings": "Settings",
+    "productionCosts": "Production Costs"
   },
   "Settings": {
     "title": "Settings",
@@ -191,5 +192,36 @@
     "oct": "Oct",
     "nov": "Nov",
     "dec": "Dec"
+  },
+  "ProductionCosts": {
+    "title": "Production Costs",
+    "backToDashboard": "Back to Dashboard",
+    "tabs": {
+      "table": "Cost Table",
+      "analytics": "Analytics"
+    },
+    "department": "Department",
+    "rawMaterials": "Raw Materials",
+    "energy": "Energy Resources",
+    "labor": "Labor",
+    "maintenance": "Maintenance",
+    "services": "Services",
+    "taxes": "Taxes",
+    "techLosses": "Tech Losses",
+    "naturalLosses": "Natural Losses",
+    "other": "Other",
+    "total": "Total",
+    "year": "Year",
+    "quarter": "Quarter",
+    "quarterN": "Q{n}",
+    "departments": {
+      "purchases": "Purchases",
+      "production": "Production",
+      "logistics": "Logistics",
+      "sales": "Sales",
+      "management": "Management"
+    },
+    "costsByDepartment": "Costs by Department",
+    "costsByType": "Costs by Type"
   }
 }
