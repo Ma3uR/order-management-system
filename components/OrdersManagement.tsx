@@ -119,6 +119,7 @@ interface OrdersManagementProps {
     notesPlaceholder: string
   }
   initialOrders: Order[]
+  itemsPerPage?: number
 }
 
 interface DeliveryMethod {
@@ -312,7 +313,7 @@ const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<bo
 
 const DEBOUNCE_DELAY = 500; // milliseconds
 
-export function OrdersManagement({ translations, initialOrders }: OrdersManagementProps) {
+export function OrdersManagement({ translations, initialOrders, itemsPerPage = 10 }: OrdersManagementProps) {
   const t = useTranslations('Orders');
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isClient, setIsClient] = useState(false)
@@ -320,6 +321,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
   const [newOrder, setNewOrder] = useState<Partial<Order>>({
     orderNumber: '',
     source: '',
@@ -959,6 +961,78 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
     }
   };
 
+  // Add pagination calculation
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentOrders = filteredOrders.slice(startIndex, endIndex)
+
+  // Add pagination controls component
+  const PaginationControls = () => (
+    <div className="flex items-center justify-between border-t border-border px-4 py-3 sm:px-6 mt-4">
+      <div className="flex flex-1 justify-between sm:hidden">
+        <Button
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          variant="outline"
+          size="sm"
+        >
+          Previous
+        </Button>
+        <Button
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          variant="outline"
+          size="sm"
+        >
+          Next
+        </Button>
+      </div>
+      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
+            <span className="font-medium">{Math.min(endIndex, filteredOrders.length)}</span> of{" "}
+            <span className="font-medium">{filteredOrders.length}</span> results
+          </p>
+        </div>
+        <div>
+          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-l-md"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                className="rounded-none"
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-r-md"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  )
+
   if (!isClient) {
     return null
   }
@@ -1080,7 +1154,7 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
           </div>
 
           <OrdersTable
-            orders={filteredOrders}
+            orders={currentOrders}
             onViewDetails={(order) => {
               setSelectedOrder(order as unknown as Order)
               setIsDetailsModalOpen(true)
@@ -1092,6 +1166,8 @@ export function OrdersManagement({ translations, initialOrders }: OrdersManageme
             translateStatus={translateStatus}
             getContrastColor={getContrastColor}
           />
+
+          {filteredOrders.length > 0 && <PaginationControls />}
         </div>
 
         {/* Create Order Modal */}
