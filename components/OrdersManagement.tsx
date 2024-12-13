@@ -617,6 +617,16 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       }
       return;
     }
+
+    if (name === 'deliveryPostNumber') {
+      // Only allow positive integers
+      const numValue = value.replace(/[^\d]/g, '');
+      if (numValue === '' || parseInt(numValue) > 0) {
+        setNewOrder(prev => ({ ...prev, [name]: numValue }));
+        setValidationErrors(prev => ({ ...prev, [name]: undefined }));
+      }
+      return;
+    }
     
     setNewOrder(prev => ({ ...prev, [name]: value }));
     setValidationErrors(prev => ({ ...prev, [name]: undefined }));
@@ -704,6 +714,17 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       isValid = false;
     }
 
+    if (!newOrder.deliveryPostNumber?.trim()) {
+      errors.deliveryPostNumber = 'Post number is required';
+      isValid = false;
+    } else {
+      const postNumber = parseInt(newOrder.deliveryPostNumber);
+      if (isNaN(postNumber) || !Number.isInteger(postNumber) || postNumber <= 0) {
+        errors.deliveryPostNumber = 'Post number must be a positive integer';
+        isValid = false;
+      }
+    }
+
     if (!newOrder.phoneNumber?.match(/^\+?[0-9]{10,15}$/)) {
       errors.phoneNumber = 'Phone number must be between 10 and 15 digits';
       isValid = false;
@@ -722,14 +743,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     if (!newOrder.paymentMethod?.id) {
       errors.paymentMethod = 'Please select a payment method';
       isValid = false;
-    }
-
-    if (newOrder.deliveryPostNumber) {
-      const postNumber = parseInt(newOrder.deliveryPostNumber);
-      if (isNaN(postNumber) || !Number.isInteger(postNumber) || postNumber <= 0) {
-        errors.deliveryPostNumber = 'Post number must be a positive integer';
-        isValid = false;
-      }
     }
 
     setValidationErrors(errors);
@@ -1330,6 +1343,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       )}
                       min="1"
                       step="1"
+                      required
                       onKeyDown={(e) => {
                         // Prevent decimal point and negative numbers
                         if (e.key === '.' || e.key === '-' || e.key === 'e') {
