@@ -1690,7 +1690,10 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     deliveryPostNumber: selectedOrder.deliveryPostNumber,
                     products: selectedOrder.products,
                     numberOfItems: selectedOrder.numberOfItems,
-                    amount: selectedOrder.amount
+                    amount: selectedOrder.amount,
+                    // Add the IDs for the relations
+                    deliveryMethod: selectedOrder.deliveryMethod?.id,
+                    paymentMethod: selectedOrder.paymentMethod?.id
                   };
 
                   const response = await axios.put(`/api/orders/${selectedOrder.id}`, updateData);
