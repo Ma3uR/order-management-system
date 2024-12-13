@@ -378,6 +378,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   ]);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [isBlacklisted, setIsBlacklisted] = useState(false);
+  const [editProductInputs, setEditProductInputs] = useState<ProductInput[]>([]);
 
   // Update the debouncedCheckBlacklist
   const debouncedCheckBlacklist = useCallback(
@@ -1092,6 +1093,52 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     </div>
   )
 
+  // Update the handleEditProductInputChange function
+  const handleEditProductInputChange = (index: number, field: keyof ProductInput, value: string) => {
+    const updated = [...editProductInputs];
+    if (field === 'quantity' || field === 'price') {
+      updated[index][field] = Math.max(0, Number(value));
+    } else {
+      updated[index][field] = value;
+    }
+    setEditProductInputs(updated);
+
+    // Calculate new totals
+    const totalItems = updated.reduce((sum, p) => sum + p.quantity, 0);
+    const totalAmount = updated.reduce((sum, p) => sum + (p.quantity * p.price), 0);
+
+    // Update the selected order with new totals
+    setSelectedOrder(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        numberOfItems: totalItems,
+        amount: totalAmount,
+        products: updated.map(p => ({
+          name: p.title,
+          quantity: p.quantity,
+          price: p.price
+        }))
+      };
+    });
+  };
+
+  // Update the useEffect that watches selectedOrder to initialize editProductInputs
+  useEffect(() => {
+    if (selectedOrder) {
+      // Convert the order's products to ProductInput format
+      const initialProducts = Array.isArray(selectedOrder.products) 
+        ? selectedOrder.products.map(p => ({
+            title: p.name,
+            quantity: p.quantity,
+            price: p.price
+          }))
+        : [{ title: '', quantity: 1, price: 0 }];
+      
+      setEditProductInputs(initialProducts);
+    }
+  }, [selectedOrder]);
+
   if (!isClient) {
     return null
   }
@@ -1333,7 +1380,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       }}
                     >
                       <SelectTrigger className={cn(
-                        "w-full bg-background/60 border border-input",
+                        "w-full bg-background border-input",
                         validationErrors.deliveryMethod && "border-destructive"
                       )}>
                         <SelectValue placeholder={translations.selectDeliveryMethod} />
@@ -1627,7 +1674,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
         {/* Details Modal */}
         <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-          <DialogContent className="sm:max-w-[625px] dark:bg-gray-800 dark:border-gray-700">
+          <DialogContent className="sm:max-w-[625px] dark:bg-gray-800 dark:border-gray-700 max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle className="dark:text-white">{translations.orderDetails}</DialogTitle>
             </DialogHeader>
@@ -1635,18 +1682,27 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 try {
+                  // Calculate totals from product inputs
+                  const totalItems = editProductInputs.reduce((sum, p) => sum + p.quantity, 0);
+                  const totalAmount = editProductInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0);
+
                   // Create update payload
                   const updateData = {
                     ...selectedOrder,
                     notes: selectedOrder.notes || '',
+                    // Update products and totals
+                    products: editProductInputs.map(p => ({
+                      name: p.title,
+                      quantity: p.quantity,
+                      price: p.price
+                    })),
+                    numberOfItems: totalItems,
+                    amount: totalAmount,
                     // Ensure other required fields are included
                     orderNumber: selectedOrder.orderNumber,
                     fullName: selectedOrder.fullName,
                     phoneNumber: selectedOrder.phoneNumber,
                     deliveryPostNumber: selectedOrder.deliveryPostNumber,
-                    products: selectedOrder.products,
-                    numberOfItems: selectedOrder.numberOfItems,
-                    amount: selectedOrder.amount,
                     // Add the IDs for the relations
                     deliveryMethod: selectedOrder.deliveryMethod?.id,
                     paymentMethod: selectedOrder.paymentMethod?.id
@@ -1682,7 +1738,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   alert('Error updating order');
                 }
               }} 
-              className="grid gap-4 py-4"
+              className="flex-1 overflow-y-auto pr-2 space-y-4"
               >
                 <div className="grid grid-cols-2 items-center gap-4">
                   <Label>{translations.orderNumber}</Label>
@@ -1819,43 +1875,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 </div>
 
                 <div className="grid grid-cols-2 items-center gap-4">
-                  <Label>{translations.products}</Label>
-                  <Textarea 
-                    value={typeof selectedOrder.products === 'object' 
-                      ? JSON.stringify(selectedOrder.products, null, 2) 
-                      : selectedOrder.products
-                    } 
-                    onChange={(e) => {
-                      try {
-                        const products = JSON.parse(e.target.value);
-                        setSelectedOrder({
-                          ...selectedOrder,
-                          products
-                        });
-                      } catch (error) {
-                        // Don't update if JSON is invalid
-                        console.error('Invalid JSON:', error);
-                      }
-                    }}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 items-center gap-4">
-                  <Label>{translations.numberOfItems}</Label>
-                  <Input 
-                    type="number"
-                    value={selectedOrder.numberOfItems} 
-                    onChange={(e) => setSelectedOrder({
-                      ...selectedOrder,
-                      numberOfItems: parseInt(e.target.value)
-                    })}
-                    min="1"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 items-center gap-4">
                   <Label>{translations.paymentMethod}</Label>
                   <Select
                     value={selectedOrder.paymentMethod?.id}
@@ -1886,6 +1905,98 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 <div className="grid grid-cols-2 items-center gap-4">
                   <Label>{translations.createdAt}</Label>
                   <Input value={new Date(selectedOrder.createdAt).toLocaleString()} readOnly />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label>{translations.products}</Label>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={() => setEditProductInputs(prev => [...prev, { title: '', quantity: 1, price: 0 }])}
+                      className="h-8 bg-background/60 border border-input hover:bg-accent flex items-center"
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  </div>
+                  
+                  <div className="rounded-md border border-border overflow-hidden">
+                    {/* Table Header */}
+                    <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 bg-muted/30 border-b border-border">
+                      <div className="text-sm font-medium text-foreground">Product</div>
+                      <div className="text-sm font-medium text-foreground">Quantity</div>
+                      <div className="text-sm font-medium text-foreground">Price</div>
+                      <div></div>
+                    </div>
+                    
+                    {/* Table Body */}
+                    <div className="divide-y divide-border bg-background/40">
+                      {editProductInputs.map((product, index) => (
+                        <div key={index} className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 items-center hover:bg-muted/20">
+                          <Input
+                            placeholder="Product name"
+                            value={product.title}
+                            onChange={(e) => handleEditProductInputChange(index, 'title', e.target.value)}
+                            className="bg-background border-input focus:bg-background"
+                          />
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Qty"
+                            value={product.quantity}
+                            onChange={(e) => handleEditProductInputChange(index, 'quantity', e.target.value)}
+                            className="bg-background border-input focus:bg-background"
+                          />
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Price"
+                            value={product.price}
+                            onChange={(e) => handleEditProductInputChange(index, 'price', e.target.value)}
+                            className="bg-background border-input focus:bg-background"
+                          />
+                          {editProductInputs.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditProductInputs(prev => prev.filter((_, i) => i !== index));
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-destructive/20 hover:text-destructive"
+                            >
+                              ×
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Totals */}
+                  <div className="grid grid-cols-2 gap-4 mt-4 bg-muted/20 p-4 rounded-md border border-border">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground">{translations.numberOfItems}</Label>
+                      <Input
+                        type="number"
+                        value={selectedOrder.numberOfItems}
+                        readOnly
+                        className="bg-background/60 border-input focus:bg-background"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground">{translations.amount}</Label>
+                      <Input
+                        type="number"
+                        value={selectedOrder.amount}
+                        readOnly
+                        className="bg-background/60 border-input focus:bg-background"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 items-center gap-4">
