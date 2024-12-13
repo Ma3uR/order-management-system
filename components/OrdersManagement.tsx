@@ -608,6 +608,16 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   // Update handleInputChange function
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    if (name === 'orderNumber') {
+      // Only update if the value matches the pattern or is empty
+      if (value === '' || /^[A-Za-z0-9\-]+$/.test(value)) {
+        setNewOrder(prev => ({ ...prev, [name]: value }));
+        setValidationErrors(prev => ({ ...prev, [name]: undefined }));
+      }
+      return;
+    }
+    
     setNewOrder(prev => ({ ...prev, [name]: value }));
     setValidationErrors(prev => ({ ...prev, [name]: undefined }));
 
@@ -678,6 +688,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
     if (!newOrder.orderNumber?.trim()) {
       errors.orderNumber = 'Order number is required';
+      isValid = false;
+    } else if (!/^[A-Za-z0-9\-]+$/.test(newOrder.orderNumber)) {
+      errors.orderNumber = 'Order number can only contain letters, numbers, and hyphens';
       isValid = false;
     }
 
@@ -1207,6 +1220,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                         }}
                         className={cn(validationErrors.orderNumber && "border-destructive")}
                         placeholder={translations.orderNumber}
+                        pattern="^[A-Za-z0-9\-]+$"
+                        title="Order number can only contain letters, numbers, and hyphens"
                       />
                       {validationErrors.orderNumber && (
                         <p className="text-sm text-destructive">{validationErrors.orderNumber}</p>
