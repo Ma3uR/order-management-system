@@ -313,6 +313,29 @@ const checkBlacklist = async (fullName: string, phoneNumber: string): Promise<bo
 
 const DEBOUNCE_DELAY = 500; // milliseconds
 
+// Add this new function near the top of the file, after the interface definitions
+const checkDuplicateOrderNumber = async (orderNumber: string): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/orders/check-duplicate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ orderNumber }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.isDuplicate;
+  } catch (error) {
+    console.error('Duplicate check error:', error);
+    return false;
+  }
+};
+
 export function OrdersManagement({ translations, initialOrders, itemsPerPage = 10 }: OrdersManagementProps) {
   const t = useTranslations('Orders');
   const [orders, setOrders] = useState<Order[]>(initialOrders)
@@ -761,6 +784,17 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     }
 
     try {
+      // Check for duplicate order number
+      const isDuplicate = await checkDuplicateOrderNumber(newOrder.orderNumber || '');
+      if (isDuplicate) {
+        setValidationErrors(prev => ({
+          ...prev,
+          orderNumber: 'This order number already exists',
+          submit: undefined
+        }));
+        return;
+      }
+
       const totalItems = productInputs.reduce((sum, p) => sum + p.quantity, 0);
       const totalAmount = productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0);
 
@@ -791,7 +825,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
       const record = await pb.collection('orders').create(orderData);
       
-      // Update this line to include notes in the expanded fields
       const createdOrder = await pb.collection('orders').getOne(record.id, {
         expand: 'deliveryMethod,paymentMethod,status,currency',
         fields: 'id,orderNumber,source,deliveryMethod,deliveryPostNumber,phoneNumber,fullName,products,numberOfItems,paymentMethod,amount,status,currency,createdAt,updatedAt,notes'
