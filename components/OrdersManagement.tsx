@@ -961,19 +961,34 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           $autoCancel: false
         });
         
+        const newStatus = {
+          id: updatedOrder.expand?.status.id,
+          name: updatedOrder.expand?.status.name,
+          color: updatedOrder.expand?.status.color
+        };
+
+        // Update orders list
         setOrders(prevOrders => 
           prevOrders.map(o => 
             o.id === orderId ? {
               ...o,
-              status: updatedOrder.expand?.status ? {
-                id: updatedOrder.expand.status.id,
-                name: updatedOrder.expand.status.name,
-                color: updatedOrder.expand.status.color
-              } : o.status,
+              status: newStatus,
               updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : o.updatedAt
             } : o
           )
         );
+
+        // Update selected order if it's the same order
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              status: newStatus,
+              updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : prev.updatedAt
+            } as Order;
+          });
+        }
       }
     } catch (error) {
       console.error('Error updating order:', error);
