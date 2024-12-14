@@ -188,7 +188,7 @@ interface OrderData {
 }
 
 interface FilterOptions {
-  status?: string;
+  status: string;  // Changed from status?: string to status: string
   dateRange?: {
     from: Date | null;
     to: Date | null;
@@ -367,7 +367,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [statuses, setStatuses] = useState<Status[]>([])
   const [editingStatusOrder, setEditingStatusOrder] = useState<Order | null>(null)
   const [filters, setFilters] = useState<FilterOptions>({
-    status: undefined,
+    status: '',  // Changed from undefined to empty string
     dateRange: { from: null, to: null },
     minAmount: undefined,
     maxAmount: undefined
@@ -633,8 +633,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       }
     }
 
-    // Filter by status
-    if (filters.status && order.status?.id !== filters.status) {
+    // Filter by status - updated to check for non-empty string
+    if (filters.status && filters.status !== '' && order.status?.id !== filters.status) {
       matches = false;
     }
 
@@ -1459,14 +1459,14 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 </div>
 
                 <Button 
-                  variant="default" 
+                  variant="outline" 
                   onClick={() => setFilters({
-                    status: undefined,
+                    status: '',
                     dateRange: { from: null, to: null },
                     minAmount: undefined,
                     maxAmount: undefined
                   })}
-                  className="w-full text-xs bg-background/60"
+                  className="w-full text-xs hover:bg-accent hover:text-accent-foreground dark:border-border"
                 >
                   {t('resetFilters')}
                 </Button>
