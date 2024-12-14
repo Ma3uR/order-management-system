@@ -3,24 +3,14 @@ import PocketBase from 'pocketbase';
 let pb: PocketBase | null = null;
 
 export function initializePocketBase() {
-  // Get the PocketBase URL from environment variables
-  // Try both NEXT_PUBLIC_ prefix and regular environment variable
   const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || process.env.POCKETBASE_URL;
-
-  console.log('PocketBase initialization:', {
-    NEXT_PUBLIC_POCKETBASE_URL: process.env.NEXT_PUBLIC_POCKETBASE_URL,
-    POCKETBASE_URL: process.env.POCKETBASE_URL,
-    resolvedUrl: pocketbaseUrl
-  });
 
   if (!pocketbaseUrl) {
     throw new Error('PocketBase URL is not set. Please set either NEXT_PUBLIC_POCKETBASE_URL or POCKETBASE_URL environment variable');
   }
 
-  // Ensure the URL is properly formatted
   const baseUrl = pocketbaseUrl.endsWith('/') ? pocketbaseUrl : `${pocketbaseUrl}/`;
 
-  // Create a new PocketBase instance with the validated base URL
   pb = new PocketBase(baseUrl);
   return pb;
 }

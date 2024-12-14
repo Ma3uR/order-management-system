@@ -56,7 +56,24 @@
     "amountRange": "Amount Range",
     "resetFilters": "Reset Filters",
     "notes": "Notes",
-    "notesPlaceholder": "Enter any additional notes about the order..."
+    "notesPlaceholder": "Enter any additional notes about the order...",
+    "paymentMethods": {
+      "prepayment": "Prepayment",
+      "cash": "Cash",
+      "card": "Card"
+    },
+    "showing": "Showing",
+    "of": "of",
+    "results": "results",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
+    "addProduct": "Add Product",
+    "productName": "Product Name",
+    "quantity": "Quantity",
+    "price": "Price",
+    "product": "Product",
+    "totalItems": "Total Items"
   },
   "Auth": {
     "signInTitle": "Sign in to your account",

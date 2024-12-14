@@ -46,7 +46,7 @@
       "beingProcessed": "Обробляється менеджером",
       "shipped": "Відправлено",
       "delivered": "Доставлено",
-      "cancelled": "Скасовано"
+      "cancelled": "Ска��овано"
     },
     "deliveryMethods": {
       "ukrposhta": "Укрпошта",
@@ -67,7 +67,7 @@
     "totalOrders": "Всього замовлень",
     "filters": "Фільтри",
     "all": "Всі",
-    "amountRange": "��іапазон суми",
+    "amountRange": "іапазон суми",
     "resetFilters": "Скинути фільтри",
     "notes": "Примітки",
     "notesPlaceholder": "Введіть будь-які додаткові примітки щодо замовлення...",
@@ -83,7 +83,11 @@
     "price": "Ціна",
     "product": "Товар",
     "totalItems": "Всього товарів",
-    "totalAmount": "Загальна сума"
+    "paymentMethods": {
+      "prepayment": "Передоплата",
+      "cash": "Готівка",
+      "card": "Картка"
+    }
   },
   "Blacklist": {
     "title": "Управління чорним списком",
@@ -94,7 +98,7 @@
     "notesPlaceholder": "Примітки (причина блокування)",
     "addToBlacklist": "Додати до чорного списку",
     "remove": "Видалити",
-    "backToDashboard": "Повер��утися до панелі керування",
+    "backToDashboard": "Повернутися до панелі керування",
     "adding": "Додавання...",
     "orderSum": "Сума замовлень",
     "showing": "Показано",
@@ -162,5 +166,37 @@
     "signingIn": "Вхід...",
     "invalidCredentials": "Невірна електронна пошта або пароль",
     "signInError": "Виникла помилка під час входу"
+  },
+  "Navigation": {
+    "dashboard": "Панель керування",
+    "orders": "Замовлення",
+    "blacklist": "Чорний список",
+    "settings": "Налаштування",
+    "signOut": "Вийти"
+  },
+  "Common": {
+    "loading": "Завантаження...",
+    "error": "Виникла помилка",
+    "success": "Успішно",
+    "cancel": "Скасувати",
+    "save": "Зберегти",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "confirm": "Підтвердити",
+    "back": "Назад"
+  },
+  "Charts": {
+    "jan": "Січ",
+    "feb": "Лют",
+    "mar": "Бер",
+    "apr": "Кві",
+    "may": "Тра",
+    "jun": "Чер",
+    "jul": "Лип",
+    "aug": "Сер",
+    "sep": "Вер",
+    "oct": "Жов",
+    "nov": "Лис",
+    "dec": "Гру"
   }
 }
