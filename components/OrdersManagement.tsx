@@ -482,15 +482,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   id: record.expand.status.id,
                   name: record.expand.status.name,
                   color: record.expand.status.color
-                } : {
-                  id: '',
-                  name: '',
-                  color: '#cbd5e1'
-                },
-                createdAt: record.created,
-                updatedAt: record.updated,
-                notes: record.notes,
-                sourceName: sources.find(s => s.id === record.source)?.name || ''
+                } : { id: '', name: '', color: '#cbd5e1' },  // Default status
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
               };
               
               setOrders(prev => [...prev, formattedOrder as unknown as Order]);
@@ -519,15 +513,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   id: record.expand.status.id,
                   name: record.expand.status.name,
                   color: record.expand.status.color
-                } : {
-                  id: '',
-                  name: '',
-                  color: '#cbd5e1'
-                },
-                createdAt: record.created,
-                updatedAt: record.updated,
-                notes: record.notes,
-                sourceName: sources.find(s => s.id === record.source)?.name || ''
+                } : { id: '', name: '', color: '#cbd5e1' },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
               };
               
               setOrders(prev => prev.map(order => 
@@ -946,15 +934,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   id: record.expand.status.id,
                   name: record.expand.status.name,
                   color: record.expand.status.color
-                } : {
-                  id: '',
-                  name: '',
-                  color: '#cbd5e1'
-                },
-                createdAt: record.created,
-                updatedAt: record.updated,
-                notes: record.notes,
-                sourceName: sources.find(s => s.id === record.source)?.name || ''
+                } : { id: '', name: '', color: '#cbd5e1' },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
               };
               
               setOrders(prev => [...prev, formattedOrder as unknown as Order]);
@@ -983,15 +965,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   id: record.expand.status.id,
                   name: record.expand.status.name,
                   color: record.expand.status.color
-                } : {
-                  id: '',
-                  name: '',
-                  color: '#cbd5e1'
-                },
-                createdAt: record.created,
-                updatedAt: record.updated,
-                notes: record.notes,
-                sourceName: sources.find(s => s.id === record.source)?.name || ''
+                } : { id: '', name: '', color: '#cbd5e1' },
+                createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
+                updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
               };
               
               setOrders(prev => prev.map(order => 
