@@ -341,6 +341,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isClient, setIsClient] = useState(false)
   const [filterText, setFilterText] = useState("")
+  const [debouncedFilterText, setDebouncedFilterText] = useState("")
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -600,8 +601,37 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
   const stats = getMonthlyStats(orders);
 
+  // Add debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilterText(filterText);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [filterText]);
+
+  // Update filteredOrders to use debouncedFilterText
   const filteredOrders = orders.filter(order => {
     let matches = true;
+
+    // Search filter
+    if (debouncedFilterText) {
+      const searchTerm = debouncedFilterText.toLowerCase();
+      const matchesSearch = 
+        order.orderNumber.toLowerCase().includes(searchTerm) ||
+        order.fullName.toLowerCase().includes(searchTerm) ||
+        order.phoneNumber.toLowerCase().includes(searchTerm) ||
+        order.deliveryPostNumber?.toLowerCase().includes(searchTerm) ||
+        order.sourceName?.toLowerCase().includes(searchTerm) ||
+        // Search in products
+        (Array.isArray(order.products) && order.products.some(product => 
+          product.name.toLowerCase().includes(searchTerm)
+        ));
+
+      if (!matchesSearch) {
+        matches = false;
+      }
+    }
 
     // Filter by status
     if (filters.status && order.status?.id !== filters.status) {
@@ -1442,6 +1472,28 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 </Button>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={translations.filterOrdersPlaceholder}
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                className="pl-8"
+              />
+              {filterText && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1 h-7 w-7 p-0 hover:bg-background"
+                  onClick={() => setFilterText("")}
+                >
+                  ×
+                </Button>
+              )}
+            </div>
           </div>
 
           <OrdersTable
