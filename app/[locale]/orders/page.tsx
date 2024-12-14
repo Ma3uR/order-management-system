@@ -59,7 +59,19 @@ export default async function OrdersPage() {
     sourceRequired: t('sourceRequired'),
     blacklistedCustomerWarning: t('blacklistedCustomerWarning'),
     notes: t('notes'),
-    notesPlaceholder: t('notesPlaceholder')
+    notesPlaceholder: t('notesPlaceholder'),
+    showing: t('showing'),
+    of: t('of'),
+    results: t('results'),
+    previous: t('previous'),
+    next: t('next'),
+    page: t('page'),
+    addProduct: t('addProduct'),
+    productName: t('productName'),
+    quantity: t('quantity'),
+    price: t('price'),
+    product: t('product'),
+    totalItems: t('totalItems'),
   };
 
   return (
