@@ -2019,16 +2019,17 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       });
                     }}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                       <SelectValue placeholder={translations.selectSource}>
                         {sources.find(s => s.id === selectedOrder.source)?.name || selectedOrder.sourceName}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                       {sources.map(source => (
                         <SelectItem 
                           key={source.id} 
                           value={source.id}
+                          className="dark:text-gray-200 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
                         >
                           {source.name}
                         </SelectItem>
@@ -2043,17 +2044,17 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     value={selectedOrder.deliveryMethod?.id || ''}
                     onValueChange={handleDeliveryMethodChange}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                       <SelectValue>
                         {selectedOrder.deliveryMethod?.name || translations.selectDeliveryMethod}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                       {deliveryMethods.map((method) => (
                         <SelectItem 
                           key={method.id} 
                           value={method.id}
-                          className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          className="dark:text-gray-200 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
                         >
                           {method.name}
                         </SelectItem>
@@ -2082,17 +2083,17 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     value={selectedOrder.paymentMethod?.id || ''}
                     onValueChange={handlePaymentMethodChange}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                       <SelectValue>
                         {selectedOrder.paymentMethod?.name || translations.selectPaymentMethod}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                       {paymentMethods.map(method => (
                         <SelectItem 
                           key={method.id} 
                           value={method.id}
-                          className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          className="dark:text-gray-200 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
                         >
                           {method.name}
                         </SelectItem>
