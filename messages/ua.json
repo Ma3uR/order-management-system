@@ -46,7 +46,7 @@
       "beingProcessed": "Обробляється менеджером",
       "shipped": "Відправлено",
       "delivered": "Доставлено",
-      "cancelled": "Скасовано"
+      "cancelled": "Ска��овано"
     },
     "deliveryMethods": {
       "ukrposhta": "Укрпошта",
@@ -70,7 +70,20 @@
     "amountRange": "Діапазон суми",
     "resetFilters": "Скинути фільтри",
     "notes": "Примітки",
-    "notesPlaceholder": "Введіть будь-які додаткові примітки щодо замовлення..."
+    "notesPlaceholder": "Введіть будь-які додаткові примітки щодо замовлення...",
+    "showing": "Показано",
+    "of": "з",
+    "results": "результатів",
+    "previous": "Попередня",
+    "next": "Наступна",
+    "page": "Сторінка",
+    "addProduct": "Додати товар",
+    "productName": "Назва товару",
+    "quantity": "Кількість",
+    "price": "Ціна",
+    "product": "Товар",
+    "totalItems": "Всього товарів",
+    "totalAmount": "Загальна сума"
   },
   "Blacklist": {
     "title": "Управління чорним списком",
@@ -97,7 +110,7 @@
   "AiChat": {
     "title": "AI Помічник",
     "comingSoon": "Скоро",
-    "placeholder": "Чат скоро буде доступний...",
+    "placeholder": "Ч��т скоро буде доступний...",
     "send": "Надіслати",
     "initialMessage": "Привіт! Я AI помічник, але я ще не працюю! Скоро я буду тут, щоб допомогти вам з будь-якими питаннями."
   },
@@ -119,7 +132,7 @@
     "updateError": "Помилка оновлення",
     "addError": "Помилка додавання",
     "currencyCode": "Код валюти",
-    "currencyName": "Назва вал��ти",
+    "currencyName": "Назва валюти",
     "currencySymbol": "Символ валюти",
     "addCurrency": "Додати валюту",
     "statusName": "Назва статусу",

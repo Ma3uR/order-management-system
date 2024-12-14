@@ -117,6 +117,18 @@ interface OrdersManagementProps {
     blacklistedCustomerWarning: string
     notes: string
     notesPlaceholder: string
+    showing: string
+    of: string
+    results: string
+    previous: string
+    next: string
+    page: string
+    addProduct: string
+    productName: string
+    quantity: string
+    price: string
+    product: string
+    totalItems: string
   }
   initialOrders: Order[]
   itemsPerPage?: number
@@ -1192,7 +1204,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           variant="ghost"
           size="sm"
         >
-          Previous
+          {translations.previous}
         </Button>
         <Button
           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
@@ -1200,15 +1212,15 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           variant="ghost"
           size="sm"
         >
-          Next
+          {translations.next}
         </Button>
       </div>
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">
-            Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
-            <span className="font-medium">{Math.min(endIndex, filteredOrders.length)}</span> of{" "}
-            <span className="font-medium">{filteredOrders.length}</span> results
+            {translations.showing} <span className="font-medium">{startIndex + 1}</span> {translations.of}{" "}
+            <span className="font-medium">{Math.min(endIndex, filteredOrders.length)}</span> {translations.of}{" "}
+            <span className="font-medium">{filteredOrders.length}</span> {translations.results}
           </p>
         </div>
         <div>
@@ -1220,7 +1232,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
-              Previous
+              {translations.previous}
             </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
@@ -1240,7 +1252,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
             >
-              Next
+              {translations.next}
             </Button>
           </nav>
         </div>
@@ -1399,7 +1411,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 </div>
 
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   onClick={() => setFilters({
                     status: '',
                     dateRange: { from: null, to: null },
@@ -1692,13 +1704,13 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     </Label>
                     <Button
                       type="button"
-                      variant="default"
+                      variant="ghost"
                       size="sm"
                       onClick={addProductInput}
-                      className="h-8 bg-background/60 border border-input hover:bg-accent flex items-center"
+                      className="h-8 bg-background hover:bg-accent hover:text-accent-foreground flex items-center dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200"
                     >
                       <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Product
+                      {translations.addProduct}
                     </Button>
                   </div>
                   
@@ -1708,9 +1720,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   )}>
                     {/* Table Header */}
                     <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 bg-muted/30 border-b border-border">
-                      <div className="text-sm font-medium text-foreground">Product</div>
-                      <div className="text-sm font-medium text-foreground">Quantity</div>
-                      <div className="text-sm font-medium text-foreground">Price</div>
+                      <div className="text-sm font-medium text-foreground">{translations.product}</div>
+                      <div className="text-sm font-medium text-foreground">{translations.quantity}</div>
+                      <div className="text-sm font-medium text-foreground">{translations.price}</div>
                       <div></div>
                     </div>
                     
@@ -1719,7 +1731,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       {productInputs.map((product, index) => (
                         <div key={index} className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 items-center hover:bg-muted/20">
                           <Input
-                            placeholder="Product name"
+                            placeholder={translations.productName}
                             value={product.title}
                             onChange={(e) => handleProductInputChange(index, 'title', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -1727,7 +1739,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                           <Input
                             type="number"
                             min="1"
-                            placeholder="Qty"
+                            placeholder={translations.quantity}
                             value={product.quantity}
                             onChange={(e) => handleProductInputChange(index, 'quantity', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -1736,7 +1748,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                             type="number"
                             min="0"
                             step="0.01"
-                            placeholder="Price"
+                            placeholder={translations.price}
                             value={product.price}
                             onChange={(e) => handleProductInputChange(index, 'price', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -1763,7 +1775,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   {/* Totals */}
                   <div className="grid grid-cols-2 gap-4 mt-4 bg-muted/20 p-4 rounded-md border border-border">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">{translations.numberOfItems}</Label>
+                      <Label className="text-sm font-medium text-foreground">{translations.totalItems}</Label>
                       <Input
                         type="number"
                         value={productInputs.reduce((sum, p) => sum + p.quantity, 0)}
@@ -1772,7 +1784,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">{translations.amount}</Label>
+                      <Label className="text-sm font-medium text-foreground">{translations.totalAmount}</Label>
                       <Input
                         type="number"
                         value={productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0)}
@@ -2112,22 +2124,22 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     <Label>{translations.products}</Label>
                     <Button
                       type="button"
-                      variant="default"
+                      variant="ghost"
                       size="sm"
                       onClick={() => setEditProductInputs(prev => [...prev, { title: '', quantity: 1, price: 0 }])}
-                      className="h-8 bg-background/60 border border-input hover:bg-accent flex items-center"
+                      className="h-8 bg-background hover:bg-accent hover:text-accent-foreground flex items-center dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200"
                     >
                       <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Product
+                      {translations.addProduct}
                     </Button>
                   </div>
                   
                   <div className="rounded-md border border-border overflow-hidden">
                     {/* Table Header */}
                     <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 bg-muted/30 border-b border-border">
-                      <div className="text-sm font-medium text-foreground">Product</div>
-                      <div className="text-sm font-medium text-foreground">Quantity</div>
-                      <div className="text-sm font-medium text-foreground">Price</div>
+                      <div className="text-sm font-medium text-foreground">{translations.product}</div>
+                      <div className="text-sm font-medium text-foreground">{translations.quantity}</div>
+                      <div className="text-sm font-medium text-foreground">{translations.price}</div>
                       <div></div>
                     </div>
                     
@@ -2136,7 +2148,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       {editProductInputs.map((product, index) => (
                         <div key={index} className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 items-center hover:bg-muted/20">
                           <Input
-                            placeholder="Product name"
+                            placeholder={translations.productName}
                             value={product.title}
                             onChange={(e) => handleEditProductInputChange(index, 'title', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -2144,7 +2156,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                           <Input
                             type="number"
                             min="1"
-                            placeholder="Qty"
+                            placeholder={translations.quantity}
                             value={product.quantity}
                             onChange={(e) => handleEditProductInputChange(index, 'quantity', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -2153,7 +2165,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                             type="number"
                             min="0"
                             step="0.01"
-                            placeholder="Price"
+                            placeholder={translations.price}
                             value={product.price}
                             onChange={(e) => handleEditProductInputChange(index, 'price', e.target.value)}
                             className="bg-background border-input focus:bg-background"

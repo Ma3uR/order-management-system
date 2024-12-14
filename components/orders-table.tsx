@@ -47,6 +47,7 @@ interface OrdersTableProps {
     createdAt: string
     details: string
     delete: string
+    actions: string
   }
   statuses: Status[]
   onStatusChange: (orderId: string, statusId: string) => Promise<void>
@@ -73,7 +74,7 @@ export function OrdersTable({
           <TableHead>{translations.status}</TableHead>
           <TableHead className="hidden sm:table-cell">{translations.amount}</TableHead>
           <TableHead className="hidden sm:table-cell">{translations.createdAt}</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          <TableHead className="text-right">{translations.actions}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
