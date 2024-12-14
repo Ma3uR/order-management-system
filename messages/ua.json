@@ -17,7 +17,7 @@
     "title": "Управління замовленнями",
     "totalAmount": "Загальна сума",
     "filterOrders": "Фільтр замовлень",
-    "filterOrdersPlaceholder": "Пошук за номером замовлення, ім'ям або статусом",
+    "filterOrdersPlaceholder": "Пошук за номером замовлення або ім'ям",
     "createNewOrder": "Створити нове замовлення",
     "orders": "Замовлення",
     "orderNumber": "Номер замовлення",

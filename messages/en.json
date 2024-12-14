@@ -3,7 +3,7 @@
     "title": "Orders Management",
     "totalAmount": "Total Amount",
     "filterOrders": "Filter Orders",
-    "filterOrdersPlaceholder": "Search by order number, name, or status",
+    "filterOrdersPlaceholder": "Search by order number or name",
     "createNewOrder": "Create New Order",
     "orders": "Orders",
     "orderNumber": "Order Number",
