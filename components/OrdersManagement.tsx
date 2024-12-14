@@ -1820,13 +1820,13 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     disabled={isBlacklisted}
                   >
                     <SelectTrigger className={cn(
-                      "w-full bg-background border-input",
+                      "w-full bg-background border-input dark:bg-gray-700 dark:border-gray-600 dark:text-white",
                       validationErrors.paymentMethod && "border-destructive",
                       isBlacklisted && "bg-yellow-50 dark:bg-yellow-900/50"
                     )}>
                       <SelectValue placeholder={translations.selectPaymentMethod} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background dark:bg-gray-800 border-input dark:border-gray-700">
                       {paymentMethods
                         .filter(method => !isBlacklisted || 
                           method.name.toLowerCase().includes('prepayment') || 
@@ -1836,7 +1836,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                           <SelectItem 
                             key={method.id} 
                             value={method.id}
-                            className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                            className="text-foreground dark:text-gray-200 hover:bg-accent dark:hover:bg-gray-700 focus:bg-accent dark:focus:bg-gray-700"
                           >
                             {method.name}
                           </SelectItem>
