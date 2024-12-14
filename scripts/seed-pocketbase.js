@@ -1,6 +1,10 @@
-import PocketBase from 'pocketbase';
+import { getPocketBase } from '../lib/pocketbase';
+import dotenv from 'dotenv';
 
-const pb = new PocketBase('http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io');
+// Load environment variables
+dotenv.config();
+
+const pb = getPocketBase();
 
 /**
  * Seeds the PocketBase database with default data for currency, status, delivery, and payment options.

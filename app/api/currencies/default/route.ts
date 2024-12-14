@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 export async function GET() {
   try {
+    const pb = getPocketBase();
     const defaultCurrency = await pb.collection('currencies').getFirstListItem('isDefault=true');
     return NextResponse.json(defaultCurrency);
   } catch (error) {

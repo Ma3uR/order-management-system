@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 
@@ -13,6 +13,7 @@ async function authenticateAdmin() {
       throw new Error('Admin credentials not configured');
     }
 
+    const pb = getPocketBase();
     await pb.admins.authWithPassword(adminEmail, adminPassword);
   } catch (error) {
     console.error('Admin authentication error:', error);
@@ -31,6 +32,7 @@ export async function GET(
     }
 
     await authenticateAdmin();
+    const pb = getPocketBase();
     const source = await pb.collection('sources').getOne(params.id);
     return NextResponse.json(source);
   } catch (error) {
@@ -54,6 +56,7 @@ export async function PATCH(
 
     await authenticateAdmin();
     const body = await request.json();
+    const pb = getPocketBase();
     const source = await pb.collection('sources').update(params.id, body);
     return NextResponse.json(source);
   } catch (error) {
@@ -78,6 +81,7 @@ export async function DELETE(
     await authenticateAdmin();
     
     // Check if source is used in any orders
+    const pb = getPocketBase();
     const orders = await pb.collection('orders').getList(1, 1, {
       filter: `source = "${params.id}"`,
     });

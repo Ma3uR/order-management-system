@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 import { ClientResponseError } from 'pocketbase';
 
 export async function GET() {
   try {
+    const pb = getPocketBase();
     const records = await pb.collection('status_options').getFullList();
     return NextResponse.json(records);
   } catch (error) {
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
     }
 
     // Check if priority already exists
+    const pb = getPocketBase();
     const existingStatus = await pb.collection('status_options').getList(1, 1, {
       filter: `priority = ${priorityValue}`
     });
@@ -82,6 +84,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
+    const pb = getPocketBase();
     await pb.collection('status_options').delete(id);
     return NextResponse.json({ message: 'Status deleted successfully' });
   } catch (error) {
@@ -93,6 +96,7 @@ export async function DELETE(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { id, name, color, priority } = await request.json();
+    const pb = getPocketBase();
     const record = await pb.collection('status_options').update(id, {
       name,
       color,

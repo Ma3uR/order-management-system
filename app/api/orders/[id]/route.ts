@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 type OrderData = {
   id: string;
@@ -18,6 +18,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const pb = getPocketBase();
     const order = await pb.collection('orders').getOne(params.id);
     
     if (!order) {
@@ -43,8 +44,7 @@ export async function PUT(
 ) {
   try {
     const data = await request.json();
-    
-    // Create update data object
+    const pb = getPocketBase();
     const updateData: any = {};
     
     // Add fields that can be updated
@@ -57,7 +57,6 @@ export async function PUT(
     if (data.amount) updateData.amount = data.amount;
     if (data.statusId) updateData.status = data.statusId;
     if (data.notes !== undefined) updateData.notes = data.notes;
-    // Add delivery and payment method fields
     if (data.deliveryMethod) updateData.deliveryMethod = data.deliveryMethod;
     if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
 
@@ -83,6 +82,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const pb = getPocketBase();
     await pb.collection('orders').delete(params.id);
     return NextResponse.json({ message: 'Order deleted successfully' });
   } catch (error) {

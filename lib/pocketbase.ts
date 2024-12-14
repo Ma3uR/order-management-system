@@ -1,21 +1,58 @@
 import PocketBase from 'pocketbase';
 
-// Create a new PocketBase instance with environment variable
-const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+let pb: PocketBase | null = null;
+
+export function initializePocketBase() {
+  // Get the PocketBase URL from environment variables
+  // Try both NEXT_PUBLIC_ prefix and regular environment variable
+  const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || process.env.POCKETBASE_URL;
+
+  console.log('PocketBase initialization:', {
+    NEXT_PUBLIC_POCKETBASE_URL: process.env.NEXT_PUBLIC_POCKETBASE_URL,
+    POCKETBASE_URL: process.env.POCKETBASE_URL,
+    resolvedUrl: pocketbaseUrl
+  });
+
+  if (!pocketbaseUrl) {
+    throw new Error('PocketBase URL is not set. Please set either NEXT_PUBLIC_POCKETBASE_URL or POCKETBASE_URL environment variable');
+  }
+
+  // Ensure the URL is properly formatted
+  const baseUrl = pocketbaseUrl.endsWith('/') ? pocketbaseUrl : `${pocketbaseUrl}/`;
+
+  // Create a new PocketBase instance with the validated base URL
+  pb = new PocketBase(baseUrl);
+  return pb;
+}
+
+// Get PocketBase instance, initializing if necessary
+export function getPocketBase(): PocketBase {
+  if (!pb) {
+    pb = initializePocketBase();
+  }
+  return pb;
+}
 
 // Admin authentication function
 export async function authenticateAdmin() {
+  const client = getPocketBase();
+  
   try {
     const adminEmail = process.env.POCKETBASE_ADMIN_EMAIL;
     const adminPassword = process.env.POCKETBASE_ADMIN_PASSWORD;
+    
+    console.log('Admin authentication attempt:', {
+      email: adminEmail ? 'set' : 'not set',
+      password: adminPassword ? 'set' : 'not set'
+    });
     
     if (!adminEmail || !adminPassword) {
       throw new Error('Admin credentials not configured');
     }
 
-    await pb.admins.authWithPassword(adminEmail, adminPassword);
+    await client.admins.authWithPassword(adminEmail, adminPassword);
     
-    if (!pb.authStore.isValid) {
+    if (!client.authStore.isValid) {
       throw new Error('Admin authentication failed');
     }
   } catch (error) {
@@ -24,6 +61,5 @@ export async function authenticateAdmin() {
   }
 }
 
-// Export as default and named export
-export default pb;
-export { pb }; 
+// Export the getter function as default
+export default getPocketBase; 

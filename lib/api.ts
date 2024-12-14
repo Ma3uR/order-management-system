@@ -1,4 +1,4 @@
-import pb from './pocketbase';
+import { getPocketBase } from './pocketbase';
 
 interface PocketBaseRecord {
   id: string;
@@ -32,6 +32,7 @@ interface ApiResponse {
 
 export async function fetchOrders() {
   try {
+    const pb = getPocketBase();
     const records = await pb.collection('orders').getFullList<PocketBaseRecord>({
       sort: '-created',
       expand: 'deliveryMethod,paymentMethod,status,currency'

@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import pb from "@/lib/pocketbase";
+import pb, { getPocketBase } from "@/lib/pocketbase";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -11,6 +11,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
+          const pb = getPocketBase();
           const authData = await pb.collection('users').authWithPassword(
             credentials?.email || '',
             credentials?.password || ''

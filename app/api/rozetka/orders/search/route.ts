@@ -9,12 +9,14 @@ export async function GET(request: Request) {
 
   if (!token) {
     return NextResponse.json(
-      { error: 'No token provided' },
+      { success: false, errors: { description: 'No token provided', code: 401 } },
       { status: 401 }
     );
   }
 
   try {
+    console.log('Fetching Rozetka orders with params:', Object.fromEntries(searchParams));
+    
     const response = await axios.get(`${ROZETKA_API_BASE}/orders/search`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -24,18 +26,33 @@ export async function GET(request: Request) {
       },
       params: Object.fromEntries(searchParams)
     });
+
+    console.log('Rozetka API response:', {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data
+    });
+    
+    if (!response.data?.content) {
+      throw new Error('Invalid response format from Rozetka API');
+    }
     
     return NextResponse.json({
       success: true,
-      content: response.data.content || []
+      content: response.data.content
     });
   } catch (error: any) {
-    console.error('Failed to fetch Rozetka orders:', error.response?.data || error);
+    console.error('Failed to fetch Rozetka orders:', {
+      error: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    
     return NextResponse.json({
       success: false,
       errors: {
-        description: error.response?.data?.errors?.description || 'Failed to fetch orders',
-        code: error.response?.data?.errors?.code || 500
+        description: error.response?.data?.errors?.description || error.message || 'Failed to fetch orders',
+        code: error.response?.status || 500
       }
     }, { status: error.response?.status || 500 });
   }

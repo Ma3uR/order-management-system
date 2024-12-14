@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 
@@ -13,6 +13,7 @@ async function authenticateAdmin() {
       throw new Error('Admin credentials not configured');
     }
 
+    const pb = getPocketBase();
     await pb.admins.authWithPassword(adminEmail, adminPassword);
   } catch (error) {
     console.error('Admin authentication error:', error);
@@ -28,6 +29,7 @@ export async function GET() {
     }
 
     await authenticateAdmin();
+    const pb = getPocketBase();
     const records = await pb.collection('sources').getFullList({
       sort: '-created',
     });
@@ -51,6 +53,7 @@ export async function POST(request: Request) {
 
     await authenticateAdmin();
     const body = await request.json();
+    const pb = getPocketBase();
     const record = await pb.collection('sources').create(body);
 
     return NextResponse.json(record);

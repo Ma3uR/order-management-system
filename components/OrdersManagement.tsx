@@ -16,13 +16,15 @@ import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Search, ArrowLeft } from 'lucide-react'
 import Link from "next/link"
 import axios from 'axios'
-import pb  from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
 import { Slider } from "@/components/ui/slider"
 import { StatusSelect } from "@/components/StatusSelect"
 import { cn } from "@/lib/utils"
 import { Footer } from "./footer"
 import debounce from "lodash/debounce";
 import { RozetkaSync } from "@/components/RozetkaSync"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 interface Product {
   name: string;
@@ -427,6 +429,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     let isSubscribed = true;
     const abortController = new AbortController();
     const subscriptions: (() => void)[] = [];
+    const pb = getPocketBase();
 
     const fetchData = async () => {
       try {
@@ -669,6 +672,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const handleDeleteOrder = async (orderId: string) => {
     if (window.confirm(translations.deleteConfirmation)) {
       try {
+        const pb = getPocketBase();
         await pb.collection('orders').delete(orderId);
         setOrders(orders.filter(order => order.id !== orderId));
       } catch (error) {
@@ -831,6 +835,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     }
 
     try {
+      const pb = getPocketBase();
       // Check for duplicate order number
       const isDuplicate = await checkDuplicateOrderNumber(newOrder.orderNumber || '');
       if (isDuplicate) {
@@ -911,6 +916,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   useEffect(() => {
     const connectRealtime = async () => {
       try {
+        const pb = getPocketBase();
         await pb.collection('orders').subscribe('*', async (e) => {
           if (e.action === 'create') {
             try {
@@ -989,6 +995,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     connectRealtime();
 
     return () => {
+      const pb = getPocketBase();
       pb.collection('orders').unsubscribe();
     };
   }, []);
@@ -1014,6 +1021,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     if (!method) return;
 
     try {
+      const pb = getPocketBase();
       const response = await axios.put(`/api/orders/${selectedOrder.id}`, {
         paymentMethod: value
       });
@@ -1047,6 +1055,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   // Update the handleStatusChange function to include payment method
   const handleStatusChange = async (orderId: string, statusId: string) => {
     try {
+      const pb = getPocketBase();
       const response = await axios.put(`/api/orders/${orderId}`, {
         statusId: statusId,
         deliveryMethod: selectedOrder?.deliveryMethod?.id,
@@ -1117,6 +1126,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     if (!method) return;
 
     try {
+      const pb = getPocketBase();
       const response = await axios.put(`/api/orders/${selectedOrder.id}`, {
         deliveryMethod: value
       });
@@ -1321,8 +1331,11 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               </Button>
             </Link>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <ThemeToggle />
             <RozetkaSync onSyncComplete={() => {
+              const pb = getPocketBase();
               // Refresh orders after sync
               pb.collection('orders').getFullList({
                 sort: '-created',
@@ -1489,6 +1502,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             onViewDetails={async (order) => {
               try {
                 // Fetch the complete order data with expanded fields
+                const pb = getPocketBase();
                 const expandedOrder = await pb.collection('orders').getOne(order.id, {
                   expand: 'deliveryMethod,paymentMethod,status,currency'
                 });
@@ -1961,6 +1975,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     paymentMethod: selectedOrder.paymentMethod?.id
                   };
 
+                  const pb = getPocketBase();
                   const response = await axios.put(`/api/orders/${selectedOrder.id}`, updateData);
                   
                   if (response.data) {

@@ -1,15 +1,16 @@
-import XLSX from 'xlsx';
-import PocketBase from 'pocketbase';
+import { read, utils } from 'xlsx';
+import { getPocketBase } from '../lib/pocketbase';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
+// Load environment variables
+dotenv.config();
+
 // Get current file's directory when using ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Initialize PocketBase client
-const pb = new PocketBase('http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io');
 
 interface ExcelRow {
   [key: string]: any;
@@ -82,6 +83,7 @@ async function authenticateAdmin() {
       throw new Error('Admin credentials not configured');
     }
 
+    const pb = getPocketBase();
     await pb.admins.authWithPassword(adminEmail, adminPassword);
   } catch (error) {
     console.error('Admin authentication error:', error);
@@ -118,7 +120,7 @@ async function processRecords(data: BlacklistEntry[]) {
         startsWithZero: recordToCreate.phoneNumber.startsWith('0')
       });
       
-      const result = await pb.collection('blacklist_entries').create(recordToCreate);
+      const result = await getPocketBase().collection('blacklist_entries').create(recordToCreate);
       
       // Convert the phone number to string before checking
       const savedPhoneNumber = String(result.phoneNumber);
@@ -139,7 +141,7 @@ async function processRecords(data: BlacklistEntry[]) {
           ? savedPhoneNumber 
           : `0${savedPhoneNumber}`;
           
-        await pb.collection('blacklist_entries').update(result.id, {
+        await getPocketBase().collection('blacklist_entries').update(result.id, {
           ...result,
           phoneNumber: fixedPhoneNumber
         });
@@ -173,13 +175,14 @@ async function processRecords(data: BlacklistEntry[]) {
 
 async function importExcelData() {
   try {
+    const pb = getPocketBase();
     // Read the Excel file using the correct path resolution
     const filePath = path.join(dirname(__dirname), 'data', 'BLData.xlsx');
-    const workbook = XLSX.readFile(filePath);
+    const workbook = read(filePath);
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     
     // Convert Excel data to JSON, starting from row 2 (skipping headers)
-    const excelData = XLSX.utils.sheet_to_json<ExcelRow>(worksheet, {
+    const excelData = utils.sheet_to_json<ExcelRow>(worksheet, {
       range: 1, // Start from second row
       header: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']
     });

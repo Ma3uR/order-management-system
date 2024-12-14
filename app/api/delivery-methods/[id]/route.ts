@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
+    const pb = getPocketBase();
     await pb.collection('delivery_options').delete(params.id);
     return NextResponse.json({ message: 'Delivery method deleted successfully' });
   } catch (error) {
@@ -17,6 +18,7 @@ export async function PUT(
 ) {
   try {
     const { name } = await request.json();
+    const pb = getPocketBase();
     const record = await pb.collection('delivery_options').update(params.id, {
       name,
     });

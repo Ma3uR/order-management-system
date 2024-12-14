@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 export async function GET() {
   try {
+    const pb = getPocketBase();
     const records = await pb.collection('currency_options').getFullList();
     return NextResponse.json(records);
   } catch (error) {
@@ -13,6 +14,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const pb = getPocketBase();
     const data = await request.json();
     const record = await pb.collection('currency_options').create({
       code: data.code,

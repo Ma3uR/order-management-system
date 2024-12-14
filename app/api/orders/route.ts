@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 interface Product {
   name: string;
@@ -28,6 +28,7 @@ function parseProductsText(text: string): Product[] {
 
 export async function GET() {
   try {
+    const pb = getPocketBase();
     const records = await pb.collection('orders').getFullList({
       sort: '-created',
       expand: 'deliveryMethod,paymentMethod,status,currency'
@@ -65,16 +66,19 @@ export async function POST(request: Request) {
 
     // Get default currency if not provided
     if (!data.currency) {
+      const pb = getPocketBase();
       const defaultCurrency = await pb.collection('currency_options').getFirstListItem('isDefault=true');
       data.currency = defaultCurrency.id;
     }
 
     // Get default status if not provided
     if (!data.status) {
+      const pb = getPocketBase();
       const defaultStatus = await pb.collection('status_options').getFirstListItem('name="Being processed by manager"');
       data.status = defaultStatus.id;
     }
 
+    const pb = getPocketBase();
     const record = await pb.collection('orders').create(data);
     const createdOrder = await pb.collection('orders').getOne(record.id, {
       expand: 'deliveryMethod,paymentMethod,status,currency'
@@ -93,6 +97,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { id, ...data } = await request.json();
+    const pb = getPocketBase();
     const order = await pb.collection('orders').update(id, data);
     return NextResponse.json(order);
   } catch (error) {
@@ -107,6 +112,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
+    const pb = getPocketBase();
     await pb.collection('orders').delete(id);
     return NextResponse.json({ message: 'Order deleted successfully' });
   } catch (error) {

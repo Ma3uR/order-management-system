@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 export async function DELETE(
   request: Request,
@@ -7,6 +7,7 @@ export async function DELETE(
 ) {
   try {
     // Check if payment method is used in any orders
+    const pb = getPocketBase();
     const orders = await pb.collection('orders').getList(1, 1, {
       filter: `paymentMethod = "${params.id}"`,
     });
@@ -35,6 +36,7 @@ export async function PUT(
 ) {
   try {
     const { name } = await request.json();
+    const pb = getPocketBase();
     const record = await pb.collection('payment_options').update(params.id, {
       name,
     });

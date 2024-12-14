@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if order number exists
+    const pb = getPocketBase();
     const existingOrders = await pb.collection('orders').getList(1, 1, {
       filter: `orderNumber = "${orderNumber}"`,
     });

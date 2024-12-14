@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 interface DeliveryMethod {
   id: string;
@@ -8,6 +8,7 @@ interface DeliveryMethod {
 
 export async function GET() {
   try {
+    const pb = getPocketBase();
     const records = await pb.collection('delivery_options').getFullList<DeliveryMethod>();
     return NextResponse.json(records);
   } catch (error) {
@@ -19,6 +20,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { name } = await request.json();
+    const pb = getPocketBase();
     const record = await pb.collection('delivery_options').create({
       name,
     });

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 
 export async function DELETE(
   request: Request,
@@ -9,6 +9,7 @@ export async function DELETE(
     console.log('Attempting to delete status with ID:', params.id);
     
     // Check if status is used in any orders
+    const pb = getPocketBase();
     const orders = await pb.collection('orders').getList(1, 1, {
       filter: `status = "${params.id}"`,
     });
@@ -50,6 +51,7 @@ export async function PUT(
 ) {
   try {
     const { name, color, priority } = await request.json();
+    const pb = getPocketBase();
     const record = await pb.collection('status_options').update(params.id, {
       name,
       color,

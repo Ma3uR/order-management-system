@@ -78,7 +78,7 @@ export default async function OrdersPage() {
     <ErrorBoundaryClient>
       <OrdersManagement 
         translations={translations} 
-        initialOrders={orders.map(order => ({
+        initialOrders={orders.map((order: any) => ({
           id: order.id,
           orderNumber: order.orderNumber || '',
           source: order.source || '',

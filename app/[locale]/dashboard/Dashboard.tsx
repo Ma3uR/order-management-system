@@ -8,7 +8,7 @@ import { DonutChart } from "@/components/donut-chart"
 import { useTheme } from "next-themes"
 import { useEffect, useState, useRef } from 'react';
 import { StatsCard } from '@/components/stats-card';
-import pb from '@/lib/pocketbase';
+import pb, { getPocketBase } from '@/lib/pocketbase';
 import { AiChat } from "@/components/ai-chat"
 import { motion } from "framer-motion";
 
@@ -58,6 +58,7 @@ export default function Dashboard() {
   const mounted = useRef(false);
 
   useEffect(() => {
+    const pb = getPocketBase();
     mounted.current = true;
     const fetchData = async () => {
       try {

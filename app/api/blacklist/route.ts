@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { pb, authenticateAdmin } from '@/lib/pocketbase';
+import pb,{ authenticateAdmin, getPocketBase } from '@/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { auth } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
+    const pb = getPocketBase();
     // Check user authentication
     const session = await getServerSession(auth);
     if (!session) {
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const pb = getPocketBase();
     await authenticateAdmin();
     const data = await request.json();
     const record = await pb.collection('blacklist_entries').create(data);
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const pb = getPocketBase();
     const session = await getServerSession(auth);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

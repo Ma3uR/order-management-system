@@ -1,8 +1,11 @@
-import PocketBase from 'pocketbase';
+import { getPocketBase } from '../lib/pocketbase';
+import dotenv from 'dotenv';
 import { ClientResponseError } from 'pocketbase';
 
-// Initialize PocketBase client
-const pb = new PocketBase('http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io');
+// Load environment variables
+dotenv.config();
+
+const pb = getPocketBase();
 
 /**
  * Creates a test user and optionally authenticates as the created user.
