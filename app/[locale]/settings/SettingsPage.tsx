@@ -606,7 +606,7 @@ export default function SettingsPage() {
                     </Button>
                     <Button 
                       type="button" 
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => {
                         setEditingStatus(null);
                         setEditStatusValues({ name: '', color: '#000000', priority: 1 });
@@ -734,7 +734,7 @@ export default function SettingsPage() {
                   </Button>
                   <Button 
                     type="button" 
-                    variant="outline" 
+                    variant="ghost" 
                     onClick={() => {
                       setEditingPaymentMethod(null);
                       setEditPaymentMethodValue('');
@@ -803,7 +803,7 @@ export default function SettingsPage() {
                   </Button>
                   <Button 
                     type="button" 
-                    variant="outline" 
+                    variant="ghost" 
                     onClick={() => {
                       setEditingDeliveryMethod(null);
                       setEditDeliveryMethodValue('');
