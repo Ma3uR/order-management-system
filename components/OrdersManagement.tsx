@@ -457,6 +457,14 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               // Format the record before adding to state
               const formattedOrder = {
                 ...record,
+                deliveryMethod: record.expand?.deliveryMethod ? {
+                  id: record.expand.deliveryMethod.id,
+                  name: record.expand.deliveryMethod.name
+                } : { id: '', name: '' },  // Default empty delivery method
+                paymentMethod: record.expand?.paymentMethod ? {
+                  id: record.expand.paymentMethod.id,
+                  name: record.expand.paymentMethod.name
+                } : { id: '', name: '' },  // Default empty payment method
                 status: record.expand?.status ? {
                   id: record.expand.status.id,
                   name: record.expand.status.name,
@@ -486,6 +494,14 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               // Format the record before updating state
               const formattedOrder = {
                 ...record,
+                deliveryMethod: record.expand?.deliveryMethod ? {
+                  id: record.expand.deliveryMethod.id,
+                  name: record.expand.deliveryMethod.name
+                } : { id: '', name: '' },
+                paymentMethod: record.expand?.paymentMethod ? {
+                  id: record.expand.paymentMethod.id,
+                  name: record.expand.paymentMethod.name
+                } : { id: '', name: '' },
                 status: record.expand?.status ? {
                   id: record.expand.status.id,
                   name: record.expand.status.name,
@@ -876,6 +892,14 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               // Format the record before adding to state
               const formattedOrder = {
                 ...record,
+                deliveryMethod: record.expand?.deliveryMethod ? {
+                  id: record.expand.deliveryMethod.id,
+                  name: record.expand.deliveryMethod.name
+                } : { id: '', name: '' },
+                paymentMethod: record.expand?.paymentMethod ? {
+                  id: record.expand.paymentMethod.id,
+                  name: record.expand.paymentMethod.name
+                } : { id: '', name: '' },
                 status: record.expand?.status ? {
                   id: record.expand.status.id,
                   name: record.expand.status.name,
@@ -905,6 +929,14 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               // Format the record before updating state
               const formattedOrder = {
                 ...record,
+                deliveryMethod: record.expand?.deliveryMethod ? {
+                  id: record.expand.deliveryMethod.id,
+                  name: record.expand.deliveryMethod.name
+                } : { id: '', name: '' },
+                paymentMethod: record.expand?.paymentMethod ? {
+                  id: record.expand.paymentMethod.id,
+                  name: record.expand.paymentMethod.name
+                } : { id: '', name: '' },
                 status: record.expand?.status ? {
                   id: record.expand.status.id,
                   name: record.expand.status.name,
@@ -956,10 +988,51 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   // Calculate max amount from orders for slider
   const maxPossibleAmount = Math.max(...orders.map(order => order.amount), 5000);
 
+  // Add this new handler function for payment method changes
+  const handlePaymentMethodChange = async (value: string) => {
+    if (!selectedOrder) return;
+
+    const method = paymentMethods.find(m => m.id === value);
+    if (!method) return;
+
+    try {
+      const response = await axios.put(`/api/orders/${selectedOrder.id}`, {
+        paymentMethod: value
+      });
+
+      if (response.data) {
+        const updatedOrder = await pb.collection('orders').getOne(selectedOrder.id, {
+          expand: 'deliveryMethod,paymentMethod,status,currency',
+          $autoCancel: false
+        });
+
+        const formattedOrder = {
+          ...selectedOrder,
+          paymentMethod: {
+            id: updatedOrder.expand?.paymentMethod.id,
+            name: updatedOrder.expand?.paymentMethod.name
+          },
+          updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : new Date().toISOString()
+        };
+
+        setOrders(prevOrders => 
+          prevOrders.map(o => o.id === selectedOrder.id ? formattedOrder : o)
+        );
+        setSelectedOrder(formattedOrder);
+      }
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+      alert('Error updating payment method');
+    }
+  };
+
+  // Update the handleStatusChange function to include payment method
   const handleStatusChange = async (orderId: string, statusId: string) => {
     try {
       const response = await axios.put(`/api/orders/${orderId}`, {
-        statusId: statusId
+        statusId: statusId,
+        deliveryMethod: selectedOrder?.deliveryMethod?.id,
+        paymentMethod: selectedOrder?.paymentMethod?.id
       });
       
       if (response.data) {
@@ -974,24 +1047,40 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           color: updatedOrder.expand?.status.color
         };
 
-        // Update orders list
+        // Update orders list with payment method
         setOrders(prevOrders => 
           prevOrders.map(o => 
             o.id === orderId ? {
               ...o,
               status: newStatus,
+              deliveryMethod: updatedOrder.expand?.deliveryMethod ? {
+                id: updatedOrder.expand.deliveryMethod.id,
+                name: updatedOrder.expand.deliveryMethod.name
+              } : o.deliveryMethod,
+              paymentMethod: updatedOrder.expand?.paymentMethod ? {
+                id: updatedOrder.expand.paymentMethod.id,
+                name: updatedOrder.expand.paymentMethod.name
+              } : o.paymentMethod,
               updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : o.updatedAt
             } : o
           )
         );
 
-        // Update selected order if it's the same order
+        // Update selected order with payment method
         if (selectedOrder && selectedOrder.id === orderId) {
           setSelectedOrder(prev => {
             if (!prev) return null;
             return {
               ...prev,
               status: newStatus,
+              deliveryMethod: updatedOrder.expand?.deliveryMethod ? {
+                id: updatedOrder.expand.deliveryMethod.id,
+                name: updatedOrder.expand.deliveryMethod.name
+              } : prev.deliveryMethod,
+              paymentMethod: updatedOrder.expand?.paymentMethod ? {
+                id: updatedOrder.expand.paymentMethod.id,
+                name: updatedOrder.expand.paymentMethod.name
+              } : prev.paymentMethod,
               updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : prev.updatedAt
             } as Order;
           });
@@ -1000,6 +1089,43 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     } catch (error) {
       console.error('Error updating order:', error);
       alert('Error updating order');
+    }
+  };
+
+  const handleDeliveryMethodChange = async (value: string) => {
+    if (!selectedOrder) return;
+
+    const method = deliveryMethods.find(m => m.id === value);
+    if (!method) return;
+
+    try {
+      const response = await axios.put(`/api/orders/${selectedOrder.id}`, {
+        deliveryMethod: value
+      });
+
+      if (response.data) {
+        const updatedOrder = await pb.collection('orders').getOne(selectedOrder.id, {
+          expand: 'deliveryMethod,paymentMethod,status,currency',
+          $autoCancel: false
+        });
+
+        const formattedOrder = {
+          ...selectedOrder,
+          deliveryMethod: {
+            id: updatedOrder.expand?.deliveryMethod.id,
+            name: updatedOrder.expand?.deliveryMethod.name
+          },
+          updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : new Date().toISOString()
+        };
+
+        setOrders(prevOrders => 
+          prevOrders.map(o => o.id === selectedOrder.id ? formattedOrder : o)
+        );
+        setSelectedOrder(formattedOrder);
+      }
+    } catch (error) {
+      console.error('Error updating delivery method:', error);
+      alert('Error updating delivery method');
     }
   };
 
@@ -1320,9 +1446,37 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
           <OrdersTable
             orders={currentOrders}
-            onViewDetails={(order) => {
-              setSelectedOrder(order as unknown as Order)
-              setIsDetailsModalOpen(true)
+            onViewDetails={async (order) => {
+              try {
+                // Fetch the complete order data with expanded fields
+                const expandedOrder = await pb.collection('orders').getOne(order.id, {
+                  expand: 'deliveryMethod,paymentMethod,status,currency'
+                });
+                
+                // Format the order with expanded data
+                const formattedOrder = {
+                  ...order,
+                  deliveryMethod: expandedOrder.expand?.deliveryMethod ? {
+                    id: expandedOrder.expand?.deliveryMethod?.id || '',
+                    name: expandedOrder.expand?.deliveryMethod?.name || ''
+                  } : { id: '', name: '' },
+                  paymentMethod: expandedOrder.expand?.paymentMethod ? {
+                    id: expandedOrder.expand?.paymentMethod?.id || '',
+                    name: expandedOrder.expand?.paymentMethod?.name || ''
+                  } : { id: '', name: '' },
+                  status: expandedOrder.expand?.status ? {
+                    id: expandedOrder.expand?.status?.id || '',
+                    name: expandedOrder.expand?.status?.name || '',
+                    color: expandedOrder.expand?.status?.color || ''
+                  } : { id: '', name: '', color: '#cbd5e1' }
+                } as Order;
+                
+                setSelectedOrder(formattedOrder);
+                setIsDetailsModalOpen(true);
+              } catch (error) {
+                console.error('Error fetching order details:', error);
+                alert('Error loading order details');
+              }
             }}
             onDeleteOrder={handleDeleteOrder}
             translations={translations}
@@ -1894,27 +2048,24 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 <div className="grid grid-cols-2 items-center gap-4">
                   <Label>{translations.deliveryMethod}</Label>
                   <Select
-                    value={selectedOrder.deliveryMethod?.id}
-                    onValueChange={(value) => {
-                      const method = deliveryMethods.find(m => m.id === value);
-                      setSelectedOrder({
-                        ...selectedOrder,
-                        deliveryMethod: method
-                      });
-                    }}
+                    value={selectedOrder.deliveryMethod?.id || ''}
+                    onValueChange={handleDeliveryMethodChange}
                   >
-                    <SelectTrigger>
-                      <SelectValue>{selectedOrder.deliveryMethod?.name}</SelectValue>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {selectedOrder.deliveryMethod?.name || translations.selectDeliveryMethod}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
-                      {deliveryMethods.map((method) => {
-                        const uniqueKey = `delivery-${method.id}-${method.name}`;
-                        return (
-                          <SelectItem key={uniqueKey} value={method.id} className="text-black">
-                            {method.name}
-                          </SelectItem>
-                        );
-                      })}
+                      {deliveryMethods.map((method) => (
+                        <SelectItem 
+                          key={method.id} 
+                          value={method.id}
+                          className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                        >
+                          {method.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1936,27 +2087,24 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 <div className="grid grid-cols-2 items-center gap-4">
                   <Label>{translations.paymentMethod}</Label>
                   <Select
-                    value={selectedOrder.paymentMethod?.id}
-                    onValueChange={(value) => {
-                      const method = paymentMethods.find(m => m.id === value);
-                      setSelectedOrder({
-                        ...selectedOrder,
-                        paymentMethod: method
-                      });
-                    }}
+                    value={selectedOrder.paymentMethod?.id || ''}
+                    onValueChange={handlePaymentMethodChange}
                   >
-                    <SelectTrigger>
-                      <SelectValue>{selectedOrder.paymentMethod?.name}</SelectValue>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {selectedOrder.paymentMethod?.name || translations.selectPaymentMethod}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
-                      {paymentMethods.map(method => {
-                        const uniqueKey = `payment-${method.id}-${method.name}`;
-                        return (
-                          <SelectItem key={uniqueKey} value={method.id}>
-                            {method.name}
-                          </SelectItem>
-                        );
-                      })}
+                      {paymentMethods.map(method => (
+                        <SelectItem 
+                          key={method.id} 
+                          value={method.id}
+                          className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                        >
+                          {method.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
