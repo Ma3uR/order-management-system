@@ -10,3 +10,22 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return NextResponse.json({ error: 'Error deleting delivery method' }, { status: 500 });
   }
 }
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { name } = await request.json();
+    const record = await pb.collection('delivery_options').update(params.id, {
+      name,
+    });
+    return NextResponse.json(record);
+  } catch (error) {
+    console.error('Error updating delivery method:', error);
+    return NextResponse.json(
+      { error: 'Error updating delivery method' },
+      { status: 500 }
+    );
+  }
+}
