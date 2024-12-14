@@ -23,7 +23,7 @@ export function getPocketBase(): PocketBase {
   return pb;
 }
 
-// Admin authentication function
+// Admin authentication function 
 export async function authenticateAdmin() {
   const client = getPocketBase();
   

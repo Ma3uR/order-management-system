@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import prisma from '@/lib/prisma';
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import { getPocketBase } from '@/lib/pocketbase';
 
 export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
@@ -13,9 +13,9 @@ export async function PUT(req: Request) {
   const { name, email } = data;
 
   try {
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: { name, email },
+    const updatedUser = await getPocketBase().collection('users').update(session.user.id, {
+      name,
+      email,
     });
 
     return NextResponse.json(updatedUser);
