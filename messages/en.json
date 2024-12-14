@@ -117,7 +117,9 @@
     "statusColor": "Status Color",
     "sourceName": "Source Name",
     "sourceUrl": "Source URL",
-    "addSource": "Add Source"
+    "addSource": "Add Source",
+    "cancel": "Cancel",
+    "editPaymentMethod": "Edit Payment Method"
   },
   "Blacklist": {
     "title": "Blacklist Management",

@@ -46,7 +46,7 @@
       "beingProcessed": "Обробляється менеджером",
       "shipped": "Відправлено",
       "delivered": "Доставлено",
-      "cancelled": "Ска��овано"
+      "cancelled": "Скасовано"
     },
     "deliveryMethods": {
       "ukrposhta": "Укрпошта",
@@ -67,7 +67,7 @@
     "totalOrders": "Всього замовлень",
     "filters": "Фільтри",
     "all": "Всі",
-    "amountRange": "Діапазон суми",
+    "amountRange": "��іапазон суми",
     "resetFilters": "Скинути фільтри",
     "notes": "Примітки",
     "notesPlaceholder": "Введіть будь-які додаткові примітки щодо замовлення...",
@@ -94,7 +94,7 @@
     "notesPlaceholder": "Примітки (причина блокування)",
     "addToBlacklist": "Додати до чорного списку",
     "remove": "Видалити",
-    "backToDashboard": "Повернутися до панелі керування",
+    "backToDashboard": "Повер��утися до панелі керування",
     "adding": "Додавання...",
     "orderSum": "Сума замовлень",
     "showing": "Показано",
@@ -110,7 +110,7 @@
   "AiChat": {
     "title": "AI Помічник",
     "comingSoon": "Скоро",
-    "placeholder": "Ч��т скоро буде доступний...",
+    "placeholder": "Чт скоро буде доступний...",
     "send": "Надіслати",
     "initialMessage": "Привіт! Я AI помічник, але я ще не працюю! Скоро я буду тут, щоб допомогти вам з будь-якими питаннями."
   },
@@ -147,7 +147,9 @@
     "statusColor": "Колір статусу",
     "sourceName": "Назва джерела",
     "sourceUrl": "URL джерела",
-    "addSource": "Додати джерело"
+    "addSource": "Додати джерело",
+    "cancel": "Скасувати",
+    "editPaymentMethod": "Редагувати спосіб оплати"
   },
   "Auth": {
     "signInTitle": "Вхід",

@@ -78,6 +78,12 @@ export default function SettingsPage() {
     priority: 1
   });
 
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [editPaymentMethodValue, setEditPaymentMethodValue] = useState('');
+
+  const [editingDeliveryMethod, setEditingDeliveryMethod] = useState<DeliveryMethod | null>(null);
+  const [editDeliveryMethodValue, setEditDeliveryMethodValue] = useState('');
+
   const fetchCurrencies = async () => {
     try {
       const response = await fetch('/api/currencies');
@@ -382,6 +388,64 @@ export default function SettingsPage() {
     }
   };
 
+  const handleEditPaymentMethod = (method: PaymentMethod) => {
+    setEditingPaymentMethod(method);
+    setEditPaymentMethodValue(method.name);
+  };
+
+  const handleUpdatePaymentMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPaymentMethod) return;
+
+    try {
+      const response = await fetch(`/api/payment-methods/${editingPaymentMethod.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editPaymentMethodValue }),
+      });
+      if (!response.ok) throw new Error('Failed to update payment method');
+      const updatedMethod = await response.json();
+      setPaymentMethods(paymentMethods.map(method => 
+        method.id === updatedMethod.id ? updatedMethod : method
+      ));
+      setEditingPaymentMethod(null);
+      setEditPaymentMethodValue('');
+      showFlashMessage(t('settingsUpdated'), 'success');
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+      showFlashMessage(t('updateError'), 'error');
+    }
+  };
+
+  const handleEditDeliveryMethod = (method: DeliveryMethod) => {
+    setEditingDeliveryMethod(method);
+    setEditDeliveryMethodValue(method.name);
+  };
+
+  const handleUpdateDeliveryMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDeliveryMethod) return;
+
+    try {
+      const response = await fetch(`/api/delivery-methods/${editingDeliveryMethod.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editDeliveryMethodValue }),
+      });
+      if (!response.ok) throw new Error('Failed to update delivery method');
+      const updatedMethod = await response.json();
+      setDeliveryMethods(deliveryMethods.map(method => 
+        method.id === updatedMethod.id ? updatedMethod : method
+      ));
+      setEditingDeliveryMethod(null);
+      setEditDeliveryMethodValue('');
+      showFlashMessage(t('settingsUpdated'), 'success');
+    } catch (error) {
+      console.error('Error updating delivery method:', error);
+      showFlashMessage(t('updateError'), 'error');
+    }
+  };
+
   return (
     <div className="p-4 sm:p-8 dark:text-gray-100">
       <div className="flex flex-col gap-4 sm:gap-6 mb-4">
@@ -407,14 +471,14 @@ export default function SettingsPage() {
       )}
       <div className="space-y-4">
         <Tabs defaultValue="profile">
-          <TabsList className="overflow-x-auto">
+          <TabsList className="overflow-x-auto bg-gray-100 dark:bg-gray-800">
             <div className="grid min-w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
-              <TabsTrigger value="profile">{t('profile')}</TabsTrigger>
-              <TabsTrigger value="currencies">{t('currencies')}</TabsTrigger>
-              <TabsTrigger value="statuses">{t('statuses')}</TabsTrigger>
-              <TabsTrigger value="paymentMethods">{t('paymentMethods')}</TabsTrigger>
-              <TabsTrigger value="deliveryMethods">{t('deliveryMethods')}</TabsTrigger>
-              <TabsTrigger value="sources">{t('sources')}</TabsTrigger>
+              <TabsTrigger value="profile" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-100">{t('profile')}</TabsTrigger>
+              <TabsTrigger value="currencies" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-100">{t('currencies')}</TabsTrigger>
+              <TabsTrigger value="statuses" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-100">{t('statuses')}</TabsTrigger>
+              <TabsTrigger value="paymentMethods" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-100">{t('paymentMethods')}</TabsTrigger>
+              <TabsTrigger value="deliveryMethods" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-100">{t('deliveryMethods')}</TabsTrigger>
+              <TabsTrigger value="sources" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-100">{t('sources')}</TabsTrigger>
             </div>
           </TabsList>
           <TabsContent value="profile">
@@ -488,57 +552,123 @@ export default function SettingsPage() {
 
           <TabsContent value="statuses">
             <div className="max-w-2xl mx-auto">
-              <form onSubmit={handleAddStatus} className="space-y-6 mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="statusName">{t('statusName')}</Label>
-                    <Input
-                      id="statusName"
-                      placeholder={t('statusName')}
-                      value={newStatus.name}
-                      onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
-                    />
+              {editingStatus ? (
+                <form onSubmit={handleEditStatus} className="space-y-6 mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="editStatusName">{t('statusName')}</Label>
+                      <Input
+                        id="editStatusName"
+                        placeholder={t('statusName')}
+                        value={editStatusValues.name}
+                        onChange={(e) => setEditStatusValues({ ...editStatusValues, name: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="editStatusPriority">{t('statusPriority')}</Label>
+                      <Input
+                        id="editStatusPriority"
+                        type="number"
+                        placeholder={t('priorityPlaceholder')}
+                        value={editStatusValues.priority}
+                        onChange={(e) => setEditStatusValues({ 
+                          ...editStatusValues, 
+                          priority: Math.max(1, Math.min(99, parseInt(e.target.value) || 1)) 
+                        })}
+                        min="1"
+                        max="99"
+                      />
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="statusPriority">{t('statusPriority')}</Label>
-                    <Input
-                      id="statusPriority"
-                      type="number"
-                      placeholder={t('priorityPlaceholder')}
-                      value={newStatus.priority}
-                      onChange={(e) => setNewStatus({ 
-                        ...newStatus, 
-                        priority: Math.max(1, Math.min(99, parseInt(e.target.value) || 1)) 
-                      })}
-                      min="1"
-                      max="99"
-                    />
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="statusColor">{t('statusColor')}</Label>
-                  <div className="flex items-center space-x-4">
-                    <Input
-                      id="statusColor"
-                      type="color"
-                      value={newStatus.color}
-                      onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
-                      className="w-20 h-10"
-                    />
-                    <div 
-                      className="w-10 h-10 rounded-full border"
-                      style={{ backgroundColor: newStatus.color }}
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="editStatusColor">{t('statusColor')}</Label>
+                    <div className="flex items-center space-x-4">
+                      <Input
+                        id="editStatusColor"
+                        type="color"
+                        value={editStatusValues.color}
+                        onChange={(e) => setEditStatusValues({ ...editStatusValues, color: e.target.value })}
+                        className="w-20 h-10"
+                      />
+                      <div 
+                        className="w-10 h-10 rounded-full border"
+                        style={{ backgroundColor: editStatusValues.color }}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <Button type="submit" className="w-full sm:w-auto">
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  {t('addStatus')}
-                </Button>
-              </form>
+                  <div className="flex space-x-2">
+                    <Button type="submit" className="w-full sm:w-auto">
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      {t('saveChanges')}
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => {
+                        setEditingStatus(null);
+                        setEditStatusValues({ name: '', color: '#000000', priority: 1 });
+                      }}
+                    >
+                      {t('cancel')}
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleAddStatus} className="space-y-6 mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="statusName">{t('statusName')}</Label>
+                      <Input
+                        id="statusName"
+                        placeholder={t('statusName')}
+                        value={newStatus.name}
+                        onChange={(e) => setNewStatus({ ...newStatus, name: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="statusPriority">{t('statusPriority')}</Label>
+                      <Input
+                        id="statusPriority"
+                        type="number"
+                        placeholder={t('priorityPlaceholder')}
+                        value={newStatus.priority}
+                        onChange={(e) => setNewStatus({ 
+                          ...newStatus, 
+                          priority: Math.max(1, Math.min(99, parseInt(e.target.value) || 1)) 
+                        })}
+                        min="1"
+                        max="99"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="statusColor">{t('statusColor')}</Label>
+                    <div className="flex items-center space-x-4">
+                      <Input
+                        id="statusColor"
+                        type="color"
+                        value={newStatus.color}
+                        onChange={(e) => setNewStatus({ ...newStatus, color: e.target.value })}
+                        className="w-20 h-10"
+                      />
+                      <div 
+                        className="w-10 h-10 rounded-full border"
+                        style={{ backgroundColor: newStatus.color }}
+                      />
+                    </div>
+                  </div>
+
+                  <Button type="submit" className="w-full sm:w-auto">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    {t('addStatus')}
+                  </Button>
+                </form>
+              )}
 
               <ul className="grid gap-4 sm:grid-cols-2">
                 {statuses
@@ -557,7 +687,7 @@ export default function SettingsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-white"
+                            className="hover:bg-gray-300 dark:hover:bg-gray-600 dark:text-gray-100"
                             onClick={() => {
                               setEditingStatus(status);
                               setEditStatusValues({
@@ -572,7 +702,7 @@ export default function SettingsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-white"
+                            className="hover:bg-gray-300 dark:hover:bg-gray-600 dark:text-gray-100"
                             onClick={() => handleDeleteStatus(status.id)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -589,62 +719,138 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="paymentMethods">
-            <form onSubmit={handleAddPaymentMethod} className="space-y-4 mb-4">
-              <div className="flex space-x-2">
-                <Input
-                  placeholder={t('paymentMethodName')}
-                  value={newPaymentMethod.name}
-                  onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, name: e.target.value })}
-                  className="flex-grow"
-                />
-                <Button type="submit">
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  {t('addPaymentMethod')}
-                </Button>
-              </div>
-            </form>
+            {editingPaymentMethod ? (
+              <form onSubmit={handleUpdatePaymentMethod} className="space-y-4 mb-4">
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder={t('paymentMethodName')}
+                    value={editPaymentMethodValue}
+                    onChange={(e) => setEditPaymentMethodValue(e.target.value)}
+                    className="flex-grow"
+                  />
+                  <Button type="submit">
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    {t('saveChanges')}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditingPaymentMethod(null);
+                      setEditPaymentMethodValue('');
+                    }}
+                  >
+                    {t('cancel')}
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleAddPaymentMethod} className="space-y-4 mb-4">
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder={t('paymentMethodName')}
+                    value={newPaymentMethod.name}
+                    onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, name: e.target.value })}
+                    className="flex-grow"
+                  />
+                  <Button type="submit">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    {t('addPaymentMethod')}
+                  </Button>
+                </div>
+              </form>
+            )}
             <ul className="space-y-2">
               {paymentMethods.map((method) => (
-                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded dark:text-gray-100">
+                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded dark:text-gray-100 transition-colors">
                   <span>{method.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeletePaymentMethod(method.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditPaymentMethod(method)}
+                      className="hover:bg-gray-300 dark:hover:bg-gray-600"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeletePaymentMethod(method.id)}
+                      className="hover:bg-gray-300 dark:hover:bg-gray-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
           </TabsContent>
 
           <TabsContent value="deliveryMethods">
-            <form onSubmit={handleAddDeliveryMethod} className="space-y-4 mb-4">
-              <div className="flex space-x-2">
-                <Input
-                  placeholder={t('deliveryMethodName')}
-                  value={newDeliveryMethod.name}
-                  onChange={(e) => setNewDeliveryMethod({ ...newDeliveryMethod, name: e.target.value })}
-                  className="flex-grow"
-                />
-                <Button type="submit">
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  {t('addDeliveryMethod')}
-                </Button>
-              </div>
-            </form>
+            {editingDeliveryMethod ? (
+              <form onSubmit={handleUpdateDeliveryMethod} className="space-y-4 mb-4">
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder={t('deliveryMethodName')}
+                    value={editDeliveryMethodValue}
+                    onChange={(e) => setEditDeliveryMethodValue(e.target.value)}
+                    className="flex-grow"
+                  />
+                  <Button type="submit">
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    {t('saveChanges')}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditingDeliveryMethod(null);
+                      setEditDeliveryMethodValue('');
+                    }}
+                  >
+                    {t('cancel')}
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleAddDeliveryMethod} className="space-y-4 mb-4">
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder={t('deliveryMethodName')}
+                    value={newDeliveryMethod.name}
+                    onChange={(e) => setNewDeliveryMethod({ ...newDeliveryMethod, name: e.target.value })}
+                    className="flex-grow"
+                  />
+                  <Button type="submit">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    {t('addDeliveryMethod')}
+                  </Button>
+                </div>
+              </form>
+            )}
             <ul className="space-y-2">
               {Array.isArray(deliveryMethods) ? deliveryMethods.map((method) => (
-                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded dark:text-gray-100">
+                <li key={method.id} className="flex justify-between items-center p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded dark:text-gray-100 transition-colors">
                   <span>{method.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteDeliveryMethod(method.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditDeliveryMethod(method)}
+                      className="hover:bg-gray-300 dark:hover:bg-gray-600"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteDeliveryMethod(method.id)}
+                      className="hover:bg-gray-300 dark:hover:bg-gray-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </li>
               )) : null}
             </ul>
