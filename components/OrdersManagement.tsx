@@ -117,6 +117,18 @@ interface OrdersManagementProps {
     blacklistedCustomerWarning: string
     notes: string
     notesPlaceholder: string
+    showing: string
+    of: string
+    results: string
+    previous: string
+    next: string
+    page: string
+    addProduct: string
+    productName: string
+    quantity: string
+    price: string
+    product: string
+    totalItems: string
   }
   initialOrders: Order[]
   itemsPerPage?: number
@@ -188,7 +200,7 @@ interface OrderData {
 }
 
 interface FilterOptions {
-  status?: string;
+  status: string;  // Changed from status?: string to status: string
   dateRange?: {
     from: Date | null;
     to: Date | null;
@@ -341,6 +353,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isClient, setIsClient] = useState(false)
   const [filterText, setFilterText] = useState("")
+  const [debouncedFilterText, setDebouncedFilterText] = useState("")
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -367,7 +380,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [statuses, setStatuses] = useState<Status[]>([])
   const [editingStatusOrder, setEditingStatusOrder] = useState<Order | null>(null)
   const [filters, setFilters] = useState<FilterOptions>({
-    status: undefined,
+    status: '',  // Changed from undefined to empty string
     dateRange: { from: null, to: null },
     minAmount: undefined,
     maxAmount: undefined
@@ -458,15 +471,19 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               // Format the record before adding to state
               const formattedOrder = {
                 ...record,
+                deliveryMethod: record.expand?.deliveryMethod ? {
+                  id: record.expand.deliveryMethod.id,
+                  name: record.expand.deliveryMethod.name
+                } : { id: '', name: '' },  // Default empty delivery method
+                paymentMethod: record.expand?.paymentMethod ? {
+                  id: record.expand.paymentMethod.id,
+                  name: record.expand.paymentMethod.name
+                } : { id: '', name: '' },  // Default empty payment method
                 status: record.expand?.status ? {
                   id: record.expand.status.id,
                   name: record.expand.status.name,
                   color: record.expand.status.color
-                } : {
-                  id: '',
-                  name: '',
-                  color: '#cbd5e1'
-                },
+                } : { id: '', name: '', color: '#cbd5e1' },  // Default status
                 createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
                 updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
               };
@@ -485,15 +502,19 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               // Format the record before updating state
               const formattedOrder = {
                 ...record,
+                deliveryMethod: record.expand?.deliveryMethod ? {
+                  id: record.expand.deliveryMethod.id,
+                  name: record.expand.deliveryMethod.name
+                } : { id: '', name: '' },
+                paymentMethod: record.expand?.paymentMethod ? {
+                  id: record.expand.paymentMethod.id,
+                  name: record.expand.paymentMethod.name
+                } : { id: '', name: '' },
                 status: record.expand?.status ? {
                   id: record.expand.status.id,
                   name: record.expand.status.name,
                   color: record.expand.status.color
-                } : {
-                  id: '',
-                  name: '',
-                  color: '#cbd5e1'
-                },
+                } : { id: '', name: '', color: '#cbd5e1' },
                 createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
                 updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
               };
@@ -581,11 +602,40 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
   const stats = getMonthlyStats(orders);
 
+  // Add debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilterText(filterText);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [filterText]);
+
+  // Update filteredOrders to use debouncedFilterText
   const filteredOrders = orders.filter(order => {
     let matches = true;
 
-    // Filter by status
-    if (filters.status && order.status?.id !== filters.status) {
+    // Search filter
+    if (debouncedFilterText) {
+      const searchTerm = debouncedFilterText.toLowerCase();
+      const matchesSearch = 
+        order.orderNumber.toLowerCase().includes(searchTerm) ||
+        order.fullName.toLowerCase().includes(searchTerm) ||
+        order.phoneNumber.toLowerCase().includes(searchTerm) ||
+        order.deliveryPostNumber?.toLowerCase().includes(searchTerm) ||
+        order.sourceName?.toLowerCase().includes(searchTerm) ||
+        // Search in products
+        (Array.isArray(order.products) && order.products.some(product => 
+          product.name.toLowerCase().includes(searchTerm)
+        ));
+
+      if (!matchesSearch) {
+        matches = false;
+      }
+    }
+
+    // Filter by status - updated to check for non-empty string
+    if (filters.status && filters.status !== '' && order.status?.id !== filters.status) {
       matches = false;
     }
 
@@ -873,15 +923,19 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               // Format the record before adding to state
               const formattedOrder = {
                 ...record,
+                deliveryMethod: record.expand?.deliveryMethod ? {
+                  id: record.expand.deliveryMethod.id,
+                  name: record.expand.deliveryMethod.name
+                } : { id: '', name: '' },
+                paymentMethod: record.expand?.paymentMethod ? {
+                  id: record.expand.paymentMethod.id,
+                  name: record.expand.paymentMethod.name
+                } : { id: '', name: '' },
                 status: record.expand?.status ? {
                   id: record.expand.status.id,
                   name: record.expand.status.name,
                   color: record.expand.status.color
-                } : {
-                  id: '',
-                  name: '',
-                  color: '#cbd5e1'
-                },
+                } : { id: '', name: '', color: '#cbd5e1' },
                 createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
                 updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
               };
@@ -900,15 +954,19 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               // Format the record before updating state
               const formattedOrder = {
                 ...record,
+                deliveryMethod: record.expand?.deliveryMethod ? {
+                  id: record.expand.deliveryMethod.id,
+                  name: record.expand.deliveryMethod.name
+                } : { id: '', name: '' },
+                paymentMethod: record.expand?.paymentMethod ? {
+                  id: record.expand.paymentMethod.id,
+                  name: record.expand.paymentMethod.name
+                } : { id: '', name: '' },
                 status: record.expand?.status ? {
                   id: record.expand.status.id,
                   name: record.expand.status.name,
                   color: record.expand.status.color
-                } : {
-                  id: '',
-                  name: '',
-                  color: '#cbd5e1'
-                },
+                } : { id: '', name: '', color: '#cbd5e1' },
                 createdAt: record.created ? new Date(record.created).toISOString() : new Date().toISOString(),
                 updatedAt: record.updated ? new Date(record.updated).toISOString() : new Date().toISOString(),
               };
@@ -949,10 +1007,51 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   // Calculate max amount from orders for slider
   const maxPossibleAmount = Math.max(...orders.map(order => order.amount), 5000);
 
+  // Add this new handler function for payment method changes
+  const handlePaymentMethodChange = async (value: string) => {
+    if (!selectedOrder) return;
+
+    const method = paymentMethods.find(m => m.id === value);
+    if (!method) return;
+
+    try {
+      const response = await axios.put(`/api/orders/${selectedOrder.id}`, {
+        paymentMethod: value
+      });
+
+      if (response.data) {
+        const updatedOrder = await pb.collection('orders').getOne(selectedOrder.id, {
+          expand: 'deliveryMethod,paymentMethod,status,currency',
+          $autoCancel: false
+        });
+
+        const formattedOrder = {
+          ...selectedOrder,
+          paymentMethod: {
+            id: updatedOrder.expand?.paymentMethod.id,
+            name: updatedOrder.expand?.paymentMethod.name
+          },
+          updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : new Date().toISOString()
+        };
+
+        setOrders(prevOrders => 
+          prevOrders.map(o => o.id === selectedOrder.id ? formattedOrder : o)
+        );
+        setSelectedOrder(formattedOrder);
+      }
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+      alert('Error updating payment method');
+    }
+  };
+
+  // Update the handleStatusChange function to include payment method
   const handleStatusChange = async (orderId: string, statusId: string) => {
     try {
       const response = await axios.put(`/api/orders/${orderId}`, {
-        statusId: statusId
+        statusId: statusId,
+        deliveryMethod: selectedOrder?.deliveryMethod?.id,
+        paymentMethod: selectedOrder?.paymentMethod?.id
       });
       
       if (response.data) {
@@ -961,23 +1060,91 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           $autoCancel: false
         });
         
+        const newStatus = {
+          id: updatedOrder.expand?.status.id,
+          name: updatedOrder.expand?.status.name,
+          color: updatedOrder.expand?.status.color
+        };
+
+        // Update orders list with payment method
         setOrders(prevOrders => 
           prevOrders.map(o => 
             o.id === orderId ? {
               ...o,
-              status: updatedOrder.expand?.status ? {
-                id: updatedOrder.expand.status.id,
-                name: updatedOrder.expand.status.name,
-                color: updatedOrder.expand.status.color
-              } : o.status,
+              status: newStatus,
+              deliveryMethod: updatedOrder.expand?.deliveryMethod ? {
+                id: updatedOrder.expand.deliveryMethod.id,
+                name: updatedOrder.expand.deliveryMethod.name
+              } : o.deliveryMethod,
+              paymentMethod: updatedOrder.expand?.paymentMethod ? {
+                id: updatedOrder.expand.paymentMethod.id,
+                name: updatedOrder.expand.paymentMethod.name
+              } : o.paymentMethod,
               updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : o.updatedAt
             } : o
           )
         );
+
+        // Update selected order with payment method
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              status: newStatus,
+              deliveryMethod: updatedOrder.expand?.deliveryMethod ? {
+                id: updatedOrder.expand.deliveryMethod.id,
+                name: updatedOrder.expand.deliveryMethod.name
+              } : prev.deliveryMethod,
+              paymentMethod: updatedOrder.expand?.paymentMethod ? {
+                id: updatedOrder.expand.paymentMethod.id,
+                name: updatedOrder.expand.paymentMethod.name
+              } : prev.paymentMethod,
+              updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : prev.updatedAt
+            } as Order;
+          });
+        }
       }
     } catch (error) {
       console.error('Error updating order:', error);
       alert('Error updating order');
+    }
+  };
+
+  const handleDeliveryMethodChange = async (value: string) => {
+    if (!selectedOrder) return;
+
+    const method = deliveryMethods.find(m => m.id === value);
+    if (!method) return;
+
+    try {
+      const response = await axios.put(`/api/orders/${selectedOrder.id}`, {
+        deliveryMethod: value
+      });
+
+      if (response.data) {
+        const updatedOrder = await pb.collection('orders').getOne(selectedOrder.id, {
+          expand: 'deliveryMethod,paymentMethod,status,currency',
+          $autoCancel: false
+        });
+
+        const formattedOrder = {
+          ...selectedOrder,
+          deliveryMethod: {
+            id: updatedOrder.expand?.deliveryMethod.id,
+            name: updatedOrder.expand?.deliveryMethod.name
+          },
+          updatedAt: updatedOrder.updated ? new Date(updatedOrder.updated).toISOString() : new Date().toISOString()
+        };
+
+        setOrders(prevOrders => 
+          prevOrders.map(o => o.id === selectedOrder.id ? formattedOrder : o)
+        );
+        setSelectedOrder(formattedOrder);
+      }
+    } catch (error) {
+      console.error('Error updating delivery method:', error);
+      alert('Error updating delivery method');
     }
   };
 
@@ -1037,7 +1204,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           variant="ghost"
           size="sm"
         >
-          Previous
+          {translations.previous}
         </Button>
         <Button
           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
@@ -1045,15 +1212,15 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           variant="ghost"
           size="sm"
         >
-          Next
+          {translations.next}
         </Button>
       </div>
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">
-            Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
-            <span className="font-medium">{Math.min(endIndex, filteredOrders.length)}</span> of{" "}
-            <span className="font-medium">{filteredOrders.length}</span> results
+            {translations.showing} <span className="font-medium">{startIndex + 1}</span> {translations.of}{" "}
+            <span className="font-medium">{Math.min(endIndex, filteredOrders.length)}</span> {translations.of}{" "}
+            <span className="font-medium">{filteredOrders.length}</span> {translations.results}
           </p>
         </div>
         <div>
@@ -1065,7 +1232,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
-              Previous
+              {translations.previous}
             </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
@@ -1085,7 +1252,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
             >
-              Next
+              {translations.next}
             </Button>
           </nav>
         </div>
@@ -1244,14 +1411,14 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 </div>
 
                 <Button 
-                  variant="default" 
+                  variant="ghost" 
                   onClick={() => setFilters({
-                    status: undefined,
+                    status: '',
                     dateRange: { from: null, to: null },
                     minAmount: undefined,
                     maxAmount: undefined
                   })}
-                  className="w-full text-xs bg-background/60"
+                  className="w-full text-xs hover:bg-accent hover:text-accent-foreground dark:border-border"
                 >
                   {t('resetFilters')}
                 </Button>
@@ -1259,11 +1426,61 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             </Card>
           </div>
 
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={translations.filterOrdersPlaceholder}
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                className="pl-8"
+              />
+              {filterText && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1 h-7 w-7 p-0 hover:bg-background"
+                  onClick={() => setFilterText("")}
+                >
+                  ×
+                </Button>
+              )}
+            </div>
+          </div>
+
           <OrdersTable
             orders={currentOrders}
-            onViewDetails={(order) => {
-              setSelectedOrder(order as unknown as Order)
-              setIsDetailsModalOpen(true)
+            onViewDetails={async (order) => {
+              try {
+                // Fetch the complete order data with expanded fields
+                const expandedOrder = await pb.collection('orders').getOne(order.id, {
+                  expand: 'deliveryMethod,paymentMethod,status,currency'
+                });
+                
+                // Format the order with expanded data
+                const formattedOrder = {
+                  ...order,
+                  deliveryMethod: expandedOrder.expand?.deliveryMethod ? {
+                    id: expandedOrder.expand?.deliveryMethod?.id || '',
+                    name: expandedOrder.expand?.deliveryMethod?.name || ''
+                  } : { id: '', name: '' },
+                  paymentMethod: expandedOrder.expand?.paymentMethod ? {
+                    id: expandedOrder.expand?.paymentMethod?.id || '',
+                    name: expandedOrder.expand?.paymentMethod?.name || ''
+                  } : { id: '', name: '' },
+                  status: expandedOrder.expand?.status ? {
+                    id: expandedOrder.expand?.status?.id || '',
+                    name: expandedOrder.expand?.status?.name || '',
+                    color: expandedOrder.expand?.status?.color || ''
+                  } : { id: '', name: '', color: '#cbd5e1' }
+                } as Order;
+                
+                setSelectedOrder(formattedOrder);
+                setIsDetailsModalOpen(true);
+              } catch (error) {
+                console.error('Error fetching order details:', error);
+                alert('Error loading order details');
+              }
             }}
             onDeleteOrder={handleDeleteOrder}
             translations={translations}
@@ -1487,13 +1704,13 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     </Label>
                     <Button
                       type="button"
-                      variant="default"
+                      variant="ghost"
                       size="sm"
                       onClick={addProductInput}
-                      className="h-8 bg-background/60 border border-input hover:bg-accent flex items-center"
+                      className="h-8 bg-background hover:bg-accent hover:text-accent-foreground flex items-center dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200"
                     >
                       <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Product
+                      {translations.addProduct}
                     </Button>
                   </div>
                   
@@ -1503,9 +1720,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   )}>
                     {/* Table Header */}
                     <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 bg-muted/30 border-b border-border">
-                      <div className="text-sm font-medium text-foreground">Product</div>
-                      <div className="text-sm font-medium text-foreground">Quantity</div>
-                      <div className="text-sm font-medium text-foreground">Price</div>
+                      <div className="text-sm font-medium text-foreground">{translations.product}</div>
+                      <div className="text-sm font-medium text-foreground">{translations.quantity}</div>
+                      <div className="text-sm font-medium text-foreground">{translations.price}</div>
                       <div></div>
                     </div>
                     
@@ -1514,7 +1731,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       {productInputs.map((product, index) => (
                         <div key={index} className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 items-center hover:bg-muted/20">
                           <Input
-                            placeholder="Product name"
+                            placeholder={translations.productName}
                             value={product.title}
                             onChange={(e) => handleProductInputChange(index, 'title', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -1522,7 +1739,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                           <Input
                             type="number"
                             min="1"
-                            placeholder="Qty"
+                            placeholder={translations.quantity}
                             value={product.quantity}
                             onChange={(e) => handleProductInputChange(index, 'quantity', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -1531,7 +1748,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                             type="number"
                             min="0"
                             step="0.01"
-                            placeholder="Price"
+                            placeholder={translations.price}
                             value={product.price}
                             onChange={(e) => handleProductInputChange(index, 'price', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -1558,7 +1775,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   {/* Totals */}
                   <div className="grid grid-cols-2 gap-4 mt-4 bg-muted/20 p-4 rounded-md border border-border">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">{translations.numberOfItems}</Label>
+                      <Label className="text-sm font-medium text-foreground">{translations.totalItems}</Label>
                       <Input
                         type="number"
                         value={productInputs.reduce((sum, p) => sum + p.quantity, 0)}
@@ -1567,7 +1784,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">{translations.amount}</Label>
+                      <Label className="text-sm font-medium text-foreground">{translations.totalAmount}</Label>
                       <Input
                         type="number"
                         value={productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0)}
@@ -1615,13 +1832,13 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     disabled={isBlacklisted}
                   >
                     <SelectTrigger className={cn(
-                      "w-full bg-background border-input",
+                      "w-full bg-background border-input dark:bg-gray-700 dark:border-gray-600 dark:text-white",
                       validationErrors.paymentMethod && "border-destructive",
                       isBlacklisted && "bg-yellow-50 dark:bg-yellow-900/50"
                     )}>
                       <SelectValue placeholder={translations.selectPaymentMethod} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background dark:bg-gray-800 border-input dark:border-gray-700">
                       {paymentMethods
                         .filter(method => !isBlacklisted || 
                           method.name.toLowerCase().includes('prepayment') || 
@@ -1631,7 +1848,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                           <SelectItem 
                             key={method.id} 
                             value={method.id}
-                            className="text-foreground dark:text-white hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                            className="text-foreground dark:text-gray-200 hover:bg-accent dark:hover:bg-gray-700 focus:bg-accent dark:focus:bg-gray-700"
                           >
                             {method.name}
                           </SelectItem>
@@ -1814,16 +2031,17 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       });
                     }}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                       <SelectValue placeholder={translations.selectSource}>
                         {sources.find(s => s.id === selectedOrder.source)?.name || selectedOrder.sourceName}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                       {sources.map(source => (
                         <SelectItem 
                           key={source.id} 
                           value={source.id}
+                          className="dark:text-gray-200 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
                         >
                           {source.name}
                         </SelectItem>
@@ -1835,27 +2053,24 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 <div className="grid grid-cols-2 items-center gap-4">
                   <Label>{translations.deliveryMethod}</Label>
                   <Select
-                    value={selectedOrder.deliveryMethod?.id}
-                    onValueChange={(value) => {
-                      const method = deliveryMethods.find(m => m.id === value);
-                      setSelectedOrder({
-                        ...selectedOrder,
-                        deliveryMethod: method
-                      });
-                    }}
+                    value={selectedOrder.deliveryMethod?.id || ''}
+                    onValueChange={handleDeliveryMethodChange}
                   >
-                    <SelectTrigger>
-                      <SelectValue>{selectedOrder.deliveryMethod?.name}</SelectValue>
+                    <SelectTrigger className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                      <SelectValue>
+                        {selectedOrder.deliveryMethod?.name || translations.selectDeliveryMethod}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
-                      {deliveryMethods.map((method) => {
-                        const uniqueKey = `delivery-${method.id}-${method.name}`;
-                        return (
-                          <SelectItem key={uniqueKey} value={method.id} className="text-black">
-                            {method.name}
-                          </SelectItem>
-                        );
-                      })}
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                      {deliveryMethods.map((method) => (
+                        <SelectItem 
+                          key={method.id} 
+                          value={method.id}
+                          className="dark:text-gray-200 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+                        >
+                          {method.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1877,27 +2092,24 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 <div className="grid grid-cols-2 items-center gap-4">
                   <Label>{translations.paymentMethod}</Label>
                   <Select
-                    value={selectedOrder.paymentMethod?.id}
-                    onValueChange={(value) => {
-                      const method = paymentMethods.find(m => m.id === value);
-                      setSelectedOrder({
-                        ...selectedOrder,
-                        paymentMethod: method
-                      });
-                    }}
+                    value={selectedOrder.paymentMethod?.id || ''}
+                    onValueChange={handlePaymentMethodChange}
                   >
-                    <SelectTrigger>
-                      <SelectValue>{selectedOrder.paymentMethod?.name}</SelectValue>
+                    <SelectTrigger className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                      <SelectValue>
+                        {selectedOrder.paymentMethod?.name || translations.selectPaymentMethod}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-background/95 border border-input shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-gray-800">
-                      {paymentMethods.map(method => {
-                        const uniqueKey = `payment-${method.id}-${method.name}`;
-                        return (
-                          <SelectItem key={uniqueKey} value={method.id}>
-                            {method.name}
-                          </SelectItem>
-                        );
-                      })}
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                      {paymentMethods.map(method => (
+                        <SelectItem 
+                          key={method.id} 
+                          value={method.id}
+                          className="dark:text-gray-200 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+                        >
+                          {method.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1912,22 +2124,22 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     <Label>{translations.products}</Label>
                     <Button
                       type="button"
-                      variant="default"
+                      variant="ghost"
                       size="sm"
                       onClick={() => setEditProductInputs(prev => [...prev, { title: '', quantity: 1, price: 0 }])}
-                      className="h-8 bg-background/60 border border-input hover:bg-accent flex items-center"
+                      className="h-8 bg-background hover:bg-accent hover:text-accent-foreground flex items-center dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200"
                     >
                       <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Product
+                      {translations.addProduct}
                     </Button>
                   </div>
                   
                   <div className="rounded-md border border-border overflow-hidden">
                     {/* Table Header */}
                     <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 bg-muted/30 border-b border-border">
-                      <div className="text-sm font-medium text-foreground">Product</div>
-                      <div className="text-sm font-medium text-foreground">Quantity</div>
-                      <div className="text-sm font-medium text-foreground">Price</div>
+                      <div className="text-sm font-medium text-foreground">{translations.product}</div>
+                      <div className="text-sm font-medium text-foreground">{translations.quantity}</div>
+                      <div className="text-sm font-medium text-foreground">{translations.price}</div>
                       <div></div>
                     </div>
                     
@@ -1936,7 +2148,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       {editProductInputs.map((product, index) => (
                         <div key={index} className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 p-3 items-center hover:bg-muted/20">
                           <Input
-                            placeholder="Product name"
+                            placeholder={translations.productName}
                             value={product.title}
                             onChange={(e) => handleEditProductInputChange(index, 'title', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -1944,7 +2156,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                           <Input
                             type="number"
                             min="1"
-                            placeholder="Qty"
+                            placeholder={translations.quantity}
                             value={product.quantity}
                             onChange={(e) => handleEditProductInputChange(index, 'quantity', e.target.value)}
                             className="bg-background border-input focus:bg-background"
@@ -1953,7 +2165,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                             type="number"
                             min="0"
                             step="0.01"
-                            placeholder="Price"
+                            placeholder={translations.price}
                             value={product.price}
                             onChange={(e) => handleEditProductInputChange(index, 'price', e.target.value)}
                             className="bg-background border-input focus:bg-background"
