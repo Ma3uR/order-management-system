@@ -1,4 +1,3 @@
-import { Providers } from './providers';
 import { locales } from '@/config';
 import './globals.css';
 
@@ -11,5 +10,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
 }
