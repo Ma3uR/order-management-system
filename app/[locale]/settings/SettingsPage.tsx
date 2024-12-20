@@ -451,10 +451,6 @@ export default function SettingsPage() {
       <div className="flex flex-col gap-4 sm:gap-6 mb-4">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            <ThemeToggle />
-          </div>
         </div>
         <Link href="/dashboard" className="text-blue-500 dark:text-blue-400 hover:underline">
           {t('backToDashboard')}

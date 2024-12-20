@@ -1,7 +1,16 @@
+import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const locales = ['ua', 'en']
+const defaultLocale = 'ua'
+
+// Create next-intl middleware
+const nextIntlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix: 'always'
+});
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -13,26 +22,25 @@ export function middleware(request: NextRequest) {
 
   if (!pathnameHasLocale) {
     // Redirect to default locale if no locale is present
-    const url = new URL(`/ua${pathname}`, request.url)
+    const url = new URL(`/${defaultLocale}${pathname}`, request.url)
     return NextResponse.redirect(url)
   }
 
-  // For language switcher: handle paths that have double locales like /ua/en/dashboard
+  // For language switcher: handle paths that have double locales
   for (const locale of locales) {
-    // Check if URL has a pattern like /ua/en/... or /en/ua/...
     const hasDoubleLocale = locales.some(
       (otherLocale) => pathname.startsWith(`/${locale}/${otherLocale}/`)
     )
 
     if (hasDoubleLocale) {
-      // Remove the first locale and keep the intended one
       const cleanPath = pathname.replace(/^\/[^/]+/, '')
       const url = new URL(cleanPath, request.url)
       return NextResponse.redirect(url)
     }
   }
 
-  return NextResponse.next()
+  // Run next-intl middleware after our custom logic
+  return nextIntlMiddleware(request)
 }
 
 export const config = {

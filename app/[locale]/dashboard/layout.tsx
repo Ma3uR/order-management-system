@@ -1,18 +1,34 @@
 'use client';
 
+import { SessionProvider } from 'next-auth/react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
-import { ThemeSwitcher } from '@/components/theme-switcher';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Footer } from '@/components/footer';
+import { ThemeProvider } from 'next-themes';
 
 export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <SessionProvider>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      </SessionProvider>
+    </ThemeProvider>
+  );
+}
+
+function DashboardLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -138,7 +154,7 @@ export default function DashboardLayout({
         <header className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="flex justify-between items-center px-4 py-3">
             <LanguageSwitcher />
-            <ThemeSwitcher />
+            <ThemeToggle />
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gray-100 dark:bg-gray-900">
