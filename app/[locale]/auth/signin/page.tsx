@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
-import { ThemeSwitcher } from '@/components/theme-switcher';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Footer } from '@/components/footer';
 
 export default function SignIn() {
@@ -50,7 +50,7 @@ export default function SignIn() {
       {/* Header with Language and Theme Switchers */}
       <div className="absolute top-4 right-4 flex items-center space-x-2">
         <LanguageSwitcher />
-        <ThemeSwitcher />
+        <ThemeToggle />
       </div>
 
       {/* Main Content */}
