@@ -21,15 +21,18 @@ export default function LanguageSwitcher() {
   const pathname = usePathname()
   const currentLocale = useLocale()
 
-  const changeLanguage = (language: Language) => {
-    if (!pathname) return;
-    const newPath = pathname.replace(`/${currentLocale}`, `/${language.code}`)
-    router.push(newPath)
+  const switchLanguage = (newLocale: string) => {
+    const currentPath = window.location.pathname
+    // Remove the current locale from path
+    const pathWithoutLocale = currentPath.replace(/^\/[^/]+/, '')
+    // Add new locale
+    const newPath = `/${newLocale}${pathWithoutLocale}`
+    window.location.href = newPath
   }
 
   return (
     <Button
-      onClick={() => changeLanguage(languages[currentLocale === 'en' ? 1 : 0])}
+      onClick={() => switchLanguage(languages[currentLocale === 'en' ? 1 : 0].code)}
       variant="ghost"
       size="sm"
       className="flex items-center gap-2"
