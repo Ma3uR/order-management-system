@@ -28,6 +28,12 @@ interface Order {
   };
 }
 
+interface Source {
+  id: string;
+  name: string;
+  color: string;
+}
+
 const SOURCE_COLORS: Record<string, string> = {
   'Rozetka': '#00A046',
   'PromUa': '#3E77AA',
@@ -54,6 +60,7 @@ export default function Dashboard() {
     graphDataRevenue: Array(12).fill(0)
   });
   const mounted = useRef(false);
+  const [sources, setSources] = useState<Record<string, { name: string; color: string }>>({});
 
   const calculateStats = useCallback(async (orders: Order[]) => {
     const now = new Date();
@@ -66,70 +73,68 @@ export default function Dashboard() {
     let currentMonthRevenue = 0;
     let lastMonthRevenue = 0;
 
-    // First, fetch all sources
-    let sources: Record<string, { name: string; color: string }> = {};
+    // Fetch sources directly from PocketBase
     try {
-      const response = await fetch('/api/sources');
-      if (!response.ok) throw new Error('Failed to fetch sources');
-      const sourcesData = await response.json();
-      sources = sourcesData.reduce((acc: Record<string, { name: string; color: string }>, source: SourcesResponse) => {
+      const sourcesRecords = await pb.collection('sources').getFullList<Source>();
+      const sourcesMap = sourcesRecords.reduce((acc, source) => {
         acc[source.id] = {
           name: source.name || 'Unknown',
           color: SOURCE_COLORS[source.name || ''] || getRandomColor(source.name || '')
         };
         return acc;
-      }, {});
+      }, {} as Record<string, { name: string; color: string }>);
+      setSources(sourcesMap);
+
+      orders.forEach(order => {
+        const orderDate = new Date(order.createdAt);
+        const orderMonth = orderDate.getMonth();
+        const orderYear = orderDate.getFullYear();
+        const amount = order.amount || 0;
+
+        if (orderYear === currentYear) {
+          monthlyData[orderMonth] += amount;
+        }
+
+        if (orderYear === currentYear && orderMonth === currentMonth) {
+          currentMonthRevenue += amount;
+        } else if (orderMonth === (currentMonth - 1 + 12) % 12 && 
+                  (orderYear === currentYear || (orderMonth > currentMonth && orderYear === currentYear - 1))) {
+          lastMonthRevenue += amount;
+        }
+
+        const sourceId = order.source;
+        const sourceName = sourcesMap[sourceId]?.name || 'Unknown';
+        const sourceColor = sourcesMap[sourceId]?.color || '#CBD5E1';
+
+        if (!sourceData[sourceName]) {
+          sourceData[sourceName] = { value: 0, color: sourceColor };
+        }
+        sourceData[sourceName].value += amount;
+      });
+
+      const revenueChange = lastMonthRevenue ? 
+        ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
+
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
+
+      const trafficData = Object.entries(sourceData)
+        .map(([name, data]) => ({
+          name,
+          value: (data.value / totalRevenue) * 100,
+          color: data.color
+        }))
+        .sort((a, b) => b.value - a.value);
+
+      setStats({
+        totalRevenue,
+        revenueChange,
+        monthlyData,
+        trafficData,
+        graphDataRevenue: monthlyData
+      });
     } catch (error) {
-      console.error('Error fetching sources:', error);
+      console.error('Error processing data:', error);
     }
-
-    orders.forEach(order => {
-      const orderDate = new Date(order.createdAt);
-      const orderMonth = orderDate.getMonth();
-      const orderYear = orderDate.getFullYear();
-      const amount = order.amount || 0;
-
-      if (orderYear === currentYear) {
-        monthlyData[orderMonth] += amount;
-      }
-
-      if (orderYear === currentYear && orderMonth === currentMonth) {
-        currentMonthRevenue += amount;
-      } else if (orderMonth === (currentMonth - 1 + 12) % 12 && 
-                (orderYear === currentYear || (orderMonth > currentMonth && orderYear === currentYear - 1))) {
-        lastMonthRevenue += amount;
-      }
-
-      const sourceId = order.source;
-      const sourceName = sources[sourceId]?.name || 'Unknown';
-      const sourceColor = sources[sourceId]?.color || '#CBD5E1';
-
-      if (!sourceData[sourceName]) {
-        sourceData[sourceName] = { value: 0, color: sourceColor };
-      }
-      sourceData[sourceName].value += amount;
-    });
-
-    const revenueChange = lastMonthRevenue ? 
-      ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
-
-    const totalRevenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
-
-    const trafficData = Object.entries(sourceData)
-      .map(([name, data]) => ({
-        name,
-        value: (data.value / totalRevenue) * 100,
-        color: data.color
-      }))
-      .sort((a, b) => b.value - a.value);
-
-    setStats({
-      totalRevenue,
-      revenueChange,
-      monthlyData,
-      trafficData,
-      graphDataRevenue: monthlyData
-    });
   }, []);
 
   useEffect(() => {
