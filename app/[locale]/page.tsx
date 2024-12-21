@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { auth } from '@/lib/auth';
+import { auth } from '@/app/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
 
 export default async function Page({ params: { locale } }: { params: { locale: string } }) {

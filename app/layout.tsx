@@ -1,4 +1,4 @@
-import Providers from "@/components/Providers";
+import Providers from "@/app/components/Providers";
 import { locales } from '@/config';
 import './globals.css';
 

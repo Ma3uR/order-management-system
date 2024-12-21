@@ -7,11 +7,11 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/app/components/ThemeToggle';
+import { Button } from '@/app/components/ui/button';
 import { Menu, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Footer } from '@/components/footer';
+import { cn } from '@/app/lib/utils';
+import { Footer } from '@/app/components/footer';
 import { ThemeProvider } from 'next-themes';
 
 export default function DashboardLayout({

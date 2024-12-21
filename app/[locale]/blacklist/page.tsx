@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { default as dynamicImport } from 'next/dynamic';
-import { auth } from '@/lib/auth';
+import { auth } from '@/app/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
-import { Footer } from '@/components/footer';
+import { Footer } from '@/app/components/footer';
 
-const BlacklistManagement = dynamicImport(() => import('@/components/BlacklistManagement'), { 
+const BlacklistManagement = dynamicImport(() => import('@/app/components/BlacklistManagement'), { 
   ssr: false,
   loading: () => <div className="p-8 text-center">Loading...</div>
 });

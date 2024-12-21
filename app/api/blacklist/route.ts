@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { pb, authenticateAdmin } from '@/lib/pocketbase';
+import { pb, authenticateAdmin } from '@/app/lib/pocketbase';
 import { getServerSession } from 'next-auth';
-import { auth } from '@/lib/auth';
+import { auth } from '@/app/lib/auth';
 
 export async function GET(request: Request) {
   try {

@@ -1,8 +1,8 @@
 import {getTranslations} from 'next-intl/server';
-import { OrdersManagement } from '@/components/OrdersManagement';
-import { fetchOrders } from '@/lib/api';
-import { ErrorBoundaryClient } from '@/components/error-boundary-client';
-import { OrdersResponse } from '@/types/pocketbase-types';
+import { OrdersManagement } from '@/app/components/OrdersManagement';
+import { fetchOrders } from '@/app/lib/pocketbase';
+import { ErrorBoundaryClient } from '@/app/components/error-boundary-client';
+import { OrdersResponse } from '@/app/types/pocketbase-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,18 +88,18 @@ export default async function OrdersPage() {
           ...order,
           orderNumber: order.orderNumber || '',
           source: order.source || '',
-          deliveryMethod: order.deliveryMethod?.id || '',
+          deliveryMethod: order.deliveryMethod || '',
           deliveryPostNumber: order.deliveryPostNumber || '',
           phoneNumber: order.phoneNumber || '',
           fullName: order.fullName || '',
           products: typeof order.products === 'string' ? JSON.parse(order.products) : order.products || [],
           numberOfItems: order.numberOfItems || 0,
-          paymentMethod: order.paymentMethod?.id || '',
+          paymentMethod: order.paymentMethod || '',
           amount: order.amount || 0,
-          status: order.status?.id || '',
-          currency: order.currency?.id || '',
-          createdAt: order.createdAt || new Date().toISOString(),
-          updatedAt: order.updatedAt || new Date().toISOString(),
+          status: order.status || '',
+          currency: order.currency || '',
+          createdAt: order.created || new Date().toISOString(),
+          updatedAt: order.updated || new Date().toISOString(),
           productsText: typeof order.products === 'string' ? order.products : JSON.stringify(order.products || [], null, 2),
           notes: order.notes || ''
         }) as unknown as OrdersResponse)} 

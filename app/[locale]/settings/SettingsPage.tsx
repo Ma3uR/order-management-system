@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSession } from 'next-auth/react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
 import Link from 'next/link';
 import { PlusCircle, Trash2, Edit2 } from 'lucide-react';
-import { Label } from "@/components/ui/label";
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Label } from "@/app/components/ui/label";
+import LanguageSwitcher from '@/app/components/LanguageSwitcher';
+import { ThemeToggle } from '@/app/components/ThemeToggle';
 
 interface Currency {
   id: string;

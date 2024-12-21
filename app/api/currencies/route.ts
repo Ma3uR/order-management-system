@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
 
 export async function GET() {
   try {
