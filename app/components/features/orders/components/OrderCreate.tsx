@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/app/components/shared/ui/textarea";
 import { OrderProducts } from './OrderProducts';
 import { useOrderValidation } from '@/app/hooks/useOrderValidation';
+import { createOrder } from '@/app/lib/pocketbase';
 
 interface ProductInput {
   title: string;
@@ -129,7 +130,7 @@ export function OrderCreate({
     if (!isValid) return;
 
     try {
-      await onSubmit(orderData, productInputs);
+      await createOrder(orderData, productInputs);
       onClose();
     } catch (error) {
       console.error('Error creating order:', error);

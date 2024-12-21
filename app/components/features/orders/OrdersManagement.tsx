@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/share
 import { Button } from "@/app/components/shared/ui/button"
 import { ArrowLeft, PlusCircle } from 'lucide-react'
 import Link from "next/link"
-import pb from '@/app/lib/pocketbase'
+import pb, { authenticatedCall, authenticateAdmin } from '@/app/lib/pocketbase'
 import { Footer } from "../../layouts/footer"
 import { RozetkaSync } from "@/app/components/features/sync/RozetkaSync"
 import { OrderStats } from "./components/OrderStats"
@@ -100,6 +100,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     minAmount: undefined,
     maxAmount: undefined
   })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Add debounced search effect
   useEffect(() => {
@@ -114,14 +116,30 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   useEffect(() => {
     let isSubscribed = true;
 
+    const initializeAdmin = async () => {
+      try {
+        setIsLoading(true)
+        await authenticateAdmin()
+        // Continue with your orders fetching logic here
+      } catch (err) {
+        setError('Failed to authenticate admin')
+        console.error('Authentication error:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     const fetchData = async () => {
       try {
         const promises = [
-          pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>(),
-          pb.collection('payment_options').getFullList<PaymentOptionsResponse>(),
-          pb.collection('currency_options').getFirstListItem<CurrencyOptionsResponse>('isDefault=true'),
-          pb.collection('status_options').getFullList<StatusOptionsResponse>(),
-          pb.collection('sources').getFullList<SourcesResponse>()
+          authenticatedCall(() => pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>()),
+          authenticatedCall(() => pb.collection('payment_options').getFullList<PaymentOptionsResponse>()),
+          authenticatedCall(async () => {
+            const currencies = await pb.collection('currency_options').getFullList<CurrencyOptionsResponse>();
+            return currencies.find(c => c.isDefault) || currencies[0] || { code: 'UAH', symbol: '₴', isDefault: true };
+          }),
+          authenticatedCall(() => pb.collection('status_options').getFullList<StatusOptionsResponse>()),
+          authenticatedCall(() => pb.collection('sources').getFullList<SourcesResponse>())
         ];
 
         const results = await Promise.allSettled(promises);
@@ -144,7 +162,20 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 setStatuses(result.value as StatusOptionsResponse[]);
                 break;
               case 4:
-                setSources(result.value as SourcesResponse[]);
+                const sourcesData = result.value as SourcesResponse[];
+                if (sourcesData.length === 0) {
+                  setSources([{
+                    id: 'default',
+                    name: 'Default',
+                    color: '#CBD5E1',
+                    created: new Date().toISOString(),
+                    updated: new Date().toISOString(),
+                    collectionId: 'sources',
+                    collectionName: 'sources'
+                  } as SourcesResponse]);
+                } else {
+                  setSources(sourcesData);
+                }
                 break;
             }
           } else {
@@ -164,7 +195,15 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 setStatuses([]);
                 break;
               case 4:
-                setSources([]);
+                setSources([{
+                  id: 'default',
+                  name: 'Default',
+                  color: '#CBD5E1',
+                  created: new Date().toISOString(),
+                  updated: new Date().toISOString(),
+                  collectionId: 'sources',
+                  collectionName: 'sources'
+                } as SourcesResponse]);
                 break;
             }
           }
@@ -178,11 +217,20 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         setPaymentMethods([]);
         setDefaultCurrency(null);
         setStatuses([]);
-        setSources([]);
+        setSources([{
+          id: 'default',
+          name: 'Default',
+          color: '#CBD5E1',
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          collectionId: 'sources',
+          collectionName: 'sources'
+        } as SourcesResponse]);
         setIsClient(true);
       }
     };
 
+    initializeAdmin()
     fetchData();
 
     return () => {
@@ -228,6 +276,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const endIndex = startIndex + itemsPerPage
   const currentOrders = filteredOrders.slice(startIndex, endIndex)
 
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div>Error: {error}</div>
+
   if (!isClient) {
     return null
   }
@@ -246,10 +297,12 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           </div>
           <div className="flex items-center gap-2">
             <RozetkaSync onSyncComplete={() => {
-              pb.collection('orders').getFullList({
-                sort: '-created',
-                expand: 'deliveryMethod,paymentMethod,status,currency,source'
-              }).then(records => {
+              authenticatedCall(() => 
+                pb.collection('orders').getFullList({
+                  sort: '-created',
+                  expand: 'deliveryMethod,paymentMethod,status,currency,source'
+                })
+              ).then(records => {
                 setOrders(records as OrdersResponse[]);
               });
             }} />
@@ -301,11 +354,13 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             setIsDetailsModalOpen(true);
           }}
           onDeleteOrder={async (orderId) => {
-            await pb.collection('orders').delete(orderId);
+            await authenticatedCall(() => pb.collection('orders').delete(orderId));
             setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
           }}
           onStatusChange={async (orderId, statusId) => {
-            const updated = await pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId });
+            const updated = await authenticatedCall(() => 
+              pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId })
+            );
             setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? updated : o));
           }}
           translations={translations}
@@ -330,14 +385,18 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           onClose={() => setIsDetailsModalOpen(false)}
           order={selectedOrder}
           onUpdate={async (orderId, orderData) => {
-            const updated = await pb.collection('orders').update<OrdersResponse>(orderId, orderData);
+            const updated = await authenticatedCall(() => 
+              pb.collection('orders').update<OrdersResponse>(orderId, orderData)
+            );
             setOrders(prevOrders => 
               prevOrders.map(o => o.id === orderId ? updated : o)
             );
             setIsDetailsModalOpen(false);
           }}
           onStatusChange={async (orderId, statusId) => {
-            const updated = await pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId });
+            const updated = await authenticatedCall(() => 
+              pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId })
+            );
             setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? updated : o));
           }}
           translations={translations}
@@ -348,7 +407,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           onSubmit={async (orderData) => {
-            const newOrder = await pb.collection('orders').create<OrdersResponse>(orderData);
+            const newOrder = await authenticatedCall(() => 
+              pb.collection('orders').create<OrdersResponse>(orderData)
+            );
             setOrders(prev => [...prev, newOrder]);
             setIsCreateModalOpen(false);
           }}
