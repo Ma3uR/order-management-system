@@ -15,18 +15,6 @@ interface ProductInput {
   price: number;
 }
 
-interface ValidationErrors {
-  orderNumber?: string;
-  source?: string;
-  deliveryMethod?: string;
-  deliveryPostNumber?: string;
-  phoneNumber?: string;
-  products?: string;
-  paymentMethod?: string;
-  fullName?: string;
-  submit?: string;
-}
-
 interface OrderCreateProps {
   isOpen: boolean;
   onClose: () => void;
@@ -108,7 +96,7 @@ export function OrderCreate({
       setProductInputs([{ title: '', quantity: 1, price: 0 }]);
       setIsBlacklisted(false);
     }
-  }, [isOpen, defaultCurrency]);
+  }, [isOpen, defaultCurrency, clearValidationErrors]);
 
   const handleInputChange = (name: string, value: string) => {
     setOrderData(prev => ({ ...prev, [name]: value }));

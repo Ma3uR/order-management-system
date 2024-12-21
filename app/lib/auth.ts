@@ -1,6 +1,7 @@
 import { AuthOptions } from 'next-auth';
 import CredentialsProvider from "next-auth/providers/credentials";
 import pb from './pocketbase';
+import { AxiosError } from 'axios';
 
 export const auth: AuthOptions = {
   providers: [
@@ -17,7 +18,12 @@ export const auth: AuthOptions = {
             credentials?.password || ''
           );
           return authData.record;
-        } catch (error) {
+        } catch (error: unknown) {
+          if (error instanceof AxiosError) {
+            console.error(error.message);
+          } else {
+            console.error(error);
+          }
           return null;
         }
       }
@@ -32,10 +38,10 @@ export const auth: AuthOptions = {
       else if (new URL(url).origin === baseUrl) return url
       return baseUrl
     },
-    async session({ session, token }) {
+    async session({ session }) {
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token }) {
       return token;
     }
   }

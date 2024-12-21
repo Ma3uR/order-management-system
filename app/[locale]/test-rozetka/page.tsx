@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import RozetkaAPI from '@/app/lib/rozetka';
+import { RozetkaOrderResponse } from '@/app/types/orders';
 
 export default function TestRozetka() {
   const [testResult, setTestResult] = useState<{
     status: 'idle' | 'loading' | 'success' | 'error';
     message?: string;
-    data?: any;
+    data?: { token?: string; orders?: RozetkaOrderResponse[] };
   }>({ status: 'idle' });
 
   const testConnection = async () => {
@@ -21,7 +22,7 @@ export default function TestRozetka() {
       setTestResult({ 
         status: 'success', 
         message: 'Successfully authenticated!',
-        data: { token }
+        data: { token: token ?? undefined }
       });
     } catch (error) {
       console.error('Authentication error:', error);

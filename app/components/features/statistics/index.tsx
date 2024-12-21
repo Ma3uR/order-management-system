@@ -1,11 +1,8 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
-import { useTranslations } from 'next-intl';
 
 export function Statistics() {
-  const t = useTranslations('Dashboard');
-
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card>

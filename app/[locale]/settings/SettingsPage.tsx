@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/shared/ui/tabs";
@@ -9,9 +9,6 @@ import { Button } from "@/app/components/shared/ui/button";
 import Link from 'next/link';
 import { PlusCircle, Trash2, Edit2 } from 'lucide-react';
 import { Label } from "@/app/components/shared/ui/label";
-import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
-import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
-
 interface Currency {
   id: string;
   code: string;
@@ -84,7 +81,7 @@ export default function SettingsPage() {
   const [editingDeliveryMethod, setEditingDeliveryMethod] = useState<DeliveryMethod | null>(null);
   const [editDeliveryMethodValue, setEditDeliveryMethodValue] = useState('');
 
-  const fetchCurrencies = async () => {
+  const fetchCurrencies = useCallback(async () => {
     try {
       const response = await fetch('/api/currencies');
       const data = await response.json();
@@ -93,9 +90,9 @@ export default function SettingsPage() {
       console.error('Error fetching currencies:', error);
       showFlashMessage(t('updateError'), 'error');
     }
-  };
+  }, [t]);
 
-  const fetchStatuses = async () => {
+  const fetchStatuses = useCallback(async () => {
     try {
       const response = await fetch('/api/statuses');
       const data = await response.json();
@@ -104,9 +101,9 @@ export default function SettingsPage() {
       console.error('Error fetching statuses:', error);
       showFlashMessage(t('updateError'), 'error');
     }
-  };
+  }, [t]);
 
-  const fetchPaymentMethods = async () => {
+  const fetchPaymentMethods = useCallback(async () => {
     try {
       const response = await fetch('/api/payment-methods');
       const data = await response.json();
@@ -115,9 +112,9 @@ export default function SettingsPage() {
       console.error('Error fetching payment methods:', error);
       showFlashMessage(t('updateError'), 'error');
     }
-  };
+  }, [t]);
 
-  const fetchDeliveryMethods = async () => {
+  const fetchDeliveryMethods = useCallback(async () => {
     try {
       const response = await fetch('/api/delivery-methods');
       const data = await response.json();
@@ -128,9 +125,9 @@ export default function SettingsPage() {
       console.error('Error fetching delivery methods:', error);
       showFlashMessage(t('updateError'), 'error');
     }
-  };
+  }, [t]);
 
-  const fetchSources = async () => {
+  const fetchSources = useCallback(async () => {
     try {
       const response = await fetch('/api/sources');
       if (!response.ok) throw new Error('Failed to fetch sources');
@@ -140,7 +137,7 @@ export default function SettingsPage() {
       console.error('Error fetching sources:', error);
       showFlashMessage(t('updateError'), 'error');
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchCurrencies();
@@ -148,7 +145,7 @@ export default function SettingsPage() {
     fetchPaymentMethods();
     fetchDeliveryMethods();
     fetchSources();
-  }, []);
+  }, [fetchCurrencies, fetchStatuses, fetchPaymentMethods, fetchDeliveryMethods, fetchSources]);
 
   // Add all your fetch functions and handlers here
   const showFlashMessage = (message: string, type: 'success' | 'error' = 'success') => {

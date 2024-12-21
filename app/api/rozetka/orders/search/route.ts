@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const ROZETKA_API_BASE = 'https://api-seller.rozetka.com.ua';
 
@@ -29,14 +29,23 @@ export async function GET(request: Request) {
       success: true,
       content: response.data.content || []
     });
-  } catch (error: any) {
-    console.error('Failed to fetch Rozetka orders:', error.response?.data || error);
+  } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      console.error('Failed to fetch Rozetka orders:', error.response?.data || error);
+      return NextResponse.json({
+        success: false,
+        errors: {
+          description: error.response?.data?.errors?.description || 'Failed to fetch orders',
+          code: error.response?.data?.errors?.code || 500
+        }
+      }, { status: error.response?.status || 500 });
+    }
     return NextResponse.json({
       success: false,
       errors: {
-        description: error.response?.data?.errors?.description || 'Failed to fetch orders',
-        code: error.response?.data?.errors?.code || 500
+        description: 'Unknown error occurred',
+        code: 500
       }
-    }, { status: error.response?.status || 500 });
+    }, { status: 500 });
   }
-} 
+}

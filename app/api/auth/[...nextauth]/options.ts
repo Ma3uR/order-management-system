@@ -22,6 +22,7 @@ export const authOptions: NextAuthOptions = {
             role: authData.record.role
           };
         } catch (error) {
+          console.error('Authorization error:', error);
           return null;
         }
       }

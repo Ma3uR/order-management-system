@@ -7,10 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/shared/ui/table"
-import { Badge } from "@/app/components/shared/ui/badge"
 import { StatusSelect } from "@/app/components/shared/ui/StatusSelect"
 import { Eye, Trash2 } from 'lucide-react'
-import { cn } from "@/app/lib/utils"
 
 interface Order {
   id: string

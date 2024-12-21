@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useTranslations } from 'next-intl';
-import { Header } from "../../layouts/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
 import { Button } from "@/app/components/shared/ui/button"
 import { ArrowLeft, PlusCircle } from 'lucide-react'

@@ -2,15 +2,20 @@
 
 import { Mail } from 'lucide-react'
 import { motion, useAnimation } from "framer-motion"
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 export function FooterContent() {
-  const controls = {
-    footer: useAnimation(),
-    createdBy: useAnimation(),
-    team: useAnimation(),
-    builtWith: useAnimation()
-  }
+  const footerControls = useAnimation();
+  const createdByControls = useAnimation();
+  const teamControls = useAnimation();
+  const builtWithControls = useAnimation();
+
+  const controls = useMemo(() => ({
+    footer: footerControls,
+    createdBy: createdByControls,
+    team: teamControls,
+    builtWith: builtWithControls
+  }), [footerControls, createdByControls, teamControls, builtWithControls]);
 
   useEffect(() => {
     const startAnimations = async () => {

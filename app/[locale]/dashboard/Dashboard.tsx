@@ -1,16 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
-import { LineChart } from "@/app/components/shared/charts/LineChart"
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card" 
 import { BarChart } from "@/app/components/shared/charts/BarChart"
 import { DonutChart } from "@/app/components/shared/charts/DonutChart"
-import { useTheme } from "next-themes"
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { StatsCard } from '@/app/components/shared/ui/StatsCard';
 import pb from '@/app/lib/pocketbase';
 import { AiChat } from "@/app/components/features/ai-chat/components/AiChat"
 import { motion } from "framer-motion";
+import { SourcesResponse } from '@/app/types/pocketbase-types';
 
 interface Order {
   id: string;
@@ -45,7 +44,6 @@ const SOURCE_COLORS: Record<string, string> = {
 
 export default function Dashboard() {
   const t = useTranslations('Dashboard');
-  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState({
@@ -57,46 +55,7 @@ export default function Dashboard() {
   });
   const mounted = useRef(false);
 
-  useEffect(() => {
-    mounted.current = true;
-    const fetchData = async () => {
-      try {
-        const records = await pb.collection('orders').getFullList({
-          sort: '-created',
-          expand: 'currency',
-          fields: 'id,amount,source,created,expand.currency.symbol',
-          $autoCancel: false
-        });
-
-        if (!mounted.current) return;
-
-        const transformedOrders = records.map(record => ({
-          id: record.id,
-          amount: record.amount || 0,
-          source: record.source,
-          createdAt: record.created,
-          currency: record.expand?.currency || { symbol: '€' }
-        }));
-
-        setOrders(transformedOrders);
-        await calculateStats(transformedOrders);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      } finally {
-        if (mounted.current) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-
-  const calculateStats = async (orders: Order[]) => {
+  const calculateStats = useCallback(async (orders: Order[]) => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -113,10 +72,10 @@ export default function Dashboard() {
       const response = await fetch('/api/sources');
       if (!response.ok) throw new Error('Failed to fetch sources');
       const sourcesData = await response.json();
-      sources = sourcesData.reduce((acc: Record<string, any>, source: any) => {
+      sources = sourcesData.reduce((acc: Record<string, { name: string; color: string }>, source: SourcesResponse) => {
         acc[source.id] = {
-          name: source.name,
-          color: SOURCE_COLORS[source.name] || source.color || getRandomColor(source.name)
+          name: source.name || 'Unknown',
+          color: SOURCE_COLORS[source.name || ''] || getRandomColor(source.name || '')
         };
         return acc;
       }, {});
@@ -171,7 +130,46 @@ export default function Dashboard() {
       trafficData,
       graphDataRevenue: monthlyData
     });
-  };
+  }, []);
+
+  useEffect(() => {
+    mounted.current = true;
+    const fetchData = async () => {
+      try {
+        const records = await pb.collection('orders').getFullList({
+          sort: '-created',
+          expand: 'currency',
+          fields: 'id,amount,source,created,expand.currency.symbol',
+          $autoCancel: false
+        });
+
+        if (!mounted.current) return;
+
+        const transformedOrders = records.map(record => ({
+          id: record.id,
+          amount: record.amount || 0,
+          source: record.source,
+          createdAt: record.created,
+          currency: record.expand?.currency || { symbol: '€' }
+        }));
+
+        setOrders(transformedOrders);
+        await calculateStats(transformedOrders);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      } finally {
+        if (mounted.current) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      mounted.current = false;
+    };
+  }, [calculateStats]);
 
   function getRandomColor(str: string): string {
     let hash = 0;

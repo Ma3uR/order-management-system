@@ -1,5 +1,4 @@
 import { OrdersResponse, CurrencyOptionsResponse } from '@/app/types/pocketbase-types';
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { StatsCard } from "@/app/components/shared/ui/StatsCard";
 import { UtilityService } from '@/app/services/utilityService';
 
@@ -8,7 +7,6 @@ interface OrdersResponseWithExpand extends OrdersResponse {
     currency?: CurrencyOptionsResponse;
   };
 }
-
 interface OrderStatsProps {
   orders: OrdersResponseWithExpand[];
   translations: {

@@ -1,9 +1,7 @@
 import { OrdersResponse, StatusOptionsResponse } from '@/app/types/pocketbase-types';
 import { Button } from "@/app/components/shared/ui/button";
 import { UtilityService } from '@/app/services/utilityService';
-import { Badge } from "@/app/components/shared/ui/badge";
 import { StatusSelect } from "@/app/components/shared/ui/StatusSelect";
-import { Status } from '@prisma/client';
 
 interface OrderListProps {
   orders: OrdersResponse[];

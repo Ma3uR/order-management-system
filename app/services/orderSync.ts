@@ -1,4 +1,4 @@
-import { Order, RozetkaOrderResponse } from '@/app/types/orders';
+import { RozetkaOrderResponse } from '@/app/types/orders';
 import RozetkaAPI from '@/app/lib/rozetka';
 import pb from '@/app/lib/pocketbase';
 

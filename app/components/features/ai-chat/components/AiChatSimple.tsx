@@ -3,11 +3,9 @@
 import { useState } from 'react';
 import { Button } from "@/app/components/shared/ui/button";
 import { Input } from "@/app/components/shared/ui/input";
-import { useTranslations } from 'next-intl';
 
 export function AiChat() {
   const [message, setMessage] = useState('');
-  const t = useTranslations('Dashboard');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,12 @@
 import pb from './pocketbase';
 
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 interface PocketBaseRecord {
   id: string;
   created: string;
@@ -10,7 +17,7 @@ interface PocketBaseRecord {
   deliveryPostNumber: string;
   phoneNumber: string;
   fullName: string;
-  products: string | any[];
+  products: string | Product[];
   numberOfItems: number;
   paymentMethod: string;
   amount: number;
@@ -23,11 +30,6 @@ interface PocketBaseRecord {
     status?: { id: string; name: string; color: string };
     currency?: { id: string; code: string; symbol: string };
   };
-}
-
-interface ApiResponse {
-  data?: unknown;
-  status: number;
 }
 
 export async function fetchOrders() {

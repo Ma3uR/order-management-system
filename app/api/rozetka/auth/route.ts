@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const ROZETKA_API_BASE = 'https://api-seller.rozetka.com.ua';
 
@@ -29,15 +29,17 @@ export async function POST() {
         access_token: response.data.content.access_token
       }
     });
-  } catch (error: any) {
-    console.error('Rozetka authentication failed:', error.response?.data || error.message);
-    
-    return NextResponse.json({
-      success: false,
-      errors: {
-        description: error.response?.data?.errors?.description || error.message || 'Authentication failed',
-        code: error.response?.data?.errors?.code || 500
-      }
-    }, { status: error.response?.status || 500 });
+  } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      console.error('Rozetka authentication failed:', error.response?.data || error.message);
+      
+      return NextResponse.json({
+        success: false,
+        errors: {
+          description: error.response?.data?.errors?.description || error.message || 'Authentication failed',
+          code: error.response?.data?.errors?.code || 500
+        }
+      }, { status: error.response?.status || 500 });
+    }
   }
 }

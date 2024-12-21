@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/app/components/shared/ui/button';
 import { Input } from '@/app/components/shared/ui/input';
-import { useTranslations } from 'next-intl';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 
 interface BlacklistItem {
   id: string | number;
@@ -29,7 +29,8 @@ const ITEMS_PER_PAGE = 10;
 
 const BlacklistManagement: React.FC = () => {
   const router = useRouter();
-  const { data: session, status } = useSession({
+  const t = useTranslations('Blacklist');
+  const { status } = useSession({
     required: true,
     onUnauthenticated() {
       router.push('/auth/signin');
@@ -52,15 +53,8 @@ const BlacklistManagement: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const t = useTranslations('Blacklist');
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchBlacklist(pagination.page);
-    }
-  }, [status, pagination.page]);
-
-  const fetchBlacklist = async (page: number) => {
+  const fetchBlacklist = useCallback(async (page: number) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -77,17 +71,27 @@ const BlacklistManagement: React.FC = () => {
         totalItems: response.data.totalItems,
         totalPages: response.data.totalPages
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching blacklist:', error);
-      if (error?.response?.status === 401) {
+      if (error instanceof AxiosError && error.response?.status === 401) {
         router.push('/auth/signin');
         return;
       }
-      setError(error?.response?.data?.error || 'Failed to fetch blacklist');
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to fetch blacklist');
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchBlacklist(pagination.page);
+    }
+  }, [status, pagination.page, fetchBlacklist]);
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -111,12 +115,16 @@ const BlacklistManagement: React.FC = () => {
         });
         setBlacklist(prev => [...prev, response.data]);
         setNewItem({ fullName: '', phoneNumber: '', city: '', totalOrderSum: 0, notes: '' });
-      } catch (error: any) {
-        if (error?.response?.status === 401) {
+      } catch (error: unknown) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
           router.push('/auth/signin');
           return;
         }
-        setError(error?.response?.data?.error || 'Failed to add item to blacklist');
+        if (error instanceof AxiosError) {
+          setError(error.response?.data?.error || 'Failed to add item to blacklist');
+        } else {
+          setError('Failed to add item to blacklist');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -133,9 +141,15 @@ const BlacklistManagement: React.FC = () => {
         }
       });
       setBlacklist(prev => prev.filter(item => item.id !== id));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error removing item from blacklist:', error);
-      setError(`Failed to remove item from blacklist: ${error.response?.data?.details || error.message}`);
+      if (error instanceof AxiosError) {
+        setError(`Failed to remove item from blacklist: ${error.response?.data?.details || error.message}`);
+      } else if (error instanceof Error) {
+        setError(`Failed to remove item from blacklist: ${error.message}`);
+      } else {
+        setError('Failed to remove item from blacklist');
+      }
     }
   };
 
@@ -143,7 +157,7 @@ const BlacklistManagement: React.FC = () => {
     const pages = [];
     const maxVisiblePages = 5;
     let startPage = Math.max(1, pagination.page - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1);
+    const endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1);
 
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
