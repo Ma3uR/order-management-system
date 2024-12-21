@@ -1,7 +1,7 @@
 import {getTranslations} from 'next-intl/server';
-import { OrdersManagement } from '@/app/components/OrdersManagement';
+import { OrdersManagement } from '@/app/components/features/orders/OrdersManagement';
 import { fetchOrders } from '@/app/lib/pocketbase';
-import { ErrorBoundaryClient } from '@/app/components/error-boundary-client';
+import { ErrorBoundaryClient } from '@/app/components/layouts/providers/ErrorBoundary';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
 
 export const dynamic = 'force-dynamic';

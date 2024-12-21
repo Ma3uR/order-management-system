@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
+import { Button } from "@/app/components/shared/ui/button";
 import RozetkaAPI from '@/app/lib/rozetka';
 
 export default function TestRozetka() {

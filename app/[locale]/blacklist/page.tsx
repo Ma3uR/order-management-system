@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth';
 import { default as dynamicImport } from 'next/dynamic';
 import { auth } from '@/app/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
-import { Footer } from '@/app/components/footer';
+import { Footer } from '@/app/components/layouts/footer';
 
-const BlacklistManagement = dynamicImport(() => import('@/app/components/BlacklistManagement'), { 
+const BlacklistManagement = dynamicImport(() => import('@/app/components/features/blacklist/index'), { 
   ssr: false,
   loading: () => <div className="p-8 text-center">Loading...</div>
 });

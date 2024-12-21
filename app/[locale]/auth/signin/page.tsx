@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
-import LanguageSwitcher from '@/app/components/LanguageSwitcher';
-import { ThemeToggle } from '@/app/components/ThemeToggle';
-import { Footer } from '@/app/components/footer';
+import { Button } from "@/app/components/shared/ui/button";
+import { Input } from "@/app/components/shared/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
+import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
+import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
+import { Footer } from '@/app/components/layouts/footer';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');

@@ -1,15 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card"
-import { LineChart } from "@/app/components/line-chart"
-import { BarChart } from "@/app/components/bar-chart"
-import { DonutChart } from "@/app/components/donut-chart"
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
+import { LineChart } from "@/app/components/shared/charts/LineChart"
+import { BarChart } from "@/app/components/shared/charts/BarChart"
+import { DonutChart } from "@/app/components/shared/charts/DonutChart"
 import { useTheme } from "next-themes"
 import { useEffect, useState, useRef } from 'react';
-import { StatsCard } from '@/app/components/stats-card';
+import { StatsCard } from '@/app/components/shared/ui/StatsCard';
 import pb from '@/app/lib/pocketbase';
-import { AiChat } from "@/app/components/ai-chat"
+import { AiChat } from "@/app/components/features/ai-chat/components/AiChat"
 import { motion } from "framer-motion";
 
 interface Order {

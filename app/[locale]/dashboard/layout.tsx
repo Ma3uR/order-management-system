@@ -6,12 +6,12 @@ import { useTranslations } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import LanguageSwitcher from '@/app/components/LanguageSwitcher';
-import { ThemeToggle } from '@/app/components/ThemeToggle';
-import { Button } from '@/app/components/ui/button';
+import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
+import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
+import { Button } from '@/app/components/shared/ui/button';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
-import { Footer } from '@/app/components/footer';
+import { Footer } from '@/app/components/layouts/footer';
 import { ThemeProvider } from 'next-themes';
 
 export default function DashboardLayout({
