@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { OrdersRecord } from '@/app/types/pocketbase-types';
 
 interface ValidationErrors {
@@ -65,9 +65,9 @@ export function useOrderValidation() {
     return isValid;
   };
 
-  const clearValidationErrors = () => {
+  const clearValidationErrors = useCallback(() => {
     setValidationErrors({});
-  };
+  }, []);
 
   return {
     validationErrors,

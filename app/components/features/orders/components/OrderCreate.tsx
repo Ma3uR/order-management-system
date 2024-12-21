@@ -60,6 +60,7 @@ export function OrderCreate({
   defaultCurrency
 }: OrderCreateProps) {
   const { validationErrors, validateOrder, clearValidationErrors } = useOrderValidation();
+  const defaultCurrencyId = defaultCurrency?.id || '';
 
   const [orderData, setOrderData] = useState<Partial<OrdersRecord>>({
     orderNumber: '',
@@ -69,7 +70,7 @@ export function OrderCreate({
     phoneNumber: '',
     fullName: '',
     paymentMethod: '',
-    currency: defaultCurrency?.id || '',
+    currency: defaultCurrencyId,
     notes: '',
   });
 
@@ -90,13 +91,13 @@ export function OrderCreate({
         phoneNumber: '',
         fullName: '',
         paymentMethod: '',
-        currency: defaultCurrency?.id || '',
+        currency: defaultCurrencyId,
         notes: '',
       });
       setProductInputs([{ title: '', quantity: 1, price: 0 }]);
       setIsBlacklisted(false);
     }
-  }, [isOpen, defaultCurrency, clearValidationErrors]);
+  }, [isOpen, defaultCurrencyId, clearValidationErrors]);
 
   const handleInputChange = (name: string, value: string) => {
     setOrderData(prev => ({ ...prev, [name]: value }));
