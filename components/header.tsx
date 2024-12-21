@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import Link from 'next/link'
 import LanguageSwitcher from "@/components/LanguageSwitcher"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 interface HeaderProps {
   translations: {

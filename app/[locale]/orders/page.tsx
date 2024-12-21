@@ -1,7 +1,8 @@
 import {getTranslations} from 'next-intl/server';
-import OrdersManagement from '@/components/OrdersManagement';
+import { OrdersManagement } from '@/components/OrdersManagement';
 import { fetchOrders } from '@/lib/api';
 import { ErrorBoundaryClient } from '@/components/error-boundary-client';
+import { OrdersResponse } from '@/types/pocketbase-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,13 +13,20 @@ export default async function OrdersPage() {
   const translations = {
     title: t('title'),
     totalAmount: t('totalAmount'),
+    totalOrders: t('totalOrders'),
     filterOrders: t('filterOrders'),
     filterOrdersPlaceholder: t('filterOrdersPlaceholder'),
     createNewOrder: t('createNewOrder'),
+    backToDashboard: t('backToDashboard'),
+    filters: t('filters'),
+    status: t('status'),
+    selectStatus: t('selectStatus'),
+    all: t('all'),
+    amountRange: t('amountRange'),
+    resetFilters: t('resetFilters'),
     orders: t('orders'),
     orderNumber: t('orderNumber'),
     fullName: t('fullName'),
-    status: t('status'),
     amount: t('amount'),
     createdAt: t('createdAt'),
     actions: t('actions'),
@@ -36,7 +44,6 @@ export default async function OrdersPage() {
     numberOfItems: t('numberOfItems'),
     paymentMethod: t('paymentMethod'),
     editOrder: t('editOrder'),
-    selectStatus: t('selectStatus'),
     updateOrder: t('updateOrder'),
     statuses: {
       beingProcessed: t('statuses.beingProcessed'),
@@ -52,7 +59,6 @@ export default async function OrdersPage() {
       mistExpress: t('deliveryMethods.mistExpress'),
     },
     createNewOrderDescription: t('createNewOrderDescription'),
-    backToDashboard: t('backToDashboard'),
     selectDeliveryMethod: t('selectDeliveryMethod'),
     selectPaymentMethod: t('selectPaymentMethod'),
     selectSource: t('selectSource'),
@@ -79,42 +85,24 @@ export default async function OrdersPage() {
       <OrdersManagement 
         translations={translations} 
         initialOrders={orders.map(order => ({
-          id: order.id,
+          ...order,
           orderNumber: order.orderNumber || '',
           source: order.source || '',
-          deliveryMethod: {
-            id: order.deliveryMethod?.id || '',
-            name: order.deliveryMethod?.name || ''
-          },
+          deliveryMethod: order.deliveryMethod?.id || '',
           deliveryPostNumber: order.deliveryPostNumber || '',
           phoneNumber: order.phoneNumber || '',
           fullName: order.fullName || '',
-          products: typeof order.products === 'string' 
-            ? JSON.parse(order.products) 
-            : order.products || [],
+          products: typeof order.products === 'string' ? JSON.parse(order.products) : order.products || [],
           numberOfItems: order.numberOfItems || 0,
-          paymentMethod: {
-            id: order.paymentMethod?.id || '',
-            name: order.paymentMethod?.name || ''
-          },
+          paymentMethod: order.paymentMethod?.id || '',
           amount: order.amount || 0,
-          status: {
-            id: order.status?.id || '',
-            name: order.status?.name || '',
-            color: order.status?.color || '#cbd5e1'
-          },
-          currency: {
-            id: order.currency?.id || '',
-            code: order.currency?.code || '',
-            symbol: order.currency?.symbol || ''
-          },
+          status: order.status?.id || '',
+          currency: order.currency?.id || '',
           createdAt: order.createdAt || new Date().toISOString(),
           updatedAt: order.updatedAt || new Date().toISOString(),
-          productsText: typeof order.products === 'string' 
-            ? order.products 
-            : JSON.stringify(order.products || [], null, 2),
+          productsText: typeof order.products === 'string' ? order.products : JSON.stringify(order.products || [], null, 2),
           notes: order.notes || ''
-        }))} 
+        }) as unknown as OrdersResponse)} 
       />
     </ErrorBoundaryClient>
   );
