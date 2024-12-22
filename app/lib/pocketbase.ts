@@ -123,3 +123,6 @@ export async function createOrder(
 
 // Only export pb once, as default
 export default pb; 
+
+// Add this temporarily to verify the connection
+console.log('PocketBase URL:', pb.baseUrl);

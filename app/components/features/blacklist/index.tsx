@@ -210,7 +210,7 @@ export default function BlacklistManagement() {
                       </div>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         onClick={() => handleRemoveItem(item.id)}
                       >
                         <Trash className="h-4 w-4" />

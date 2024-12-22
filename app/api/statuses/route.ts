@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import pb from '@/app/lib/pocketbase';
+import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { ClientResponseError } from 'pocketbase';
+import type { StatusOptionsResponse } from '@/app/types/pocketbase-types';
 
 export async function GET() {
   try {
-    const records = await pb.collection('status_options').getFullList();
+    const records = await authenticatedCall(() => 
+      pb.collection('status_options').getFullList<StatusOptionsResponse>()
+    );
     return NextResponse.json(records);
   } catch (error) {
     console.error('Error fetching statuses:', error);
@@ -30,9 +33,11 @@ export async function POST(request: Request) {
     }
 
     // Check if priority already exists
-    const existingStatus = await pb.collection('status_options').getList(1, 1, {
-      filter: `priority = ${priorityValue}`
-    });
+    const existingStatus = await authenticatedCall(() => 
+      pb.collection('status_options').getList(1, 1, {
+        filter: `priority = ${priorityValue}`
+      })
+    );
 
     if (existingStatus.totalItems > 0) {
       return NextResponse.json({ 
@@ -82,7 +87,9 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
-    await pb.collection('status_options').delete(id);
+    await authenticatedCall(() => 
+      pb.collection('status_options').delete(id)
+    );
     return NextResponse.json({ message: 'Status deleted successfully' });
   } catch (error) {
     console.error('Error deleting status:', error);
@@ -93,11 +100,13 @@ export async function DELETE(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { id, name, color, priority } = await request.json();
-    const record = await pb.collection('status_options').update(id, {
-      name,
-      color,
-      priority: priority || 0
-    });
+    const record = await authenticatedCall(() => 
+      pb.collection('status_options').update(id, {
+        name,
+        color,
+        priority: priority || 0
+      })
+    );
     return NextResponse.json(record);
   } catch (error) {
     console.error('Error updating status:', error);

@@ -145,7 +145,7 @@ export function AiChatBox() {
           />
           <Button 
             type="submit" 
-            size="icon"
+            size="sm"
             disabled={isLoading || !input.trim()}
           >
             <Send className="h-4 w-4" />
