@@ -9,7 +9,7 @@ import { StatsCard } from '@/app/components/shared/ui/StatsCard';
 import pb from '@/app/lib/pocketbase';
 import { AiChat } from "@/app/components/features/ai-chat/components/AiChat"
 import { motion } from "framer-motion";
-import { SourcesResponse } from '@/app/types/pocketbase-types';
+import { authenticatedCall } from '@/app/lib/pocketbase';
 
 interface Order {
   id: string;
@@ -60,7 +60,6 @@ export default function Dashboard() {
     graphDataRevenue: Array(12).fill(0)
   });
   const mounted = useRef(false);
-  const [sources, setSources] = useState<Record<string, { name: string; color: string }>>({});
 
   const calculateStats = useCallback(async (orders: Order[]) => {
     const now = new Date();
@@ -73,9 +72,13 @@ export default function Dashboard() {
     let currentMonthRevenue = 0;
     let lastMonthRevenue = 0;
 
-    // Fetch sources directly from PocketBase
     try {
-      const sourcesRecords = await pb.collection('sources').getFullList<Source>();
+      const sourcesRecords = await authenticatedCall(() => 
+        pb.collection('sources').getFullList<Source>({
+          $autoCancel: false
+        })
+      );
+
       const sourcesMap = sourcesRecords.reduce((acc, source) => {
         acc[source.id] = {
           name: source.name || 'Unknown',
@@ -83,7 +86,6 @@ export default function Dashboard() {
         };
         return acc;
       }, {} as Record<string, { name: string; color: string }>);
-      setSources(sourcesMap);
 
       orders.forEach(order => {
         const orderDate = new Date(order.createdAt);
@@ -133,20 +135,28 @@ export default function Dashboard() {
         graphDataRevenue: monthlyData
       });
     } catch (error) {
+      if (error instanceof Error && error.message.includes('cancelled')) {
+        return;
+      }
       console.error('Error processing data:', error);
     }
   }, []);
 
   useEffect(() => {
     mounted.current = true;
+    const abortController = new AbortController();
+
     const fetchData = async () => {
       try {
-        const records = await pb.collection('orders').getFullList({
-          sort: '-created',
-          expand: 'currency',
-          fields: 'id,amount,source,created,expand.currency.symbol',
-          $autoCancel: false
-        });
+        const records = await authenticatedCall(() => 
+          pb.collection('orders').getFullList({
+            sort: '-created',
+            expand: 'currency',
+            fields: 'id,amount,source,created,expand.currency.symbol',
+            $autoCancel: false,
+            signal: abortController.signal
+          })
+        );
 
         if (!mounted.current) return;
 
@@ -161,6 +171,10 @@ export default function Dashboard() {
         setOrders(transformedOrders);
         await calculateStats(transformedOrders);
       } catch (error) {
+        if (error instanceof Error && 
+            (error.message.includes('cancelled') || error.message.includes('aborted'))) {
+          return;
+        }
         console.error('Error fetching orders:', error);
       } finally {
         if (mounted.current) {
@@ -173,6 +187,7 @@ export default function Dashboard() {
 
     return () => {
       mounted.current = false;
+      abortController.abort();
     };
   }, [calculateStats]);
 

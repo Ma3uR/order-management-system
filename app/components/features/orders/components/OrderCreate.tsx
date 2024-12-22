@@ -53,7 +53,6 @@ interface OrderCreateProps {
 export function OrderCreate({
   isOpen,
   onClose,
-  onSubmit,
   translations,
   deliveryMethods,
   paymentMethods,

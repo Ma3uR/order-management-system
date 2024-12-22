@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { pb, authenticateAdmin } from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
+import { authenticateAdmin } from '@/app/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { auth } from '@/app/lib/auth';
 
