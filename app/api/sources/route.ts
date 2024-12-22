@@ -1,24 +1,8 @@
 import { NextResponse } from 'next/server';
 import pb from '@/app/lib/pocketbase';
+import { authenticateAdmin } from '@/app/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
-
-// Admin authentication
-async function authenticateAdmin() {
-  try {
-    const adminEmail = process.env.POCKETBASE_ADMIN_EMAIL;
-    const adminPassword = process.env.POCKETBASE_ADMIN_PASSWORD;
-
-    if (!adminEmail || !adminPassword) {
-      throw new Error('Admin credentials not configured');
-    }
-
-    await pb.admins.authWithPassword(adminEmail, adminPassword);
-  } catch (error) {
-    console.error('Admin authentication error:', error);
-    throw error;
-  }
-}
 
 export async function GET() {
   try {
