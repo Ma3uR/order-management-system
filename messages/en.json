@@ -82,7 +82,11 @@
     "dashboard": "Dashboard",
     "orders": "Orders",
     "blacklist": "Blacklist",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aiAssistant": "AI Assistant",
+    "aiWelcomeMessage": "Hi! I'm an AI assistant, but I'm not working yet! I'll be here soon to help you with any questions.",
+    "aiDevelopmentMessage": "Sorry, I'm still in development and can't respond to messages.",
+    "typeMessage": "Type a message..."
   },
   "Settings": {
     "title": "Settings",

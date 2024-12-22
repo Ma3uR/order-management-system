@@ -1,14 +1,12 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card" 
-import { BarChart } from "@/app/components/shared/charts/BarChart"
-import { DonutChart } from "@/app/components/shared/charts/DonutChart"
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { StatsCard } from '@/app/components/shared/ui/StatsCard';
-import pb from '@/app/lib/pocketbase';
-import { AiChat } from "@/app/components/features/ai-chat/components/AiChat"
 import { motion } from "framer-motion";
+import { TotalRevenue } from "./TotalRevenue";
+import { MonthlyChart } from "./MonthlyChart";
+import { TrafficChannel } from "./TrafficChannel";
+import { AiChatBox } from "./AiChatBox";
+import { useEffect, useState, useRef, useCallback } from 'react';
+import pb from '@/app/lib/pocketbase';
 import { authenticatedCall } from '@/app/lib/pocketbase';
 
 interface Order {
@@ -49,7 +47,6 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 export default function Dashboard() {
-  const t = useTranslations('Dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState({
@@ -216,25 +213,26 @@ export default function Dashboard() {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/30">
       <motion.div 
-        className="space-y-4 md:space-y-6"
+        className="container mx-auto p-4 md:p-6 space-y-6"
         variants={containerVariants}
         initial="hidden"
         animate="show"
       >
-        <motion.div 
-          className="grid grid-cols-1 gap-4 md:gap-6"
-          variants={itemVariants}
-        >
-          <StatsCard
-            title={t('totalRevenue')}
+        {/* Top Row - Revenue Stats */}
+        <motion.div variants={itemVariants}>
+          <TotalRevenue
             value={`${orders[0]?.currency?.symbol || '€'}${stats.totalRevenue.toFixed(2)}`}
             change={{
               value: `${stats.revenueChange >= 0 ? '+' : ''}${stats.revenueChange.toFixed(1)}%`,
@@ -244,55 +242,21 @@ export default function Dashboard() {
           />
         </motion.div>
 
+        {/* Middle Row - Charts */}
         <motion.div 
-          className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
           variants={itemVariants}
         >
-          <motion.div variants={itemVariants} className="w-full">
-            <Card className="h-full">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base md:text-lg">{t('monthlySales')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[200px] md:h-[300px] w-full">
-                  <BarChart
-                    data={stats.monthlyData}
-                    labels={months}
-                    className="h-full w-full"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="w-full">
-            <Card className="h-full">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base md:text-lg">{t('trafficChannel')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[200px] md:h-[300px] w-full">
-                  {stats.trafficData.length > 0 ? (
-                    <DonutChart
-                      data={stats.trafficData}
-                      className="h-full w-full"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                      {t('noTrafficData')}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
-
-        <motion.div 
-          className="grid grid-cols-1 gap-4 md:gap-6"
-          variants={itemVariants}
-        >
-          <AiChat />
+          <TrafficChannel
+            data={stats.trafficData}
+            className="h-full"
+          />
+          <AiChatBox />
+          <MonthlyChart
+            data={stats.monthlyData}
+            labels={months}
+            className="lg:col-span-2"
+          />
         </motion.div>
       </motion.div>
     </div>
