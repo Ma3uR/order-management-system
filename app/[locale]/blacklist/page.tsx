@@ -3,19 +3,15 @@ import { getServerSession } from 'next-auth';
 import { default as dynamicImport } from 'next/dynamic';
 import { auth } from '@/app/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
-import { Footer } from '@/app/components/layouts/footer';
+import { getTranslations } from 'next-intl/server';
 
-const BlacklistManagement = dynamicImport(() => import('@/app/components/features/blacklist/index'), { 
-  ssr: false,
-  loading: () => <div className="p-8 text-center">Loading...</div>
+const BlacklistPageClient = dynamicImport(() => import('@/app/[locale]/blacklist/BlacklistPageClient'), {
+  ssr: false
 });
-
-export function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'ua' }];
-}
 
 export default async function BlacklistPage({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
+  const t = await getTranslations('Navigation');
 
   const session = await getServerSession(auth);
 
@@ -23,12 +19,5 @@ export default async function BlacklistPage({ params: { locale } }: { params: { 
     redirect('/auth/signin');
   }
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 p-8">
-        <BlacklistManagement />
-      </div>
-      <Footer />
-    </div>
-  );
+  return <BlacklistPageClient translations={{ backToDashboard: t('backToDashboard') }} />;
 }

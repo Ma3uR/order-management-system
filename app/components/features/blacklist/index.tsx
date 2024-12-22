@@ -1,23 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/app/components/shared/ui/button';
-import { Input } from '@/app/components/shared/ui/input';
-import axios, { AxiosError } from 'axios';
-import Link from 'next/link';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-
-interface BlacklistItem {
-  id: string | number;
-  fullName: string;
-  phoneNumber: string;
-  city: string;
-  totalOrderSum: number;
-  notes: string;
-}
-
+import axios, { AxiosError } from 'axios';
+import { BlacklistForm } from './BlacklistForm';
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from 'sonner';
+import type { BlacklistEntriesResponse } from '@/app/types/pocketbase-types';
+import type { BlacklistFormData } from '@/app/lib/validations/blacklist';
+import { Trash } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Search } from 'lucide-react';
+import { useDebounce } from '@/app/hooks/useDebounce';
 interface PaginationInfo {
   page: number;
   perPage: number;
@@ -25,9 +23,7 @@ interface PaginationInfo {
   totalPages: number;
 }
 
-const ITEMS_PER_PAGE = 10;
-
-const BlacklistManagement: React.FC = () => {
+export default function BlacklistManagement() {
   const router = useRouter();
   const t = useTranslations('Blacklist');
   const { status } = useSession({
@@ -36,147 +32,198 @@ const BlacklistManagement: React.FC = () => {
       router.push('/auth/signin');
     },
   });
-  
-  const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
+
+  const [items, setItems] = useState<BlacklistEntriesResponse[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
-    perPage: ITEMS_PER_PAGE,
+    perPage: 10,
     totalItems: 0,
     totalPages: 0
   });
-  const [newItem, setNewItem] = useState({ 
-    fullName: '', 
-    phoneNumber: '', 
-    city: '',
-    totalOrderSum: 0,
-    notes: ''
-  });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 500);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const fetchBlacklist = useCallback(async (page: number) => {
+  const fetchBlacklist = useCallback(async (page: number, searchTerm: string) => {
     try {
-      setIsLoading(true);
-      setError(null);
-      const response = await axios.get(`/api/blacklist?page=${page}&perPage=${ITEMS_PER_PAGE}`, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      setBlacklist(response.data.items);
+      setIsSearching(true);
+      const response = await axios.get(`/api/blacklist?page=${page}&perPage=${pagination.perPage}&search=${searchTerm}`);
+      setItems(response.data.items);
       setPagination({
-        page,
-        perPage: ITEMS_PER_PAGE,
+        page: response.data.page,
+        perPage: response.data.perPage,
         totalItems: response.data.totalItems,
         totalPages: response.data.totalPages
       });
     } catch (error: unknown) {
-      console.error('Error fetching blacklist:', error);
-      if (error instanceof AxiosError && error.response?.status === 401) {
-        router.push('/auth/signin');
-        return;
-      }
-      if (error instanceof Error) {
-        setError(error.message);
+      if (error instanceof AxiosError) {
+        toast.error(error.response?.data?.message || t('error'));
       } else {
-        setError('Failed to fetch blacklist');
+        toast.error(t('error'));
       }
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
-  }, [router]);
+  }, [pagination.perPage, t]);
 
   useEffect(() => {
     if (status === 'authenticated') {
-      fetchBlacklist(pagination.page);
+      fetchBlacklist(pagination.page, debouncedSearch);
     }
-  }, [status, pagination.page, fetchBlacklist]);
+  }, [status, pagination.page, fetchBlacklist, debouncedSearch]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && !searchQuery) {
+      fetchBlacklist(pagination.page, '');
+    }
+  }, [status, pagination.page, fetchBlacklist, searchQuery]);
+
+  const handleAddItem = async (data: BlacklistFormData) => {
+    try {
+      setIsLoading(true);
+      const response = await axios.post('/api/blacklist', data);
+      setItems(prev => [...prev, response.data]);
+      toast.success(t('addSuccess'), {
+        className: "bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-800",
+        style: {
+          color: "var(--foreground)",
+        },
+        duration: 4000,
+        position: "top-right",
+        dismissible: true
+      });
+      await fetchBlacklist(pagination.page, '');
+    } catch (error) {
+      toast.error(t('addError'), {
+        className: "bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-800",
+        style: {
+          color: "var(--foreground)",
+        },
+        duration: 4000,
+        position: "top-right",
+        dismissible: true
+      });
+      console.error('Error adding blacklist entry:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveItem = async (id: string) => {
+    try {
+      await axios.delete('/api/blacklist', { data: { id } });
+      setItems(prev => prev.filter(item => item.id !== id));
+      toast.success(t('removeSuccess'), {
+        className: "bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-800",
+        style: {
+          color: "var(--foreground)",
+        },
+        duration: 4000,
+        position: "top-right",
+        dismissible: true
+      });
+    } catch (error) {
+      toast.error(t('removeError'), {
+        className: "bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-800",
+        style: {
+          color: "var(--foreground)",
+        },
+        duration: 4000,
+        position: "top-right",
+        dismissible: true
+      });
+      console.error('Error removing blacklist entry:', error);
+    }
+  };
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewItem(prev => ({ ...prev, [name]: value }));
-  };
+  const handleSearch = useCallback((value: string) => {
+    setSearchQuery(value);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, []);
 
-  const handleAddItem = async () => {
-    if (newItem.fullName && newItem.phoneNumber) {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await axios.post('/api/blacklist', newItem, {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        setBlacklist(prev => [...prev, response.data]);
-        setNewItem({ fullName: '', phoneNumber: '', city: '', totalOrderSum: 0, notes: '' });
-      } catch (error: unknown) {
-        if (error instanceof AxiosError && error.response?.status === 401) {
-          router.push('/auth/signin');
-          return;
-        }
-        if (error instanceof AxiosError) {
-          setError(error.response?.data?.error || 'Failed to add item to blacklist');
-        } else {
-          setError('Failed to add item to blacklist');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleRemoveItem = async (id: string | number) => {
-    try {
-      await axios.delete('/api/blacklist', { 
-        data: { id },
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      setBlacklist(prev => prev.filter(item => item.id !== id));
-    } catch (error: unknown) {
-      console.error('Error removing item from blacklist:', error);
-      if (error instanceof AxiosError) {
-        setError(`Failed to remove item from blacklist: ${error.response?.data?.details || error.message}`);
-      } else if (error instanceof Error) {
-        setError(`Failed to remove item from blacklist: ${error.message}`);
-      } else {
-        setError('Failed to remove item from blacklist');
-      }
-    }
-  };
-
-  const renderPagination = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, pagination.page - Math.floor(maxVisiblePages / 2));
-    const endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <Button
-          key={i}
-          variant={pagination.page === i ? "default" : "ghost"}
-          onClick={() => handlePageChange(i)}
-          className="mx-1"
-        >
-          {i}
-        </Button>
-      );
-    }
-
+  if (status === 'loading' || isLoading) {
     return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-4 space-y-6">
+      <Card className="bg-muted">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="relative w-full">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-foreground" />
+              <Input
+                placeholder={t('searchPlaceholder')}
+                className="pl-8 w-full bg-background"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+              {isSearching && (
+                <div className="absolute right-2 top-2.5">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <BlacklistForm onSubmit={handleAddItem} isLoading={isLoading} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[500px] p-4">
+            {items.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {t('noEntries')}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {items.map((item) => (
+                  <Card key={item.id} className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <h3 className="font-medium">{item.fullName}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {item.phoneNumber} • {item.city}
+                        </p>
+                        {item.totalOrderSum && (
+                          <p className="text-sm">
+                            {t('orderSum')}: ₴{item.totalOrderSum}
+                          </p>
+                        )}
+                        {item.notes && (
+                          <p className="text-sm italic text-muted-foreground">
+                            {item.notes}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(item.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-center items-center gap-2 mt-4">
         <Button
           variant="ghost"
@@ -194,7 +241,6 @@ const BlacklistManagement: React.FC = () => {
         >
           ‹
         </Button>
-        {pages}
         <Button
           variant="ghost"
           onClick={() => handlePageChange(pagination.page + 1)}
@@ -212,113 +258,10 @@ const BlacklistManagement: React.FC = () => {
           »
         </Button>
       </div>
-    );
-  };
 
-  if (status === 'loading' || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="text-center py-4">Loading...</div>
+      <div className="text-center text-sm text-gray-500 mt-2">
+        {t('showing')} {(pagination.page - 1) * pagination.perPage + 1} - {Math.min(pagination.page * pagination.perPage, pagination.totalItems)} {t('of')} {pagination.totalItems} {t('entries')}
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <Link href="/dashboard">
-          <Button variant="default">{t('backToDashboard')}</Button>
-        </Link>
-      </div>
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        <Input
-          type="text"
-          name="fullName"
-          value={newItem.fullName}
-          onChange={handleInputChange}
-          placeholder={t('fullNamePlaceholder')}
-          className="flex-1"
-        />
-        <Input
-          type="text"
-          name="phoneNumber"
-          value={newItem.phoneNumber}
-          onChange={handleInputChange}
-          placeholder={t('phoneNumberPlaceholder')}
-          className="flex-1"
-        />
-        <Input
-          type="text"
-          name="city"
-          value={newItem.city}
-          onChange={handleInputChange}
-          placeholder={t('cityPlaceholder')}
-          className="flex-1"
-        />
-        <Input
-          type="number"
-          name="totalOrderSum"
-          value={newItem.totalOrderSum}
-          onChange={handleInputChange}
-          placeholder={t('totalOrderSumPlaceholder')}
-          className="flex-1"
-        />
-        <Input
-          type="text"
-          name="notes"
-          value={newItem.notes}
-          onChange={handleInputChange}
-          placeholder={t('notesPlaceholder')}
-          className="flex-1"
-        />
-        <Button onClick={handleAddItem} disabled={isLoading}>
-          {isLoading ? t('adding') : t('addToBlacklist')}
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="text-center py-4">{t('loading')}</div>
-      ) : blacklist.length === 0 ? (
-        <div className="text-center py-4 text-gray-500">{t('noEntries')}</div>
-      ) : (
-        <>
-          <ul className="space-y-2">
-            {blacklist.map(item => (
-              <li key={item.id} className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
-                <div className="flex flex-col">
-                  <span className="font-medium">{item.fullName} - {item.phoneNumber}</span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {item.city} • {t('orderSum')}: ₴{item.totalOrderSum}
-                  </span>
-                  {item.notes && <span className="text-sm italic">{item.notes}</span>}
-                </div>
-                <Button 
-                  onClick={() => handleRemoveItem(item.id)} 
-                  variant="default" 
-                  className="text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
-                >
-                  {t('remove')}
-                </Button>
-              </li>
-            ))}
-          </ul>
-          {renderPagination()}
-          <div className="text-center text-sm text-gray-500 mt-2">
-            {t('showing')} {(pagination.page - 1) * pagination.perPage + 1} - {Math.min(pagination.page * pagination.perPage, pagination.totalItems)} {t('of')} {pagination.totalItems} {t('entries')}
-          </div>
-        </>
-      )}
     </div>
   );
-};
-
-export default BlacklistManagement;
+}

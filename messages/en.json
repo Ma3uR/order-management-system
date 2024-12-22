@@ -2,7 +2,7 @@
   "Orders": {
     "title": "Orders Management",
     "totalAmount": "Total Amount",
-    "filterOrders": "Filter Orders",
+    "filterOrders": "Filter Orders", 
     "filterOrdersPlaceholder": "Search by order number or name",
     "createNewOrder": "Create New Order",
     "orders": "Orders",
@@ -20,7 +20,7 @@
     "orderDetails": "Order Details",
     "source": "Source",
     "deliveryMethod": "Delivery Method",
-    "deliveryPostNumber": "Delivery Post Number",
+    "deliveryPostNumber": "Delivery Post Number", 
     "phoneNumber": "Phone Number",
     "products": "Products",
     "numberOfItems": "Number of Items",
@@ -36,8 +36,8 @@
     },
     "deliveryMethods": {
       "ukrposhta": "Ukrposhta",
-      "novaPoshta": "Nova Poshta",
-      "parcelLocker": "Parcel Locker or Poshtomat",
+      "novaPoshta": "Nova Poshta", 
+      "parcelLocker": "Parcel Locker",
       "rozetka": "Rozetka",
       "mistExpress": "Mist Express"
     },
@@ -46,7 +46,7 @@
     "createNewOrderDescription": "Fill in the details to create a new order. Click save when you're done.",
     "backToDashboard": "Back to Dashboard",
     "selectDeliveryMethod": "Select Delivery Method",
-    "selectPaymentMethod": "Select Payment Method",
+    "selectPaymentMethod": "Select Payment Method", 
     "selectSource": "Select Source",
     "sourceRequired": "Source is required",
     "blacklistedCustomerWarning": "Customer is blacklisted. Only prepayment is allowed.",
@@ -56,14 +56,27 @@
     "amountRange": "Amount Range",
     "resetFilters": "Reset Filters",
     "notes": "Notes",
-    "notesPlaceholder": "Enter any additional notes about the order..."
+    "notesPlaceholder": "Enter any additional notes about the order...",
+    "showing": "Showing",
+    "of": "of",
+    "results": "results",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
+    "addProduct": "Add product",
+    "productName": "Product name",
+    "quantity": "Quantity", 
+    "price": "Price",
+    "product": "Product",
+    "totalItems": "Total items",
+    "totalAmount": "Total amount"
   },
   "Auth": {
-    "signInTitle": "Sign in to your account",
-    "signInDescription": "Enter your credentials to sign in",
-    "emailLabel": "Email address",
+    "signInTitle": "Sign in",
+    "signInDescription": "Enter your credentials to sign in to your account",
+    "emailLabel": "Email",
     "emailPlaceholder": "Enter your email",
-    "passwordLabel": "Password",
+    "passwordLabel": "Password", 
     "passwordPlaceholder": "Enter your password",
     "signInButton": "Sign in",
     "signingIn": "Signing in...",
@@ -92,7 +105,7 @@
     "title": "Settings",
     "profile": "Profile",
     "currencies": "Currencies",
-    "statuses": "Statuses",
+    "statuses": "Statuses", 
     "paymentMethods": "Payment Methods",
     "deliveryMethods": "Delivery Methods",
     "sources": "Sources",
@@ -143,9 +156,15 @@
     "noEntries": "No entries in blacklist",
     "loading": "Loading...",
     "firstPage": "First page",
-    "previousPage": "Previous page",
+    "previousPage": "Previous page", 
     "nextPage": "Next page",
-    "lastPage": "Last page"
+    "lastPage": "Last page",
+    "searchPlaceholder": "Search by name, phone or city",
+    "addSuccess": "Successfully added to blacklist",
+    "addError": "Error adding to blacklist",
+    "removeSuccess": "Successfully removed from blacklist",
+    "removeError": "Error removing from blacklist",
+    "error": "Error"
   },
   "AiChat": {
     "title": "AI Assistant",
@@ -154,48 +173,7 @@
     "send": "Send",
     "initialMessage": "Hello! I'm an AI agent, but I'm not working yet! I'll be here soon to help you with any questions you might have."
   },
-  "auth": {
-    "signInTitle": "Sign In",
-    "signInDescription": "Enter your credentials to access your account",
-    "emailLabel": "Email",
-    "emailPlaceholder": "Enter your email",
-    "passwordLabel": "Password",
-    "passwordPlaceholder": "Enter your password",
-    "signInButton": "Sign In",
-    "signingIn": "Signing in...",
-    "invalidCredentials": "Invalid email or password",
-    "signInError": "An error occurred while signing in"
-  },
   "Navigation": {
-    "dashboard": "Dashboard",
-    "orders": "Orders",
-    "blacklist": "Blacklist",
-    "settings": "Settings",
-    "signOut": "Sign Out"
-  },
-  "Common": {
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "success": "Success",
-    "cancel": "Cancel",
-    "save": "Save",
-    "edit": "Edit",
-    "delete": "Delete",
-    "confirm": "Confirm",
-    "back": "Back"
-  },
-  "Charts": {
-    "jan": "Jan",
-    "feb": "Feb",
-    "mar": "Mar",
-    "apr": "Apr",
-    "may": "May",
-    "jun": "Jun",
-    "jul": "Jul",
-    "aug": "Aug",
-    "sep": "Sep",
-    "oct": "Oct",
-    "nov": "Nov",
-    "dec": "Dec"
+    "backToDashboard": "Back to Dashboard"
   }
 }
