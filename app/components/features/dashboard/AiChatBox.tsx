@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
+import { Input } from "@/app/components/shared/ui/input";
+import { Button } from "@/app/components/shared/ui/button";
+import { ScrollArea } from "@/app/components/shared/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/shared/ui/avatar";
 import { Send, Bot, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { motion } from "framer-motion";
 import { useTheme } from 'next-themes';

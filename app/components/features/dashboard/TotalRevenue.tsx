@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { LineChart, Line, ResponsiveContainer } from "recharts";

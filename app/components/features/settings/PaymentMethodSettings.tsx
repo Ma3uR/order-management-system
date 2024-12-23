@@ -4,10 +4,10 @@ import { SettingsForm } from "./SettingsForm";
 import { paymentMethodSchema, type PaymentMethodFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/app/components/shared/ui/card";
+import { Button } from "@/app/components/shared/ui/button";
 import { Trash2 } from "lucide-react";
-import { useNotification } from "@/app/components/ui/notifications";
+import { useToast } from "@/app/components/shared/ui/use-toast";
 import type { PaymentOptionsResponse } from "@/app/types/pocketbase-types";
 import { paymentService } from "@/app/services/api";
 
@@ -15,7 +15,7 @@ export function PaymentMethodSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentOptionsResponse[]>([]);
-  const { showNotification } = useNotification();
+  const { toast } = useToast();
 
   const defaultValues: PaymentMethodFormData = {
     name: "",
@@ -31,24 +31,27 @@ export function PaymentMethodSettings() {
     
     const fetchPaymentMethods = useCallback(async () => {
     try {
+      setIsLoading(true);
       const response = await paymentService.fetchAll();
       setPaymentMethods(response);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        showNotification({
+        toast({
           title: t('fetchError'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       } else {
-        showNotification({
+        toast({
           title: t('fetchError'),
           description: t('paymentMethodFetchError'),
-          type: "error"
+          variant: "destructive"
         });
       }
+    } finally {
+      setIsLoading(false);
     }
-  }, [showNotification, t]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchPaymentMethods();
@@ -59,25 +62,25 @@ export function PaymentMethodSettings() {
     try {
       await paymentService.create(data);
 
-      showNotification({
+      toast({
         title: t('saveSuccess'),
         description: t('paymentMethodSaveSuccess'),
-        type: "success"
+        variant: "default"
       });
       
       fetchPaymentMethods();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        showNotification({
+        toast({
           title: t('saveError'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       } else {
-        showNotification({
+        toast({
           title: t('saveError'),
           description: t('paymentMethodSaveError'),
-          type: "error"
+          variant: "destructive"
         });
       }
     } finally {
@@ -86,29 +89,32 @@ export function PaymentMethodSettings() {
   };
 
   const handleDelete = async (id: string) => {
+    setIsLoading(true);
     try {
       await paymentService.delete(id);
-      showNotification({
+      toast({
         title: t('deleteSuccess'),
         description: t('paymentMethodDeleteSuccess'),
-        type: "success"
+        variant: "default"
       });
 
       fetchPaymentMethods();
     } catch (error: unknown | Error ) {
       if (error instanceof Error) {
-        showNotification({
+        toast({
           title: t('deleteError'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       } else {
-        showNotification({
+        toast({
           title: t('deleteError'),
           description: t('paymentMethodDeleteError'),
-          type: "error"
+          variant: "destructive"
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 

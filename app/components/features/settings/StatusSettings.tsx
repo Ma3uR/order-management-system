@@ -4,20 +4,20 @@ import { useState, useEffect, useCallback } from "react";
 import { SettingsForm } from "./SettingsForm";
 import { statusSchema, type StatusFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/app/components/shared/ui/card";
+import { Button } from "@/app/components/shared/ui/button";
 import { Trash2, Pencil } from "lucide-react";
-import { useNotification } from "@/app/components/ui/notifications";
+import { useToast } from "@/app/components/shared/ui/use-toast";
 import type { StatusOptionsResponse } from "@/app/types/pocketbase-types";
 import { statusService } from "@/app/services/api";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/app/components/shared/ui/input";
 
 export function StatusSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
   const [statuses, setStatuses] = useState<StatusOptionsResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { showNotification } = useNotification();
+  const { toast } = useToast();
 
   const defaultValues: StatusFormData = {
     name: "",
@@ -46,18 +46,21 @@ export function StatusSettings() {
 
   const fetchStatuses = useCallback(async () => {
     try {
+      setIsLoading(true);
       const response = await statusService.fetchAll();
       setStatuses(response);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        showNotification({
+        toast({
           title: t('fetchError'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       }
+    } finally {
+      setIsLoading(false);
     }
-  }, [showNotification, t]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchStatuses();
@@ -68,26 +71,26 @@ export function StatusSettings() {
     try {
       await statusService.create(data);
 
-      showNotification({
+      toast({
         title: t('saveSuccess'),
         description: t('statusSaveSuccess'),
-        type: "success"
+        variant: "default"
       });
       
       fetchStatuses();
     } catch (error: unknown) {
       console.error('Status creation error:', error);
       if (error instanceof Error) {
-        showNotification({
+        toast({
           title: t('saveError'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       } else {
-        showNotification({
+        toast({
           title: t('saveError'),
           description: t('unexpectedError'),
-          type: "error"
+          variant: "destructive"
         });
       }
     } finally {
@@ -99,26 +102,26 @@ export function StatusSettings() {
     try {
       await statusService.delete(id);
 
-      showNotification({
+      toast({
         title: t('deleteSuccess'),
         description: t('statusDeleteSuccess'),
-        type: "success"
+        variant: "default"
       });
 
       fetchStatuses();
     } catch (error: unknown) {
       if (error instanceof Error) {
         if (error.message.includes('required relation reference')) {
-          showNotification({
+          toast({
             title: t('deleteError'),
             description: t('statusInUseError'),
-            type: "error"
+            variant: "destructive"
           });
         } else {
-          showNotification({
+          toast({
             title: t('deleteError'),
             description: t('statusDeleteError'),
-            type: "error"
+            variant: "destructive"
           });
         }
       }
@@ -130,31 +133,30 @@ export function StatusSettings() {
   };
 
   const handleSave = async (status: StatusOptionsResponse, data: StatusFormData) => {
+    console.log('Status - Starting save:', { status, data });
     try {
-      await statusService.update(status.id, data);
+      const response = await statusService.update(status.id, data);
+      console.log('Status - API Response:', response);
+      
+      if (!response.ok) throw new Error(t('statusUpdateError'));
+      
       setEditingId(null);
       fetchStatuses();
 
-      showNotification({
+      console.log('Status - About to show notification');
+      toast({
         title: t('saveSuccess'),
-        description: t('statusSaveSuccess'),
-        type: "success"
+        description: t('statusUpdateSuccess'),
+        variant: "default"
       });
+      console.log('Status - After showing notification');
     } catch (error: unknown) {
-      console.error('Status update error:', error);
-      if (error instanceof Error) {
-        showNotification({
-          title: t('saveError'),
-          description: error.message,
-          type: "error"
-        });
-      } else {
-        showNotification({
-          title: t('saveError'),
-          description: t('unexpectedError'),
-          type: "error"
-        });
-      }
+      console.error('Status - Error occurred:', error);
+      toast({
+        title: t('saveError'),
+        description: error instanceof Error ? error.message : t('statusUpdateError'),
+        variant: "destructive"
+      });
       setEditingId(status.id);
     }
   };

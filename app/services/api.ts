@@ -4,35 +4,63 @@ import { DeliveryMethodFormData } from "../lib/validations/settings";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export const currencyService = {
-  fetchAll: () => fetch('/api/currencies').then(res => res.json()),
+  async fetchAll() {
+    const url = new URL('/api/currencies', BASE_URL).toString()
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
   create: (data: CurrencyFormData) => fetch('/api/currencies', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
-  delete: (id: string) => fetch(`/api/currencies`, {
+  delete: (id: string) => fetch(`/api/currencies/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id }),
   }),
 }; 
 
 export const deliveryService = {
-  fetchAll: () => fetch('/api/delivery-methods').then(res => res.json()),
+  async fetchAll() {
+    const url = new URL('/api/delivery-methods', BASE_URL).toString()
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
   create: (data: DeliveryMethodFormData) => fetch('/api/delivery-methods', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
-  delete: (id: string) => fetch(`/api/delivery-methods`, {
+  delete: (id: string) => fetch(`/api/delivery-methods/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id }),
   }),
 };
 
 export const statusService = {
-  fetchAll: () => fetch('/api/statuses').then(res => res.json()),
+  async fetchAll() {
+    const url = new URL('/api/statuses', BASE_URL).toString()
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
   update: (id: string, data: StatusFormData) => fetch(`/api/statuses/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -43,30 +71,39 @@ export const statusService = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
-  delete: (id: string) => fetch(`/api/statuses`, {
+  delete: (id: string) => fetch(`/api/statuses/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id }),
   }),
 };
 
 export const paymentService = {
-  fetchAll: () => fetch('/api/payment-methods').then(res => res.json()),
+  async fetchAll() {
+    const url = new URL('/api/payment-methods', BASE_URL).toString()
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
   create: (data: PaymentMethodFormData) => fetch('/api/payment-methods', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
-  delete: (id: string) => fetch(`/api/payment-methods`, {
+  delete: (id: string) => fetch(`/api/payment-methods/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id }),
   }),
 };
 
 export const sourceService = {
     async fetchAll() {
-      const response = await fetch(`${BASE_URL}/api/sources`, {
+      const url = new URL('/api/sources', BASE_URL).toString()
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -84,9 +121,8 @@ export const sourceService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }),
-    delete: (id: string) => fetch(`/api/sources`, {
+    delete: (id: string) => fetch(`/api/sources/${id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
     }),
 };

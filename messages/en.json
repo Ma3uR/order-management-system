@@ -91,6 +91,7 @@
   },
   "Blacklist": {
     "title": "Blacklist Management",
+    "description": "Manage your blacklisted customers and view their details.",
     "fullNamePlaceholder": "Full Name",
     "phoneNumberPlaceholder": "Phone Number",
     "cityPlaceholder": "City",
@@ -115,7 +116,16 @@
     "addError": "Error adding to blacklist",
     "removeSuccess": "Successfully removed from blacklist",
     "removeError": "Error removing from blacklist",
-    "error": "Error"
+    "error": "Error",
+    "blacklist": "Blacklist",
+    "noItems": "No blacklist entries",
+    "searching": "Searching...",
+    "retry": "Retry",
+    "totalOrderSum": "Total Order Sum",
+    "search": "Search",
+    "addNewItem": "Add New Item",
+    "blacklistItems": "Blacklist Items",
+    "blacklistDescription": "Manage your blacklisted customers and view their details."
   },
   "AiChat": {
     "title": "AI Assistant",
@@ -126,6 +136,7 @@
   },
   "Settings": {
     "settings": "Settings",
+    "settingsDescription": "Manage your account settings, including currencies, statuses, payment methods, and delivery methods.",
     "currency": "Currency",
     "source": "Source",
     "status": "Status",
@@ -215,7 +226,8 @@
     "invalidPriority": "Priority must be between 1 and 99",
     "minimumLength": "Minimum length: {{length}} characters",
     "maximumLength": "Maximum length: {{length}} characters",
-    "save": "Save"
+    "save": "Save",
+    "saving": "Saving..."
   },
   "Auth": {
     "signInTitle": "Sign in",

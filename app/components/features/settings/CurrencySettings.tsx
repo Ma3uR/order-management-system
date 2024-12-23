@@ -4,18 +4,18 @@ import { useState, useEffect, useCallback } from "react";
 import { SettingsForm } from "./SettingsForm";
 import { currencySchema, type CurrencyFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/app/components/shared/ui/card";
+import { Button } from "@/app/components/shared/ui/button";
 import { Trash2 } from "lucide-react";
-import { useNotification } from "@/app/components/ui/notifications";
+import { useToast } from "@/app/components/shared/ui/use-toast";
 import type { CurrencyOptionsResponse } from "@/app/types/pocketbase-types";
 import { currencyService } from "@/app/services/api";
 
 export function CurrencySettings() {
   const t = useTranslations('Settings');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [currencies, setCurrencies] = useState<CurrencyOptionsResponse[]>([]);
-  const { showNotification } = useNotification();
+  const { toast } = useToast();
 
   const defaultValues: CurrencyFormData = {
     code: "",
@@ -31,25 +31,28 @@ export function CurrencySettings() {
   ];
 
   const fetchCurrencies = useCallback(async () => {
+    setIsLoading(true);
     try {
       const data = await currencyService.fetchAll();
       setCurrencies(data);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        showNotification({
+        toast({
           title: t('fetchError'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       } else {
-        showNotification({
+        toast({
           title: t('fetchError'),
           description: t('fetchErrorDescription'),
-          type: "error"
+          variant: "destructive"
         });
       }
+    } finally {
+      setIsLoading(false);
     }
-  }, [showNotification, t]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchCurrencies();
@@ -62,25 +65,25 @@ export function CurrencySettings() {
       
       if (!response.ok) throw new Error('Failed to save currency');
       
-      showNotification({
+      toast({
         title: t('saveSuccess'),
         description: t('currencySaveSuccess'),
-        type: "success"
+        variant: "default"
       });
       
       fetchCurrencies();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        showNotification({
+        toast({
           title: t('saveError'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       } else {
-        showNotification({
+        toast({
           title: t('saveError'),
           description: t('currencySaveError'),
-          type: "error"
+          variant: "destructive"
         });
       }
     } finally {
@@ -89,32 +92,35 @@ export function CurrencySettings() {
   };
 
   const handleDelete = async (id: string) => {
+    setIsLoading(true);
     try {
       const response = await currencyService.delete(id);
 
       if (!response.ok) throw new Error('Failed to delete currency');
 
-      showNotification({
+      toast({
         title: t('deleteSuccess'),
         description: t('currencyDeleteSuccess'),
-        type: "success"
+        variant: "default"
       });
 
       fetchCurrencies();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        showNotification({
+        toast({
           title: t('deleteError'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       } else {
-        showNotification({
+        toast({
           title: t('deleteError'),
           description: t('currencyDeleteError'),
-          type: "error"
+          variant: "destructive"
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 

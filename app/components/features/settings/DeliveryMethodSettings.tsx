@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { SettingsForm } from "./SettingsForm";
 import { deliveryMethodSchema, type DeliveryMethodFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/app/components/shared/ui/card";
+import { Button } from "@/app/components/shared/ui/button";
 import { Trash2 } from "lucide-react";
-import { useNotification } from "@/app/components/ui/notifications";
+import { useToast } from "@/app/components/shared/ui/use-toast";
 import type { DeliveryOptionsResponse } from "@/app/types/pocketbase-types";
 import { deliveryService } from "@/app/services/api";
 
@@ -18,30 +18,33 @@ export function DeliveryMethodSettings() {
   const defaultValues: DeliveryMethodFormData = {
     name: "",
   };
-  const { showNotification } = useNotification();
+  const { toast } = useToast();
 
   const fetchDeliveryMethods = useCallback(async () => {
+    setIsLoading(true);
     try {
       const methods = await deliveryService.fetchAll();
       setDeliveryMethods(methods);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error('Error fetching delivery methods:', error);
-        showNotification({
+        toast({
           title: t('error'),
           description: error.message,
-          type: "error"
+          variant: "destructive"
         });
       } else {
         console.error('Error fetching delivery methods:', error);
-        showNotification({
+        toast({
           title: t('error'),
           description: t('fetchError'),
-          type: "error"
+          variant: "destructive"
         });
       }
+    } finally {
+      setIsLoading(false);
     }
-  }, [showNotification, t]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchDeliveryMethods();
@@ -56,41 +59,62 @@ export function DeliveryMethodSettings() {
   ];
 
   const onSubmit = async (data: DeliveryMethodFormData) => {
+    console.log('DeliveryMethod - Starting submission:', data);
     setIsLoading(true);
     try {
-      await deliveryService.create(data);
-      showNotification({
+      const response = await deliveryService.create(data);
+      console.log('DeliveryMethod - API Response:', response);
+      
+      if (!response.ok) throw new Error(t('deliveryMethodSaveError'));
+      
+      console.log('DeliveryMethod - Showing success notification');
+      toast({
         title: t('saveSuccess'),
         description: t('deliveryMethodSaveSuccess'),
-        type: "success"
+        variant: "default"
       });
-      const updatedMethods = await deliveryService.fetchAll();
-      setDeliveryMethods(updatedMethods);
-    } catch (error) {
-      console.error('Error saving delivery method:', error);
-      throw error;
+      
+      fetchDeliveryMethods();
+    } catch (error: unknown) {
+      console.error('DeliveryMethod - Error occurred:', error);
+      if (error instanceof Error) {
+        toast({
+          title: t('saveError'),
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: t('saveError'),
+          description: t('deliveryMethodSaveError'),
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
+    setIsLoading(true);
     try {
       await deliveryService.delete(id);
-      showNotification({
+      toast({
         title: t('deleteSuccess'),
         description: t('deliveryMethodDeleteSuccess'),
-        type: "success"
+        variant: "default"
       });
       const updatedMethods = await deliveryService.fetchAll();
       setDeliveryMethods(updatedMethods);
     } catch (error) {
       console.error('Error deleting delivery method:', error);
-      showNotification({
+      toast({
         title: t('deleteError'),
         description: t('deliveryMethodDeleteError'),
-        type: "error"
+        variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   }
 

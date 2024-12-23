@@ -13,15 +13,16 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from '@/components/ui/sidebar';
-import { Separator } from '@/components/ui/separator';
+} from '@/app/components/shared/ui/sidebar';
+import { Separator } from '@/app/components/shared/ui/separator';
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
-} from '@/components/ui/breadcrumb';
+} from '@/app/components/shared/ui/breadcrumb';
 import { Footer } from '@/app/components/layouts/footer';
+import { Toaster } from "@/app/components/shared/ui/toaster";
 
 export default function DashboardLayout({
   children,
@@ -32,6 +33,7 @@ export default function DashboardLayout({
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <SessionProvider>
         <DashboardLayoutContent>{children}</DashboardLayoutContent>
+        <Toaster />
       </SessionProvider>
     </ThemeProvider>
   );

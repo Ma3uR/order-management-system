@@ -52,8 +52,7 @@ export const deliveryMethodSchema = z.object({
 export const sourceSchema = z.object({
   name: z.string()
     .min(2, "Source name must be at least 2 characters")
-    .max(50, "Source name must be less than 50 characters")
-    .optional(),
+    .max(50, "Source name must be less than 50 characters"),
   url: z.string()
     .url("Invalid URL")
     .optional(),

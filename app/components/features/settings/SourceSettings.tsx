@@ -4,17 +4,18 @@ import { useState, useEffect } from "react";
 import { SettingsForm } from "./SettingsForm";
 import { sourceSchema, type SourceFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
-import { useNotification } from "../../ui/notifications";
+import { useToast } from "@/app/components/shared/ui/use-toast";
 import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/app/components/shared/ui/button";
+import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { sourceService } from "@/app/services/api";
 import { SourcesResponse } from "@/app/types/pocketbase-types";
+import { LoadingSpinner } from "@/app/components/shared/ui/loading-spinner";
 
 export function SourceSettings() {
   const t = useTranslations('Settings');
-  const [isLoading, setIsLoading] = useState(false);
-  const { showNotification } = useNotification();
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
   const [sources, setSources] = useState<SourcesResponse[]>([]);
   const defaultValues: SourceFormData = {
     name: "",
@@ -36,37 +37,59 @@ export function SourceSettings() {
   ];
 
   useEffect(() => {
-    const loadSources = async () => {
+    const fetchSources = async () => {
       try {
-        const sources = await sourceService.fetchAll();
-        setSources(sources);
+        setIsLoading(true);
+        const data = await sourceService.fetchAll();
+        setSources(data);
       } catch (error) {
-        console.error('Error loading sources:', error);
-        showNotification({
+        console.error('Error fetching sources:', error);
+        toast({
           title: t('error'),
           description: t('sourceLoadError'),
-          type: "error"
+          variant: "destructive"
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadSources();
-  }, [showNotification, t]);
+    fetchSources();
+  }, [toast, t]);
 
   const onSubmit = async (data: SourceFormData) => {
+    console.log('Source - Starting submission:', data);
     setIsLoading(true);
     try {
-      await sourceService.create(data);
-      showNotification({
+      const response = await sourceService.create(data);
+      console.log('Source - API Response:', response);
+      
+      if (!response.ok) throw new Error(t('sourceSaveError'));
+      
+      console.log('Source - Showing success notification');
+      toast({
         title: t('saveSuccess'),
         description: t('sourceSaveSuccess'),
-        type: "success"
+        variant: "default"
       });
+      
       const updatedSources = await sourceService.fetchAll();
       setSources(updatedSources);
-    } catch (error) {
-      console.error('Error saving source:', error);
-      throw error;
+    } catch (error: unknown) {
+      console.error('Source - Error occurred:', error);
+      if (error instanceof Error) {
+        toast({
+          title: t('saveError'),
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: t('saveError'),
+          description: t('sourceSaveError'),
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -75,21 +98,25 @@ export function SourceSettings() {
   const handleDelete = async (id: string) => {
     try {
       await sourceService.delete(id);
-      showNotification({
+      toast({
         title: t('deleteSuccess'),
         description: t('sourceDeleteSuccess'),
-        type: "success"
+        variant: "default"
       });
       const updatedSources = await sourceService.fetchAll();
       setSources(updatedSources);
     } catch (error) {
       console.error('Error deleting source:', error);
-      showNotification({
+      toast({
         title: t('deleteError'),
         description: t('sourceDeleteError'),
-        type: "error"
+        variant: "destructive"
       });
     }
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner />;
   }
 
   return (

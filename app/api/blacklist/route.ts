@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { blacklistEntrySchema } from '@/app/lib/validations/blacklist';
-import pb from '@/app/lib/pocketbase';
-import { authenticateAdmin } from '@/app/lib/pocketbase';
+import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { auth } from '@/app/lib/auth';
 import { z } from 'zod';
@@ -19,8 +18,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await authenticateAdmin();
-
     const { searchParams } = new URL(request.url);
     const { page, perPage, search } = querySchema.parse({
       page: searchParams.get('page'),
@@ -32,9 +29,20 @@ export async function GET(request: Request) {
       ? `fullName ~ "${search}" || phoneNumber ~ "${search}" || city ~ "${search}"`
       : '';
 
-    const resultList = await pb.collection('blacklist_entries').getList(page, perPage, {
-      sort: '-created',
-      filter,
+    console.log('Fetching blacklist with params:', { page, perPage, filter });
+
+    const resultList = await authenticatedCall(() => 
+      pb.collection('blacklist_entries').getList(page, perPage, {
+        sort: '-created',
+        filter,
+      })
+    );
+
+    console.log('Blacklist results:', {
+      totalItems: resultList.totalItems,
+      totalPages: resultList.totalPages,
+      page: resultList.page,
+      itemsCount: resultList.items.length
     });
 
     return NextResponse.json(resultList);
@@ -43,7 +51,10 @@ export async function GET(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid request parameters', details: error.errors }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Failed to fetch blacklist' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to fetch blacklist',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
@@ -54,20 +65,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await authenticateAdmin();
     const data = await request.json();
-    
-    // Validate the input data
     const validatedData = blacklistEntrySchema.parse(data);
     
-    const record = await pb.collection('blacklist_entries').create(validatedData);
+    const record = await authenticatedCall(() => 
+      pb.collection('blacklist_entries').create(validatedData)
+    );
+
     return NextResponse.json(record);
   } catch (error) {
     console.error('Error creating blacklist entry:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Error creating blacklist entry' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Error creating blacklist entry',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
@@ -78,18 +92,22 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await authenticateAdmin();
     const { id } = await request.json();
     
-    // Validate ID
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    await pb.collection('blacklist_entries').delete(id);
+    await authenticatedCall(() => 
+      pb.collection('blacklist_entries').delete(id)
+    );
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting blacklist entry:', error);
-    return NextResponse.json({ error: 'Error deleting blacklist entry' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Error deleting blacklist entry',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

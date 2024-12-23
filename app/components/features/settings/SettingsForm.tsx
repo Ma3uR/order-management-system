@@ -2,12 +2,11 @@
 
 import { useForm, FieldValues, DefaultValues, Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form";
+import { Input } from "@/app/components/shared/ui/input";
+import { Button } from "@/app/components/shared/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { ZodSchema } from "zod";
 
 interface SettingsFormProps<T extends FieldValues> {
@@ -42,14 +41,11 @@ export function SettingsForm<T extends FieldValues>({
   const handleSubmit = async (data: T) => {
     try {
       await onSubmit(data);
-      toast.success(t('saveSuccess'));
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
-        toast.error(t('saveError'));
       } else {
         console.error(error);
-        toast.error(t('saveError'));
       }
     }
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { BarChart } from "@/app/components/shared/charts/BarChart";
 import { useTranslations } from 'next-intl';
 import { motion } from "framer-motion";
