@@ -33,6 +33,11 @@ export const deliveryService = {
 
 export const statusService = {
   fetchAll: () => fetch('/api/statuses').then(res => res.json()),
+  update: (id: string, data: StatusFormData) => fetch(`/api/statuses/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
   create: (data: StatusFormData) => fetch('/api/statuses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
