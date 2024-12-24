@@ -1,17 +1,5 @@
 "use client";
 
-import { ThemeProvider } from 'next-themes';
-import { SessionProvider } from 'next-auth/react';
-import { SidebarProvider } from '@/app/components/shared/ui/sidebar';
-import { AppSidebar } from '@/app/components/layouts/AppSidebar';
-import { Separator } from "@/app/components/shared/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/app/components/shared/ui/breadcrumb";
-import { SidebarInset, SidebarTrigger } from "@/app/components/shared/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/shared/ui/tabs";
 import { Card } from "@/app/components/shared/ui/card";
 import { useTranslations } from "next-intl";
@@ -22,8 +10,6 @@ import { DeliveryMethodSettings } from "@/app/components/features/settings/Deliv
 import { SourceSettings } from "@/app/components/features/settings/SourceSettings";
 import { motion } from "framer-motion";
 import { Toaster } from 'sonner';
-import LanguageToggle from '@/app/components/shared/ui/LanguageSwitcher';
-import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
