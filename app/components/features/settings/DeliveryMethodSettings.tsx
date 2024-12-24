@@ -7,9 +7,9 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2 } from "lucide-react";
-import { useToast } from "@/app/components/shared/ui/use-toast";
 import type { DeliveryOptionsResponse } from "@/app/types/pocketbase-types";
 import { deliveryService } from "@/app/services/api";
+import { toast } from 'sonner';
 
 export function DeliveryMethodSettings() {
   const t = useTranslations('Settings');
@@ -18,7 +18,6 @@ export function DeliveryMethodSettings() {
   const defaultValues: DeliveryMethodFormData = {
     name: "",
   };
-  const { toast } = useToast();
 
   const fetchDeliveryMethods = useCallback(async () => {
     setIsLoading(true);
@@ -28,23 +27,19 @@ export function DeliveryMethodSettings() {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error('Error fetching delivery methods:', error);
-        toast({
-          title: t('error'),
+        toast.error(t('error'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
         console.error('Error fetching delivery methods:', error);
-        toast({
-          title: t('error'),
+        toast.error(t('error'), {
           description: t('fetchError'),
-          variant: "destructive"
         });
       }
     } finally {
       setIsLoading(false);
     }
-  }, [toast, t]);
+  }, [t]);
 
   useEffect(() => {
     fetchDeliveryMethods();
@@ -68,26 +63,20 @@ export function DeliveryMethodSettings() {
       if (!response.ok) throw new Error(t('deliveryMethodSaveError'));
       
       console.log('DeliveryMethod - Showing success notification');
-      toast({
-        title: t('saveSuccess'),
+      toast.success(t('saveSuccess'), {
         description: t('deliveryMethodSaveSuccess'),
-        variant: "default"
       });
       
       fetchDeliveryMethods();
     } catch (error: unknown) {
       console.error('DeliveryMethod - Error occurred:', error);
       if (error instanceof Error) {
-        toast({
-          title: t('saveError'),
+        toast.error(t('saveError'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
-        toast({
-          title: t('saveError'),
+        toast.error(t('saveError'), {
           description: t('deliveryMethodSaveError'),
-          variant: "destructive"
         });
       }
     } finally {
@@ -99,19 +88,15 @@ export function DeliveryMethodSettings() {
     setIsLoading(true);
     try {
       await deliveryService.delete(id);
-      toast({
-        title: t('deleteSuccess'),
+      toast.success(t('deleteSuccess'), {
         description: t('deliveryMethodDeleteSuccess'),
-        variant: "default"
       });
       const updatedMethods = await deliveryService.fetchAll();
       setDeliveryMethods(updatedMethods);
     } catch (error) {
       console.error('Error deleting delivery method:', error);
-      toast({
-        title: t('deleteError'),
+      toast.error(t('deleteError'), {
         description: t('deliveryMethodDeleteError'),
-        variant: "destructive"
       });
     } finally {
       setIsLoading(false);

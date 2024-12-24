@@ -6,13 +6,13 @@ import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import axios, { AxiosError } from 'axios';
 import { BlacklistForm } from './BlacklistForm';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/shared/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area";
 import { toast } from 'sonner';
 import type { BlacklistEntriesResponse } from '@/app/types/pocketbase-types';
 import type { BlacklistFormData } from '@/app/lib/validations/blacklist';
-import { Trash, Search, Plus } from 'lucide-react';
+import { Trash, Search } from 'lucide-react';
 import { Input } from "@/app/components/shared/ui/input";
 import { useDebounce } from '@/app/hooks/useDebounce';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,10 +128,6 @@ export default function BlacklistManagement() {
       const response = await axios.post('/api/blacklist', data);
       setItems(prev => [...prev, response.data]);
       toast.success(t('addSuccess'), {
-        className: "bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-800",
-        style: {
-          color: "var(--foreground)",
-        },
         duration: 4000,
         position: "top-right",
         dismissible: true
@@ -139,10 +135,6 @@ export default function BlacklistManagement() {
       await fetchBlacklist(pagination.page, '');
     } catch (error) {
       toast.error(t('addError'), {
-        className: "bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-800",
-        style: {
-          color: "var(--foreground)",
-        },
         duration: 4000,
         position: "top-right",
         dismissible: true
@@ -158,20 +150,12 @@ export default function BlacklistManagement() {
       await axios.delete('/api/blacklist', { data: { id } });
       setItems(prev => prev.filter(item => item.id !== id));
       toast.success(t('removeSuccess'), {
-        className: "bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-800",
-        style: {
-          color: "var(--foreground)",
-        },
         duration: 4000,
         position: "top-right",
         dismissible: true
       });
     } catch (error) {
       toast.error(t('removeError'), {
-        className: "bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-800",
-        style: {
-          color: "var(--foreground)",
-        },
         duration: 4000,
         position: "top-right",
         dismissible: true
@@ -210,7 +194,7 @@ export default function BlacklistManagement() {
       variants={staggerContainer}
     >
       <motion.div variants={fadeIn}>
-        <Card className="border shadow-sm bg-card">
+        <Card className="border shadow-sm bg-background">
           <CardHeader>
             <CardTitle className="text-base">{t('search')}</CardTitle>
           </CardHeader>
@@ -243,7 +227,7 @@ export default function BlacklistManagement() {
       </motion.div>
 
       <motion.div variants={fadeIn}>
-        <Card className="border shadow-sm bg-card">
+        <Card className="border shadow-sm bg-background">
           <CardHeader>
             <CardTitle className="text-base">{t('blacklistItems')}</CardTitle>
           </CardHeader>
@@ -322,7 +306,7 @@ export default function BlacklistManagement() {
 
       {items.length > 0 && (
         <motion.div variants={fadeIn}>
-          <Card className="border shadow-sm bg-card">
+          <Card className="border shadow-sm bg-background">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1 text-sm text-muted-foreground">

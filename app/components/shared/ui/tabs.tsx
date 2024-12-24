@@ -38,8 +38,8 @@ export function TabsTrigger({ value, children, className }: { value: string; chi
       className={cn(
         "px-4 py-2 transition-colors",
         activeTab === value 
-          ? "border-b-2 border-primary text-primary dark:border-primary dark:text-primary-foreground" 
-          : "text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-gray-200",
+          ? "border-b-2 border-primary text-primary dark:text-white dark:border-primary" 
+          : "text-muted-foreground hover:text-foreground dark:text-gray-300 dark:hover:text-white",
         className
       )}
       onClick={() => setActiveTab(value)}

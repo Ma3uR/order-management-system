@@ -39,7 +39,7 @@ interface BlacklistPageClientProps {
   };
 }
 
-export default function BlacklistPageClient({ translations }: BlacklistPageClientProps) {
+export default function BlacklistPageClient({}: BlacklistPageClientProps) {
   const t = useTranslations('Blacklist');
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

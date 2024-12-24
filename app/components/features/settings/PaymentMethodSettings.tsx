@@ -7,15 +7,14 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2 } from "lucide-react";
-import { useToast } from "@/app/components/shared/ui/use-toast";
 import type { PaymentOptionsResponse } from "@/app/types/pocketbase-types";
 import { paymentService } from "@/app/services/api";
+import { toast } from 'sonner';
 
 export function PaymentMethodSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentOptionsResponse[]>([]);
-  const { toast } = useToast();
 
   const defaultValues: PaymentMethodFormData = {
     name: "",
@@ -29,29 +28,25 @@ export function PaymentMethodSettings() {
     },
   ];
     
-    const fetchPaymentMethods = useCallback(async () => {
+  const fetchPaymentMethods = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await paymentService.fetchAll();
       setPaymentMethods(response);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast({
-          title: t('fetchError'),
+        toast.error(t('fetchError'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
-        toast({
-          title: t('fetchError'),
+        toast.error(t('fetchError'), {
           description: t('paymentMethodFetchError'),
-          variant: "destructive"
         });
       }
     } finally {
       setIsLoading(false);
     }
-  }, [toast, t]);
+  }, [t]);
 
   useEffect(() => {
     fetchPaymentMethods();
@@ -62,25 +57,19 @@ export function PaymentMethodSettings() {
     try {
       await paymentService.create(data);
 
-      toast({
-        title: t('saveSuccess'),
+      toast.success(t('saveSuccess'), {
         description: t('paymentMethodSaveSuccess'),
-        variant: "default"
       });
       
       fetchPaymentMethods();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast({
-          title: t('saveError'),
+        toast.error(t('saveError'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
-        toast({
-          title: t('saveError'),
+        toast.error(t('saveError'), {
           description: t('paymentMethodSaveError'),
-          variant: "destructive"
         });
       }
     } finally {
@@ -92,25 +81,19 @@ export function PaymentMethodSettings() {
     setIsLoading(true);
     try {
       await paymentService.delete(id);
-      toast({
-        title: t('deleteSuccess'),
+      toast.success(t('deleteSuccess'), {
         description: t('paymentMethodDeleteSuccess'),
-        variant: "default"
       });
 
       fetchPaymentMethods();
     } catch (error: unknown | Error ) {
       if (error instanceof Error) {
-        toast({
-          title: t('deleteError'),
+        toast.error(t('deleteError'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
-        toast({
-          title: t('deleteError'),
+        toast.error(t('deleteError'), {
           description: t('paymentMethodDeleteError'),
-          variant: "destructive"
         });
       }
     } finally {

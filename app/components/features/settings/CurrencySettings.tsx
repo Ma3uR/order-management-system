@@ -7,15 +7,14 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2 } from "lucide-react";
-import { useToast } from "@/app/components/shared/ui/use-toast";
 import type { CurrencyOptionsResponse } from "@/app/types/pocketbase-types";
 import { currencyService } from "@/app/services/api";
+import { toast } from 'sonner';
 
 export function CurrencySettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(true);
   const [currencies, setCurrencies] = useState<CurrencyOptionsResponse[]>([]);
-  const { toast } = useToast();
 
   const defaultValues: CurrencyFormData = {
     code: "",
@@ -37,22 +36,18 @@ export function CurrencySettings() {
       setCurrencies(data);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast({
-          title: t('fetchError'),
+        toast.error(t('fetchError'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
-        toast({
-          title: t('fetchError'),
+        toast.error(t('fetchError'), {
           description: t('fetchErrorDescription'),
-          variant: "destructive"
         });
       }
     } finally {
       setIsLoading(false);
     }
-  }, [toast, t]);
+  }, [t]);
 
   useEffect(() => {
     fetchCurrencies();
@@ -65,25 +60,19 @@ export function CurrencySettings() {
       
       if (!response.ok) throw new Error('Failed to save currency');
       
-      toast({
-        title: t('saveSuccess'),
+      toast.success(t('saveSuccess'), {
         description: t('currencySaveSuccess'),
-        variant: "default"
       });
       
       fetchCurrencies();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast({
-          title: t('saveError'),
+        toast.error(t('saveError'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
-        toast({
-          title: t('saveError'),
+        toast.error(t('saveError'), {
           description: t('currencySaveError'),
-          variant: "destructive"
         });
       }
     } finally {
@@ -98,25 +87,19 @@ export function CurrencySettings() {
 
       if (!response.ok) throw new Error('Failed to delete currency');
 
-      toast({
-        title: t('deleteSuccess'),
+      toast.success(t('deleteSuccess'), {
         description: t('currencyDeleteSuccess'),
-        variant: "default"
       });
 
       fetchCurrencies();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast({
-          title: t('deleteError'),
+        toast.error(t('deleteError'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
-        toast({
-          title: t('deleteError'),
+        toast.error(t('deleteError'), {
           description: t('currencyDeleteError'),
-          variant: "destructive"
         });
       }
     } finally {
@@ -135,7 +118,7 @@ export function CurrencySettings() {
         fields={fields}
       />
 
-        <Card>
+      <Card>
         <CardContent className="p-6">
           <h3 className="text-lg font-semibold mb-4">{t('currencies')}</h3>
           <div className="space-y-4">
@@ -155,7 +138,7 @@ export function CurrencySettings() {
                     </span>
                   )}
                 </div>
-                   <Button
+                <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleDelete(currency.id)}

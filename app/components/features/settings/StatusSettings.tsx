@@ -7,17 +7,16 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2, Pencil } from "lucide-react";
-import { useToast } from "@/app/components/shared/ui/use-toast";
 import type { StatusOptionsResponse } from "@/app/types/pocketbase-types";
 import { statusService } from "@/app/services/api";
 import { Input } from "@/app/components/shared/ui/input";
+import { toast } from 'sonner';
 
 export function StatusSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
   const [statuses, setStatuses] = useState<StatusOptionsResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const defaultValues: StatusFormData = {
     name: "",
@@ -51,16 +50,14 @@ export function StatusSettings() {
       setStatuses(response);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        toast({
-          title: t('fetchError'),
+        toast.error(t('fetchError'), {
           description: error.message,
-          variant: "destructive"
         });
       }
     } finally {
       setIsLoading(false);
     }
-  }, [toast, t]);
+  }, [t]);
 
   useEffect(() => {
     fetchStatuses();
@@ -71,26 +68,20 @@ export function StatusSettings() {
     try {
       await statusService.create(data);
 
-      toast({
-        title: t('saveSuccess'),
+      toast.success(t('saveSuccess'), {
         description: t('statusSaveSuccess'),
-        variant: "default"
       });
       
       fetchStatuses();
     } catch (error: unknown) {
       console.error('Status creation error:', error);
       if (error instanceof Error) {
-        toast({
-          title: t('saveError'),
+        toast.error(t('saveError'), {
           description: error.message,
-          variant: "destructive"
         });
       } else {
-        toast({
-          title: t('saveError'),
+        toast.error(t('saveError'), {
           description: t('unexpectedError'),
-          variant: "destructive"
         });
       }
     } finally {
@@ -102,26 +93,20 @@ export function StatusSettings() {
     try {
       await statusService.delete(id);
 
-      toast({
-        title: t('deleteSuccess'),
+      toast.success(t('deleteSuccess'), {
         description: t('statusDeleteSuccess'),
-        variant: "default"
       });
 
       fetchStatuses();
     } catch (error: unknown) {
       if (error instanceof Error) {
         if (error.message.includes('required relation reference')) {
-          toast({
-            title: t('deleteError'),
+          toast.error(t('deleteError'), {
             description: t('statusInUseError'),
-            variant: "destructive"
           });
         } else {
-          toast({
-            title: t('deleteError'),
+          toast.error(t('deleteError'), {
             description: t('statusDeleteError'),
-            variant: "destructive"
           });
         }
       }
@@ -144,18 +129,14 @@ export function StatusSettings() {
       fetchStatuses();
 
       console.log('Status - About to show notification');
-      toast({
-        title: t('saveSuccess'),
+      toast.success(t('saveSuccess'), {
         description: t('statusUpdateSuccess'),
-        variant: "default"
       });
       console.log('Status - After showing notification');
     } catch (error: unknown) {
       console.error('Status - Error occurred:', error);
-      toast({
-        title: t('saveError'),
+      toast.error(t('saveError'), {
         description: error instanceof Error ? error.message : t('statusUpdateError'),
-        variant: "destructive"
       });
       setEditingId(status.id);
     }
