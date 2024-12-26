@@ -6,17 +6,221 @@ import { statusSchema, type StatusFormData } from "@/app/lib/validations/setting
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, GripVertical } from "lucide-react";
 import type { StatusOptionsResponse } from "@/app/types/pocketbase-types";
 import { statusService } from "@/app/services/api";
 import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/app/components/shared/ui/popover";
+import { cn } from "@/app/lib/utils";
+import { ControllerRenderProps } from "react-hook-form";
+
+type TranslationKeys = {
+  priority: string;
+  statusName: string;
+  statusColor: string;
+  statusPriority: string;
+  saveSuccess: string;
+  saveError: string;
+  statusUpdateSuccess: string;
+  statusUpdateError: string;
+  statusOrderUpdateSuccess: string;
+  statusOrderUpdateError: string;
+  dragToReorder: string;
+  fetchError: string;
+  deleteSuccess: string;
+  deleteError: string;
+  statusDeleteSuccess: string;
+  statusDeleteError: string;
+  statusInUseError: string;
+  unexpectedError: string;
+  addStatus: string;
+  statuses: string;
+};
+
+interface SortableItemProps {
+  status: StatusOptionsResponse;
+  editingId: string | null;
+  t: (key: keyof TranslationKeys) => string;
+  onEdit: (status: StatusOptionsResponse) => void;
+  onDelete: (id: string) => void;
+  onSave: (status: StatusOptionsResponse, data: StatusFormData) => void;
+}
+
+function ColorPicker({ 
+  color, 
+  onChange 
+}: { 
+  color: string; 
+  onChange: (color: string) => void;
+}) {
+  const presetColors = [
+    "#000000", "#EF4444", "#F97316", "#F59E0B", "#84CC16", 
+    "#10B981", "#06B6D4", "#3B82F6", "#6366F1", "#8B5CF6", 
+    "#D946EF", "#EC4899", "#94A3B8"
+  ];
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-[4rem] h-[2.5rem] border-2",
+            "hover:border-ring hover:text-ring"
+          )}
+          style={{ 
+            backgroundColor: color,
+            borderColor: color,
+          }}
+        >
+          <span className="sr-only">Pick a color</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64">
+        <div className="grid grid-cols-5 gap-2">
+          {presetColors.map((presetColor) => (
+            <Button
+              key={presetColor}
+              variant="ghost"
+              className={cn(
+                "w-full h-8 rounded-md border-2",
+                color === presetColor && "border-ring",
+                "hover:border-ring hover:text-ring"
+              )}
+              style={{ 
+                backgroundColor: presetColor,
+                borderColor: presetColor === color ? presetColor : 'transparent',
+              }}
+              onClick={() => onChange(presetColor)}
+            >
+              <span className="sr-only">{presetColor}</span>
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function SortableItem({ status, editingId, t, onEdit, onDelete, onSave }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: status.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between p-4 bg-background border rounded-lg shadow-sm hover:shadow-md transition-shadow"
+    >
+      <div className="flex items-center space-x-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="cursor-grab active:cursor-grabbing p-0 h-8 w-8 hover:bg-muted"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </Button>
+        {editingId === status.id ? (
+          <>
+            <ColorPicker
+              color={status.color}
+              onChange={(color) => onSave(status, {...status, color})}
+            />
+            <Input
+              defaultValue={status.name}
+              className="w-32 bg-background"
+              onBlur={(e) => onSave(status, {...status, name: e.target.value})}
+            />
+            <Input
+              type="number"
+              defaultValue={status.priority}
+              className="w-20 bg-background"
+              onBlur={(e) => onSave(status, {...status, priority: parseInt(e.target.value)})}
+            />
+          </>
+        ) : (
+          <>
+            <div 
+              className="w-4 h-4 rounded-full ring-1 ring-border" 
+              style={{ backgroundColor: status.color }}
+            />
+            <span className="font-medium text-foreground">{status.name}</span>
+            <span className="text-sm text-muted-foreground">
+              {t('priority')}: {status.priority}
+            </span>
+          </>
+        )}
+      </div>
+      <div className="flex space-x-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="hover:bg-muted"
+          onClick={() => onEdit(status)}
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => onDelete(status.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function StatusSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
   const [statuses, setStatuses] = useState<StatusOptionsResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const defaultValues: StatusFormData = {
     name: "",
@@ -28,18 +232,22 @@ export function StatusSettings() {
     { 
       name: "name" as const, 
       label: t('statusName'), 
-      placeholder: t('statusNamePlaceholder') 
+      placeholder: t('statusNamePlaceholder'),
+      className: "w-full"
     },
     { 
       name: "color" as const, 
       label: t('statusColor'), 
-      type: "color"
-    },
-    { 
-      name: "priority" as const, 
-      label: t('statusPriority'), 
-      type: "number",
-      placeholder: "1"
+      type: "color",
+      className: "w-full",
+      render: ({ field }: { field: ControllerRenderProps<StatusFormData, "color"> }) => (
+        <div className="flex flex-col gap-2">
+          <ColorPicker
+            color={field.value}
+            onChange={field.onChange}
+          />
+        </div>
+      )
     },
   ];
 
@@ -47,7 +255,8 @@ export function StatusSettings() {
     try {
       setIsLoading(true);
       const response = await statusService.fetchAll();
-      setStatuses(response);
+      const sortedStatuses = [...response].sort((a, b) => a.priority - b.priority);
+      setStatuses(sortedStatuses);
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(t('fetchError'), {
@@ -66,7 +275,15 @@ export function StatusSettings() {
   const onSubmit = async (data: StatusFormData) => {
     setIsLoading(true);
     try {
-      await statusService.create(data);
+      // Find the highest priority
+      const highestPriority = statuses.reduce((max, status) => 
+        Math.max(max, status.priority), 0);
+
+      // Create new status with next priority, overriding the form's priority
+      await statusService.create({
+        ...data,
+        priority: highestPriority + 1
+      });
 
       toast.success(t('saveSuccess'), {
         description: t('statusSaveSuccess'),
@@ -118,23 +335,18 @@ export function StatusSettings() {
   };
 
   const handleSave = async (status: StatusOptionsResponse, data: StatusFormData) => {
-    console.log('Status - Starting save:', { status, data });
     try {
       const response = await statusService.update(status.id, data);
-      console.log('Status - API Response:', response);
       
       if (!response.ok) throw new Error(t('statusUpdateError'));
       
       setEditingId(null);
       fetchStatuses();
 
-      console.log('Status - About to show notification');
       toast.success(t('saveSuccess'), {
         description: t('statusUpdateSuccess'),
       });
-      console.log('Status - After showing notification');
     } catch (error: unknown) {
-      console.error('Status - Error occurred:', error);
       toast.error(t('saveError'), {
         description: error instanceof Error ? error.message : t('statusUpdateError'),
       });
@@ -142,8 +354,59 @@ export function StatusSettings() {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Calculate new priorities for all items
+      const oldIndex = statuses.findIndex((item) => item.id === active.id);
+      const newIndex = statuses.findIndex((item) => item.id === over.id);
+      const reorderedItems = arrayMove(statuses, oldIndex, newIndex);
+      
+      // Update local state first for immediate feedback
+      const updatedStatuses = reorderedItems.map((status, index) => ({
+        ...status,
+        priority: index + 1  // Changed to use sequential numbers
+      }));
+      setStatuses(updatedStatuses);
+
+      // Update the backend one by one in sequence
+      for (const status of updatedStatuses) {
+        const response = await statusService.update(status.id, {
+          name: status.name,
+          color: status.color,
+          priority: status.priority
+        });
+        
+        if (!response.ok) {
+          throw new Error(t('statusUpdateError'));
+        }
+      }
+
+      toast.success(t('saveSuccess'), {
+        description: t('statusOrderUpdateSuccess'),
+      });
+    } catch (error) {
+      console.error('Error updating priorities:', error);
+      toast.error(t('saveError'), {
+        description: error instanceof Error ? error.message : t('statusOrderUpdateError'),
+      });
+      
+      // Fetch the original state from the server
+      await fetchStatuses();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <SettingsForm
         title={t('addStatus')}
         schema={statusSchema}
@@ -151,70 +414,37 @@ export function StatusSettings() {
         onSubmit={onSubmit}
         isLoading={isLoading}
         fields={fields}
+        className="grid gap-6"
       />
 
-      <Card>
+      <Card className="border-none shadow-md">
         <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4">{t('statuses')}</h3>
-          <div className="space-y-4">
-            {statuses.sort((a, b) => a.priority - b.priority).map((status) => (
-              <div
-                key={status.id}
-                className="flex items-center justify-between p-4 bg-muted rounded-lg"
-              >
-                <div className="flex items-center space-x-4">
-                  {editingId === status.id ? (
-                    <>
-                      <Input
-                        type="color"
-                        defaultValue={status.color}
-                        className="w-12"
-                        onBlur={(e) => handleSave(status, {...status, color: e.target.value})}
-                      />
-                      <Input
-                        defaultValue={status.name}
-                        className="w-32"
-                        onBlur={(e) => handleSave(status, {...status, name: e.target.value})}
-                      />
-                      <Input
-                        type="number"
-                        defaultValue={status.priority}
-                        className="w-20"
-                        onBlur={(e) => handleSave(status, {...status, priority: parseInt(e.target.value)})}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <div 
-                        className="w-4 h-4 rounded-full" 
-                        style={{ backgroundColor: status.color }}
-                      />
-                      <span className="font-medium">{status.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {t('priority')}: {status.priority}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(status)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(status.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+          <h3 className="text-xl font-semibold mb-4">{t('statuses')}</h3>
+          <p className="text-sm text-muted-foreground mb-6">{t('dragToReorder')}</p>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={statuses}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {statuses.map((status) => (
+                  <SortableItem
+                    key={status.id}
+                    status={status}
+                    editingId={editingId}
+                    t={t}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onSave={handleSave}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         </CardContent>
       </Card>
     </div>

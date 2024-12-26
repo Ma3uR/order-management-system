@@ -227,7 +227,10 @@
     "minimumLength": "Minimum length: {{length}} characters",
     "maximumLength": "Maximum length: {{length}} characters",
     "save": "Save",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "statusOrderUpdateSuccess": "Status order successfully updated",
+    "statusOrderUpdateError": "Error updating status order",
+    "dragToReorder": "Drag to reorder statuses"
   },
   "Auth": {
     "signInTitle": "Sign in",

@@ -44,17 +44,19 @@ export async function DELETE(
   }
 }
 
-export async function PUT(
+export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('PATCH request received from route /api/statuses/[id]');
     const { name, color, priority } = await request.json();
     const record = await pb.collection('status_options').update(params.id, {
       name,
       color,
       priority: priority || 0
     });
+    console.log('Status updated successfully:', record);
     return NextResponse.json(record);
   } catch (error) {
     console.error('Error updating status:', error);

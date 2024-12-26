@@ -97,8 +97,9 @@ export async function DELETE(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
+export async function PATCH(request: Request) {
   try {
+    console.log('PATCH request received from route /api/statuses');
     const { id, name, color, priority } = await request.json();
     const record = await authenticatedCall(() => 
       pb.collection('status_options').update(id, {

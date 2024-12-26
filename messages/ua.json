@@ -41,7 +41,7 @@
     "deliveryPostNumber": "Номер відділення",
     "phoneNumber": "Номер телефону",
     "products": "Товари",
-    "numberOfItems": "Кількість т��варів",
+    "numberOfItems": "Кількість товарів",
     "paymentMethod": "Спосіб оплати",
     "editOrder": "Редагувати замовлення",
     "selectStatus": "Вибрати статус",
@@ -173,7 +173,7 @@
     "priority": "Пріоритет",
     "priorityPlaceholder": "Введіть пріоритет (0-99)",
     "statusPriority": "Пріоритет статусу",
-    "statusColor": "Колір стату��у",
+    "statusColor": "Колір статусу",
     "sourceName": "Назва джерела",
     "sourceUrl": "URL джерела",
     "addSource": "Додати джерело",
@@ -210,7 +210,7 @@
     "paymentMethodPlaceholder": "Наприклад: Оплата картою",
     "paymentMethodSaveSuccess": "Спосіб оплати успішно збережено",
     "paymentMethodSaveError": "Помилка при збереженні способу оплати",
-    "paymentMethodDeleteSuccess": "Спосіб оплати успішно ��идалено",
+    "paymentMethodDeleteSuccess": "Спосіб оплати успішно видалено",
     "paymentMethodDeleteError": "Помилка при видаленні способу оплати",
     "paymentMethodFetchError": "Помилка при завантаженні способів оплати",
     "deliveryMethods": "Способи доставки",
@@ -240,7 +240,10 @@
     "minimumLength": "Мінімальна довжина: {{length}} символів",
     "maximumLength": "Максимальна довжина: {{length}} символів",
     "save": "Зберегти",
-    "saving": "Збереження..."
+    "saving": "Збереження...",
+    "statusOrderUpdateSuccess": "Порядок статусів успішно оновлено",
+    "statusOrderUpdateError": "Помилка оновлення порядку статусів",
+    "dragToReorder": "Перетягніть для зміни порядку статусів"
   },
   "Auth": {
     "signInTitle": "Вхід",

@@ -62,7 +62,7 @@ export const statusService = {
     return response.json();
   },
   update: (id: string, data: StatusFormData) => fetch(`/api/statuses/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
