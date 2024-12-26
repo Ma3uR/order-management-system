@@ -165,7 +165,16 @@ function SortableItem({ status, editingId, t, onEdit, onDelete, onSave }: Sortab
             <Input
               defaultValue={status.name}
               className="w-32 bg-background"
-              onBlur={(e) => onSave(status, {...status, name: e.target.value})}
+              onBlur={(e) => {
+                if (!e.target.value.trim()) {
+                  e.target.value = status.name;
+                  return;
+                }
+                onSave(status, {
+                  ...status,
+                  name: e.target.value.trim()
+                });
+              }}
             />
             <Input
               type="number"
@@ -341,9 +350,13 @@ export function StatusSettings() {
 
   const handleSave = async (status: StatusOptionsResponse, data: StatusFormData) => {
     try {
-      const hasDuplicatePriority = statuses.some(status => status.priority === data.priority);
+      console.log('data', data);
+      const hasDuplicatePriority = statuses.some(s => 
+        s.priority === data.priority && s.id !== status.id
+      );
+      console.log('hasDuplicatePriority', hasDuplicatePriority);
       if (hasDuplicatePriority) {
-        throw new Error(t('duplicatePriorityError'));
+        throw new Error(t('duplicatePriorityError')); 
       }
 
       const response = await statusService.update(status.id, data);
