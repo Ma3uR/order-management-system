@@ -43,6 +43,11 @@ export const deliveryService = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
+  update: (id: string, data: DeliveryMethodFormData) => fetch(`/api/delivery-methods/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
   delete: (id: string) => fetch(`/api/delivery-methods/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
@@ -94,6 +99,11 @@ export const paymentService = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }),
+  update: (id: string, data: PaymentMethodFormData) => fetch(`/api/payment-methods/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
   delete: (id: string) => fetch(`/api/payment-methods/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
@@ -118,6 +128,11 @@ export const sourceService = {
     },
     create: (data: SourceFormData) => fetch('/api/sources', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+    update: (id: string, data: SourceFormData) => fetch(`/api/sources/${id}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }),
