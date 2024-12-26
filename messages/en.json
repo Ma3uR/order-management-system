@@ -230,7 +230,18 @@
     "saving": "Saving...",
     "statusOrderUpdateSuccess": "Status order successfully updated",
     "statusOrderUpdateError": "Error updating status order",
-    "dragToReorder": "Drag to reorder statuses"
+    "dragToReorder": "Drag to reorder statuses",
+    "sourceInUseError": "Cannot delete source that is being used in orders",
+    "sourceNotFound": "Source not found",
+    "sourceUpdateError": "Failed to update source",
+    "sourceDeleteError": "Failed to delete source",
+    "unauthorized": "Unauthorized",
+    "paymentMethodUpdateSuccess": "Payment method successfully updated",
+    "editDeliveryMethod": "Edit Delivery Method",
+    "editSource": "Edit Source",
+    "sourceUpdateSuccess": "Source successfully updated",
+    "duplicatePriorityError": "A status with this priority already exists",
+    "deliveryMethodUpdateSuccess": "Delivery method successfully updated"
   },
   "Auth": {
     "signInTitle": "Sign in",

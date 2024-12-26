@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, FieldValues, DefaultValues, Path } from "react-hook-form";
+import { useForm, FieldValues, DefaultValues, Path, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form";
 import { Input } from "@/app/components/shared/ui/input";
@@ -18,7 +18,8 @@ import { cn } from "@/app/lib/utils";
 interface SettingsFormProps<T extends FieldValues> {
   title: string;
   schema: ZodSchema<T>;
-  defaultValues: DefaultValues<T>;
+  form?: UseFormReturn<T>;
+  defaultValues?: DefaultValues<T>;
   onSubmit: (data: T) => Promise<void>;
   isLoading: boolean;
   fields: Array<{
@@ -91,6 +92,7 @@ function ColorPicker({
 export function SettingsForm<T extends FieldValues>({ 
   title,
   schema, 
+  form: externalForm,
   defaultValues, 
   onSubmit, 
   isLoading, 
@@ -99,7 +101,7 @@ export function SettingsForm<T extends FieldValues>({
 }: SettingsFormProps<T>) {
   const t = useTranslations('Settings');
   
-  const form = useForm<T>({
+  const form = externalForm || useForm<T>({
     resolver: zodResolver(schema),
     defaultValues,
   });
@@ -107,7 +109,9 @@ export function SettingsForm<T extends FieldValues>({
   const handleSubmit = async (data: T) => {
     try {
       await onSubmit(data);
-      form.reset();
+      if (!externalForm) {
+        form.reset();
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);

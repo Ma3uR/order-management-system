@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/app/lib/pocketbase';
+import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 
@@ -51,10 +51,9 @@ export async function PATCH(
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    await authenticateAdmin();
+    
     const body = await request.json();
-    const source = await pb.collection('sources').update(params.id, body);
+    const source = await authenticatedCall(() => pb.collection('sources').update(params.id, body));
     return NextResponse.json(source);
   } catch (error) {
     console.error('Error updating source:', error);

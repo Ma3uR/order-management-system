@@ -84,8 +84,7 @@ export const statusService = {
 
 export const paymentService = {
   async fetchAll() {
-    const url = new URL('/api/payment-methods', BASE_URL).toString()
-    const response = await fetch(url, {
+    const response = await fetch('/api/payment-methods', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });

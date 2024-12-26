@@ -6,19 +6,27 @@ import { sourceSchema, type SourceFormData } from "@/app/lib/validations/setting
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 import type { SourcesResponse } from "@/app/types/pocketbase-types";
 import { sourceService } from "@/app/services/api";
 import { toast } from 'sonner';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form } from "@/app/components/shared/ui/form";
 
 export function SourceSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(true);
   const [sources, setSources] = useState<SourcesResponse[]>([]);
-  const defaultValues: SourceFormData = {
-    name: "",
-    url: "",
-  };
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const form = useForm<SourceFormData>({
+    resolver: zodResolver(sourceSchema),
+    defaultValues: {
+      name: "",
+      url: "",
+    }
+  });
 
   const fields = [
     { 
@@ -53,36 +61,12 @@ export function SourceSettings() {
     fetchSources();
   }, [t]);
 
-  const onSubmit = async (data: SourceFormData) => {
-    console.log('Source - Starting submission:', data);
-    setIsLoading(true);
-    try {
-      const response = await sourceService.create(data);
-      console.log('Source - API Response:', response);
-      
-      if (!response.ok) throw new Error(t('sourceSaveError'));
-      
-      console.log('Source - Showing success notification');
-      toast.success(t('saveSuccess'), {
-        description: t('sourceSaveSuccess'),
-      });
-      
-      const updatedSources = await sourceService.fetchAll();
-      setSources(updatedSources);
-    } catch (error: unknown) {
-      console.error('Source - Error occurred:', error);
-      if (error instanceof Error) {
-        toast.error(t('saveError'), {
-          description: error.message,
-        });
-      } else {
-        toast.error(t('saveError'), {
-          description: t('sourceSaveError'),
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  const handleEdit = (source: SourcesResponse) => {
+    setEditingId(source.id);
+    form.reset({
+      name: source.name,
+      url: source.url || ""
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -99,18 +83,65 @@ export function SourceSettings() {
         description: t('sourceDeleteError'),
       });
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
-      <SettingsForm
-        title={t('addSource')}
-        schema={sourceSchema}
-        defaultValues={defaultValues}
-        onSubmit={onSubmit}
-        isLoading={isLoading}
-        fields={fields}
-      />
+      <Form {...form}>
+        <SettingsForm
+          title={editingId ? t('editSource') : t('addSource')}
+          schema={sourceSchema}
+          form={form}
+          onSubmit={async (data) => {
+            console.log('Source - Starting submission:', data);
+            setIsLoading(true);
+            try {
+              if (editingId) {
+                const response = await sourceService.update(editingId, data);
+                console.log('Source - API Response:', response);
+                
+                if (!response.ok) throw new Error(t('sourceUpdateError'));
+                
+                console.log('Source - Showing success notification');
+                toast.success(t('saveSuccess'), {
+                  description: t('sourceUpdateSuccess'),
+                });
+                setEditingId(null);
+                form.reset({ name: "", url: "" });
+              } else {
+                const response = await sourceService.create(data);
+                console.log('Source - API Response:', response);
+                
+                if (!response.ok) throw new Error(t('sourceSaveError'));
+                
+                console.log('Source - Showing success notification');
+                toast.success(t('saveSuccess'), {
+                  description: t('sourceSaveSuccess'),
+                });
+                form.reset({ name: "", url: "" });
+              }
+              
+              const updatedSources = await sourceService.fetchAll();
+              setSources(updatedSources);
+            } catch (error: unknown) {
+              console.error('Source - Error occurred:', error);
+              if (error instanceof Error) {
+                toast.error(t('saveError'), {
+                  description: error.message,
+                });
+              } else {
+                toast.error(t('saveError'), {
+                  description: t('sourceSaveError'),
+                });
+              }
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+          isLoading={isLoading}
+          fields={fields}
+        />
+      </Form>
 
       <Card>
         <CardContent className="p-6">
@@ -123,14 +154,24 @@ export function SourceSettings() {
               >
                 <div className="flex items-center space-x-4">
                   <span className="font-medium">{source.name}</span>
+                  <span className="text-sm text-muted-foreground">{source.url}</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(source.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(source)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(source.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

@@ -11,7 +11,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   }
 }
 
-export async function PUT(
+export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {

@@ -29,7 +29,7 @@ export async function DELETE(
   }
 }
 
-export async function PUT(
+export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
