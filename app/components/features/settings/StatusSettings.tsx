@@ -218,6 +218,15 @@ function SortableItem({ status, editingId, t, onEdit, onDelete, onSave }: Sortab
   );
 }
 
+type FormField = {
+  name: keyof StatusFormData;
+  label: string;
+  type?: string;
+  placeholder?: string;
+  className?: string;
+  render?: (props: { field: ControllerRenderProps<StatusFormData, keyof StatusFormData> }) => React.ReactNode;
+};
+
 export function StatusSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
@@ -237,7 +246,7 @@ export function StatusSettings() {
     priority: 1
   };
 
-  const fields = [
+  const fields: FormField[] = [
     { 
       name: "name" as const, 
       label: t('statusName'), 
@@ -249,15 +258,21 @@ export function StatusSettings() {
       label: t('statusColor'), 
       type: "color",
       className: "w-full",
-      render: ({ field }: { field: ControllerRenderProps<StatusFormData, "color"> }) => (
+      render: ({ field }: { field: ControllerRenderProps<StatusFormData, keyof StatusFormData> }) => (
         <div className="flex flex-col gap-2">
           <ColorPicker
-            color={field.value}
+            color={typeof field.value === 'string' ? field.value : field.value.toString()}
             onChange={field.onChange}
           />
         </div>
       )
     },
+    { 
+      name: "priority" as const,
+      label: t('statusPriority'),
+      type: "number",
+      className: "w-full"
+    }
   ];
 
   const fetchStatuses = useCallback(async () => {

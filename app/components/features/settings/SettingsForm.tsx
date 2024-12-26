@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, FieldValues, DefaultValues, Path, UseFormReturn } from "react-hook-form";
+import { useForm, FieldValues, DefaultValues, Path, UseFormReturn, ControllerRenderProps } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form";
 import { Input } from "@/app/components/shared/ui/input";
@@ -28,16 +28,16 @@ interface SettingsFormProps<T extends FieldValues> {
     label: string;
     placeholder?: string;
     className?: string;
-    render?: (props: any) => React.ReactNode;
+    render?: (props: { field: ControllerRenderProps<T, Path<T>> }) => React.ReactNode;
   }>;
   className?: string;
 }
 
-function ColorPicker({ 
+export function ColorPicker({ 
   value, 
   onChange 
 }: { 
-  value: string; 
+  value: string;
   onChange: (color: string) => void;
 }) {
   const presetColors = [
@@ -101,10 +101,12 @@ export function SettingsForm<T extends FieldValues>({
 }: SettingsFormProps<T>) {
   const t = useTranslations('Settings');
   
-  const form = externalForm || useForm<T>({
+  const internalForm = useForm<T>({
     resolver: zodResolver(schema),
     defaultValues,
   });
+  
+  const form = externalForm || internalForm;
 
   const handleSubmit = async (data: T) => {
     try {
