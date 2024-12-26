@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Sidebar, SidebarHeader, SidebarContent } from '@/app/components/shared/ui/sidebar';
+import { 
+  Sidebar, 
+  SidebarHeader, 
+  SidebarContent,
+  SidebarTrigger
+} from '@/app/components/shared/ui/sidebar';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -35,22 +40,27 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
-        <h2 className="text-lg font-semibold">{t('navigation')}</h2>
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="border-b px-4 py-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold group-data-[state=collapsed]:opacity-0 group-data-[state=collapsed]:hidden">
+            {t('navigation')}
+          </h2>
+          <SidebarTrigger location="sidebar" />
+        </div>
       </SidebarHeader>
       <SidebarContent>
-        <nav className="space-y-1 px-3 py-4">
+        <nav className="space-y-1 px-2 py-4">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-all hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-50"
             >
-              <div className="[box-sizing:content-box]">
+              <div className="flex items-center justify-center w-8 h-8">
                 <item.icon className="h-6 w-6" />
               </div>
-              <span>{item.title}</span>
+              <span className="group-data-[state=collapsed]:hidden">{item.title}</span>
             </Link>
           ))}
         </nav>

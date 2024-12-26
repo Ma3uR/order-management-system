@@ -23,7 +23,7 @@ const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
+const SIDEBAR_WIDTH_ICON = "4.5rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContext = {
@@ -70,9 +70,16 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
+    // Read initial state from cookie
+    const getInitialState = React.useCallback(() => {
+      if (typeof window === 'undefined') return defaultOpen
+      const cookie = document.cookie.split('; ').find(row => row.startsWith(SIDEBAR_COOKIE_NAME))
+      if (!cookie) return defaultOpen
+      return cookie.split('=')[1] === 'true'
+    }, [defaultOpen])
+
     // This is the internal state of the sidebar.
-    // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    const [_open, _setOpen] = React.useState(getInitialState)
     const open = openProp ?? _open
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -261,9 +268,16 @@ Sidebar.displayName = "Sidebar"
 
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
-  React.ComponentProps<typeof Button>
->(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  React.ComponentProps<typeof Button> & {
+    location?: 'header' | 'sidebar'
+  }
+>(({ onClick, location = 'sidebar', ...props }, ref) => {
+  const { toggleSidebar, isMobile } = useSidebar()
+
+  // Only show in header for mobile, and in sidebar for desktop
+  if ((location === 'header' && !isMobile) || (location === 'sidebar' && isMobile)) {
+    return null
+  }
 
   return (
     <Button
@@ -271,7 +285,6 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="sm"
-      className={cn("h-9 w-9", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
@@ -306,6 +319,7 @@ const SidebarRail = React.forwardRef<
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar",
         "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
         "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
+        "group-data-[collapsible=icon]:hidden", // Hide rail in icon collapsible mode
         className
       )}
       {...props}
