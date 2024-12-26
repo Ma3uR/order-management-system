@@ -279,6 +279,11 @@ export function StatusSettings() {
       const highestPriority = statuses.reduce((max, status) => 
         Math.max(max, status.priority), 0);
 
+      const hasDuplicatePriority = statuses.some(status => status.priority === data.priority);
+      if (hasDuplicatePriority) {
+        throw new Error(t('duplicatePriorityError'));
+      }
+
       // Create new status with next priority, overriding the form's priority
       await statusService.create({
         ...data,
@@ -336,6 +341,11 @@ export function StatusSettings() {
 
   const handleSave = async (status: StatusOptionsResponse, data: StatusFormData) => {
     try {
+      const hasDuplicatePriority = statuses.some(status => status.priority === data.priority);
+      if (hasDuplicatePriority) {
+        throw new Error(t('duplicatePriorityError'));
+      }
+
       const response = await statusService.update(status.id, data);
       
       if (!response.ok) throw new Error(t('statusUpdateError'));
