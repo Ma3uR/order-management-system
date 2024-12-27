@@ -2,31 +2,46 @@
 
 import { useState, useEffect } from "react";
 import { SettingsForm } from "./SettingsForm";
-import { sourceSchema, type SourceFormData } from "@/app/lib/validations/settings";
+import { sourceSchema } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import type { SourcesResponse } from "@/app/types/pocketbase-types";
 import { sourceService } from "@/app/services/api";
 import { toast } from 'sonner';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Form } from "@/app/components/shared/ui/form";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
+import { Input } from "@/app/components/shared/ui/input";
+import { motion, AnimatePresence } from 'framer-motion';
+
+const fadeIn = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+  transition: { duration: 0.2 }
+};
+
+const listItem = {
+  initial: { opacity: 0, x: -20 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 20 },
+  transition: { duration: 0.2 }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
 
 export function SourceSettings() {
   const t = useTranslations('Settings');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [sources, setSources] = useState<SourcesResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  const form = useForm<SourceFormData>({
-    resolver: zodResolver(sourceSchema),
-    defaultValues: {
-      name: "",
-      url: "",
-    }
-  });
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const fields = [
     { 
@@ -63,10 +78,23 @@ export function SourceSettings() {
 
   const handleEdit = (source: SourcesResponse) => {
     setEditingId(source.id);
-    form.reset({
-      name: source.name,
-      url: source.url || ""
-    });
+  };
+
+
+  const handleSave = async (id: string, data: { name: string; url?: string | undefined; }) => {
+    try {
+      await sourceService.update(id, data);
+      toast.success(t('updateSuccess'), {
+        description: t('sourceUpdateSuccess'),
+      });
+      const updatedSources = await sourceService.fetchAll();
+      setSources(updatedSources);
+    } catch (error) {
+      console.error('Error updating source:', error);
+      toast.error(t('updateError'), {
+        description: t('sourceUpdateError'),
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -85,98 +113,120 @@ export function SourceSettings() {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <Form {...form}>
-        <SettingsForm
-          title={editingId ? t('editSource') : t('addSource')}
-          schema={sourceSchema}
-          form={form}
-          onSubmit={async (data) => {
-            console.log('Source - Starting submission:', data);
-            setIsLoading(true);
-            try {
-              if (editingId) {
-                const response = await sourceService.update(editingId, data);
-                console.log('Source - API Response:', response);
-                
-                if (!response.ok) throw new Error(t('sourceUpdateError'));
-                
-                console.log('Source - Showing success notification');
-                toast.success(t('saveSuccess'), {
-                  description: t('sourceUpdateSuccess'),
-                });
-                setEditingId(null);
-                form.reset({ name: "", url: "" });
-              } else {
-                const response = await sourceService.create(data);
-                console.log('Source - API Response:', response);
-                
-                if (!response.ok) throw new Error(t('sourceSaveError'));
-                
-                console.log('Source - Showing success notification');
-                toast.success(t('saveSuccess'), {
-                  description: t('sourceSaveSuccess'),
-                });
-                form.reset({ name: "", url: "" });
-              }
-              
-              const updatedSources = await sourceService.fetchAll();
-              setSources(updatedSources);
-            } catch (error: unknown) {
-              console.error('Source - Error occurred:', error);
-              if (error instanceof Error) {
-                toast.error(t('saveError'), {
-                  description: error.message,
-                });
-              } else {
-                toast.error(t('saveError'), {
-                  description: t('sourceSaveError'),
-                });
-              }
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-          isLoading={isLoading}
-          fields={fields}
-        />
-      </Form>
+  if (isLoading && sources.length === 0) {
+    return (
+      <motion.div 
+        className="flex items-center justify-center min-h-[200px]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </motion.div>
+    );
+  }
 
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4">{t('sources')}</h3>
-          <div className="space-y-4">
-            {Array.isArray(sources) && sources.map((source) => (
-              <div
-                key={source.id}
-                className="flex items-center justify-between p-4 bg-muted rounded-lg"
-              >
-                <div className="flex items-center space-x-4">
-                  <span className="font-medium">{source.name}</span>
-                  <span className="text-sm text-muted-foreground">{source.url}</span>
-                </div>
-                <div className="flex space-x-2">
+  return (
+    <motion.div 
+      className="space-y-6"
+      initial="initial"
+      animate="animate"
+      variants={staggerContainer}
+    >
+      <motion.div variants={fadeIn}>
+        <Card className="border bg-card">
+          <CardContent className="pt-6">
+            <Collapsible
+              open={isFormOpen}
+              onOpenChange={setIsFormOpen}
+              className="space-y-1"
+            >
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 p-2 rounded-md">
+                  <h3 className="text-base font-medium">{t('addSource')}</h3>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleEdit(source)}
+                    className="w-9 p-0"
                   >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(source.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
+                    {isFormOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    <span className="sr-only">Toggle form</span>
                   </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2">
+                <SettingsForm
+                  title=""
+                  schema={sourceSchema}
+                  defaultValues={{}}
+                  onSubmit={() => {}}
+                  isLoading={isLoading}
+                  fields={fields}
+                  className="pt-2"
+                />
+              </CollapsibleContent>
+            </Collapsible>
+
+            <div className="mt-6">
+              <AnimatePresence mode="popLayout">
+                <motion.div 
+                  className="space-y-2"
+                  variants={staggerContainer}
+                >
+                  {sources.map((source) => (
+                    <motion.div
+                      key={source.id}
+                      variants={listItem}
+                      layout
+                      className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        {editingId === source.id ? (
+                          <Input
+                            defaultValue={source.name}
+                            className="max-w-[200px]"
+                            onBlur={(e) => {
+                              if (!e.target.value.trim()) {
+                                e.target.value = source.name;
+                                return;
+                              }
+                              handleSave(source.id, { name: e.target.value.trim() });
+                            }}
+                          />
+                        ) : (
+                          <span className="font-medium">{source.name}</span>
+                        )}
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-muted"
+                          onClick={() => handleEdit(source)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => handleDelete(source.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

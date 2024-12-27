@@ -125,9 +125,6 @@ export function SettingsForm<T extends FieldValues>({
 
   return (
     <Card className="bg-card border-none shadow-md">
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-      </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className={cn("space-y-6", className)}>

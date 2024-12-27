@@ -11,7 +11,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
 } from "@/app/components/shared/ui/breadcrumb";
-import { SidebarInset, SidebarTrigger } from "@/app/components/shared/ui/sidebar";
+import { SidebarInset } from "@/app/components/shared/ui/sidebar";
 import { default as BlacklistManagement } from '@/app/components/features/blacklist/index';
 import { Toaster } from 'sonner';
 import { motion } from 'framer-motion';
@@ -49,7 +49,6 @@ export default function BlacklistPageClient({}: BlacklistPageClientProps) {
           <SidebarInset>
             <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background">
               <div className="flex flex-1 items-center gap-2 px-3">
-                <SidebarTrigger />
                 <Separator orientation="vertical" className="mr-2 h-4" />
                 <Breadcrumb>
                   <BreadcrumbList>

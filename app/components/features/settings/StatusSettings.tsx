@@ -1,12 +1,14 @@
 "use client";
 
+
 import { useState, useEffect, useCallback } from "react";
 import { SettingsForm } from "./SettingsForm";
 import { statusSchema, type StatusFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2, Pencil, GripVertical } from "lucide-react";
+import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import type { StatusOptionsResponse } from "@/app/types/pocketbase-types";
 import { statusService } from "@/app/services/api";
 import { Input } from "@/app/components/shared/ui/input";
@@ -35,7 +37,7 @@ import {
 } from "@/app/components/shared/ui/popover";
 import { cn } from "@/app/lib/utils";
 import { ControllerRenderProps } from "react-hook-form";
-
+import { motion } from "framer-motion";
 type TranslationKeys = {
   priority: string;
   statusName: string;
@@ -232,6 +234,7 @@ export function StatusSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [statuses, setStatuses] = useState<StatusOptionsResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -319,6 +322,7 @@ export function StatusSettings() {
       });
       
       fetchStatuses();
+      setIsFormOpen(false);
     } catch (error: unknown) {
       console.error('Status creation error:', error);
       if (error instanceof Error) {
@@ -445,18 +449,67 @@ export function StatusSettings() {
 
   return (
     <div className="space-y-8">
-      <SettingsForm
-        title={t('addStatus')}
-        schema={statusSchema}
-        defaultValues={defaultValues}
-        onSubmit={onSubmit}
-        isLoading={isLoading}
-        fields={fields}
-        className="grid gap-6"
-      />
-
+    
       <Card className="border-none shadow-md">
         <CardContent className="p-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <Collapsible
+            open={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            className="space-y-1 pb-8"
+          >
+            <CollapsibleTrigger asChild>
+              <motion.div 
+                className="flex items-center justify-between cursor-pointer hover:bg-accent/50 p-2 rounded-md"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <h3 className="text-base font-medium">{t('addStatus')}</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-9 p-0"
+                >
+                  <motion.div
+                    initial={false}
+                    animate={{ rotate: isFormOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {isFormOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </motion.div>
+                  <span className="sr-only">Toggle form</span>
+                </Button>
+              </motion.div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <SettingsForm
+                  title=""
+                  schema={statusSchema}
+                  defaultValues={defaultValues}
+                  onSubmit={onSubmit}
+                  isLoading={isLoading}
+                  fields={fields}
+                  className="pt-2"
+                />
+              </motion.div>
+            </CollapsibleContent>
+          </Collapsible>
+        </motion.div>
+
           <h3 className="text-xl font-semibold mb-4">{t('statuses')}</h3>
           <p className="text-sm text-muted-foreground mb-6">{t('dragToReorder')}</p>
           <DndContext

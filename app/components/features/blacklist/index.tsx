@@ -12,10 +12,11 @@ import { ScrollArea } from "@/app/components/shared/ui/scroll-area";
 import { toast } from 'sonner';
 import type { BlacklistEntriesResponse } from '@/app/types/pocketbase-types';
 import type { BlacklistFormData } from '@/app/lib/validations/blacklist';
-import { Trash, Search } from 'lucide-react';
+import { Trash, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Input } from "@/app/components/shared/ui/input";
 import { useDebounce } from '@/app/hooks/useDebounce';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -68,6 +69,7 @@ export default function BlacklistManagement() {
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const fetchBlacklist = useCallback(async (page: number, searchTerm: string) => {
     try {
@@ -194,7 +196,7 @@ export default function BlacklistManagement() {
       variants={staggerContainer}
     >
       <motion.div variants={fadeIn}>
-        <Card className="border shadow-sm bg-background">
+        <Card className="border bg-card">
           <CardHeader>
             <CardTitle className="text-base">{t('search')}</CardTitle>
           </CardHeader>
@@ -204,7 +206,7 @@ export default function BlacklistManagement() {
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('searchPlaceholder')}
-                  className="pl-8 w-full bg-background"
+                  className="pl-8 w-full"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                 />
@@ -217,17 +219,41 @@ export default function BlacklistManagement() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-base font-medium">{t('addNewItem')}</h3>
-              <div className="bg-background rounded-md">
-                <BlacklistForm onSubmit={handleAddItem} isLoading={isLoading} />
-              </div>
+              <Collapsible
+                open={isFormOpen}
+                onOpenChange={setIsFormOpen}
+                className="space-y-2"
+              >
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 p-2 rounded-md">
+                    <h3 className="text-base font-medium">{t('addNewItem')}</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-9 p-0"
+                    >
+                      {isFormOpen ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">Toggle form</span>
+                    </Button>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4">
+                  <div className="rounded-md">
+                    <BlacklistForm onSubmit={handleAddItem} isLoading={isLoading} />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
       <motion.div variants={fadeIn}>
-        <Card className="border shadow-sm bg-background">
+        <Card className="border bg-card">
           <CardHeader>
             <CardTitle className="text-base">{t('blacklistItems')}</CardTitle>
           </CardHeader>
@@ -259,7 +285,7 @@ export default function BlacklistManagement() {
                           key={item.id}
                           variants={listItem}
                           layout
-                          className="flex items-center justify-between p-4 rounded-lg border bg-background hover:bg-accent/50"
+                          className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50"
                         >
                           <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-center justify-between">
@@ -306,7 +332,7 @@ export default function BlacklistManagement() {
 
       {items.length > 0 && (
         <motion.div variants={fadeIn}>
-          <Card className="border shadow-sm bg-background">
+          <Card className="border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1 text-sm text-muted-foreground">

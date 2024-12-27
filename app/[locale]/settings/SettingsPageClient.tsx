@@ -54,9 +54,9 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
         
         <motion.div variants={fadeIn}>
           <Card className="border shadow-sm bg-card">
-            <Tabs defaultValue="currency" className="w-full">
+            <Tabs defaultValue="status" className="w-full">
               <TabsList className="flex h-10 items-center justify-start px-4 border-b">
-                {["currency", "status", "payment", "delivery", "source"].map((tab, index) => (
+                {["status", "payment", "delivery", "source"].map((tab, index) => (
                   <motion.div
                     key={tab}
                     initial={{ opacity: 0, y: -20 }}

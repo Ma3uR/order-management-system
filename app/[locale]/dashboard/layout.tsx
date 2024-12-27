@@ -12,7 +12,6 @@ import { AppSidebar } from '@/app/components/layouts/AppSidebar';
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from '@/app/components/shared/ui/sidebar';
 import { Separator } from '@/app/components/shared/ui/separator';
 import {
@@ -68,6 +67,7 @@ function DashboardLayoutContent({
       <SidebarInset>
         <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 bg-background">
           <div className="flex flex-1 items-center gap-2 px-3">
+
             <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumb>
               <BreadcrumbList>
