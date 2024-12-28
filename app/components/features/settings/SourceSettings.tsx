@@ -163,7 +163,16 @@ export function SourceSettings() {
                   title=""
                   schema={sourceSchema}
                   defaultValues={{}}
-                  onSubmit={() => {}}
+                  onSubmit={async (data) => {
+                    try {
+                      await sourceService.create(data);
+                      const updatedSources = await sourceService.fetchAll();
+                      setSources(updatedSources);
+                      setIsFormOpen(false);
+                    } catch (error) {
+                      console.error('Error creating source:', error);
+                    }
+                  }}
                   isLoading={isLoading}
                   fields={fields}
                   className="pt-2"
@@ -191,7 +200,7 @@ export function SourceSettings() {
                             className="max-w-[200px]"
                             onBlur={(e) => {
                               if (!e.target.value.trim()) {
-                                e.target.value = source.name;
+                                e.target.value = source.name || '';
                                 return;
                               }
                               handleSave(source.id, { name: e.target.value.trim() });

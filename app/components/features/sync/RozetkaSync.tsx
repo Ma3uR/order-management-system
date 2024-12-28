@@ -39,6 +39,7 @@ export function RozetkaSync({ onSyncComplete }: { onSyncComplete?: () => void })
       disabled={isSyncing}
       variant="ghost"
       size="sm"
+      className="mb-2"
     >
       {isSyncing ? 'Syncing...' : 'Sync Rozetka'}
     </Button>

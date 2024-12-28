@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Search, ChevronRight, ChevronLeft } from 'lucide-react'
 import pb, { authenticatedCall, authenticateAdmin } from '@/app/lib/pocketbase'
 import { RozetkaSync } from "@/app/components/features/sync/RozetkaSync"
 import { OrderStats } from "./components/OrderStats"
-import { OrderSearch } from "./components/OrderSearch"
 import { OrderFilters, FilterOptions } from "./components/OrderFilters"
 import { OrderList } from "./components/OrderList"
 import { OrderDetails } from "./components/OrderDetails"
 import { OrderCreate } from "./components/OrderCreate"
 import { OrderPagination } from "./components/OrderPagination"
+import { Input } from "@/app/components/shared/ui/input"
+import { Button } from "@/app/components/shared/ui/button"
+import { Separator } from "@/app/components/shared/ui/separator"
+import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
+import { cn } from "@/app/lib/utils"
 import { 
   OrdersResponse, 
   SourcesResponse, 
@@ -35,6 +39,8 @@ interface OrdersManagementProps {
     selectStatus: string
     all: string
     amountRange: string
+    dateRange: string
+    selectDateRange: string
     resetFilters: string
     // List view translations
     orderNumber: string
@@ -42,6 +48,7 @@ interface OrdersManagementProps {
     amount: string
     createdAt: string
     actions: string
+    actionsAndStatistics: string
     details: string
     delete: string
     deleteConfirmation: string
@@ -99,6 +106,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Add debounced search effect
   useEffect(() => {
@@ -133,7 +141,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           authenticatedCall(() => pb.collection('payment_options').getFullList<PaymentOptionsResponse>()),
           authenticatedCall(async () => {
             const currencies = await pb.collection('currency_options').getFullList<CurrencyOptionsResponse>();
-            return currencies.find(c => c.isDefault) || currencies[0] || { code: 'UAH', symbol: '₴', isDefault: true };
+            return currencies.find(c => c.isDefault) || currencies[0] || { code: 'UAH', symbol: '���', isDefault: true };
           }),
           authenticatedCall(() => pb.collection('status_options').getFullList<StatusOptionsResponse>()),
           authenticatedCall(() => pb.collection('sources').getFullList<SourcesResponse>())
@@ -239,29 +247,46 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const filteredOrders = orders.filter(order => {
     let matches = true;
 
+    // Text search filter
     if (debouncedFilterText) {
       const searchTerm = debouncedFilterText.toLowerCase();
       const expandedSource = (order.expand as { source?: SourcesResponse })?.source;
-      matches = order.orderNumber.toLowerCase().includes(searchTerm) ||
-        order.fullName.toLowerCase().includes(searchTerm) ||
-        order.phoneNumber.toLowerCase().includes(searchTerm) ||
-        order.deliveryPostNumber?.toLowerCase().includes(searchTerm) ||
+      matches = matches && (
+        order.orderNumber?.toLowerCase().includes(searchTerm) ||
+        order.fullName?.toLowerCase().includes(searchTerm) ||
         expandedSource?.name?.toLowerCase().includes(searchTerm) ||
-        (Array.isArray(order.products) && (order.products as { name: string }[]).some(product => 
-          product.name.toLowerCase().includes(searchTerm)
-        ));
+        order.phoneNumber?.toLowerCase().includes(searchTerm)
+      );
     }
 
-    if (filters.status && order.status !== filters.status) {
-      matches = false;
+    // Status filter
+    if (filters.status) {
+      matches = matches && order.status === filters.status;
     }
 
-    if (filters.minAmount && order.amount < filters.minAmount) {
-      matches = false;
+    // Amount range filter
+    if (filters.minAmount !== undefined) {
+      matches = matches && order.amount >= filters.minAmount;
+    }
+    if (filters.maxAmount !== undefined) {
+      matches = matches && order.amount <= filters.maxAmount;
     }
 
-    if (filters.maxAmount && order.amount > filters.maxAmount) {
-      matches = false;
+    // Date range filter
+    if (filters.dateRange.from || filters.dateRange.to) {
+      const orderDate = new Date(order.created);
+      if (filters.dateRange.from) {
+        // Set time to start of day for from date
+        const fromDate = new Date(filters.dateRange.from);
+        fromDate.setHours(0, 0, 0, 0);
+        matches = matches && orderDate >= fromDate;
+      }
+      if (filters.dateRange.to) {
+        // Set time to end of day for to date
+        const toDate = new Date(filters.dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        matches = matches && orderDate <= toDate;
+      }
     }
 
     return matches;
@@ -281,92 +306,138 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <RozetkaSync onSyncComplete={() => {
-            authenticatedCall(() => 
-              pb.collection('orders').getFullList({
-                sort: '-created',
-                expand: 'deliveryMethod,paymentMethod,status,currency,source'
-              })
-            ).then(records => {
-              setOrders(records as OrdersResponse[]);
-            });
-          }} />
-        </div>
-      </div>
-
-      <OrderStats 
-        orders={orders as (OrdersResponse & { expand?: { currency?: CurrencyOptionsResponse }})[]} 
-        translations={translations} 
-      />
-
-      <Card 
-        className="bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:bg-accent/50 transition-colors cursor-pointer" 
-        onClick={() => setIsCreateModalOpen(true)}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {translations.createNewOrder}
-          </CardTitle>
+    <div className="flex gap-6 p-1">
+      {/* Main Orders List Card - 75% width */}
+      <Card className={cn(
+        "transition-all duration-300 ease-in-out",
+        isCollapsed ? "flex-1" : "flex-[3]",
+      )}>
+        <CardHeader>
+          <CardTitle>{translations.title}</CardTitle>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={translations.filterOrdersPlaceholder}
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-2">
-            <PlusCircle className="h-8 w-8 text-muted-foreground" />
-          </div>
+          <ScrollArea className="h-[calc(100vh-12rem)]">
+            <OrderList
+              orders={currentOrders}
+              onViewDetails={(order) => {
+                setSelectedOrder(order);
+                setIsDetailsModalOpen(true);
+              }}
+              onDeleteOrder={async (orderId) => {
+                await authenticatedCall(() => pb.collection('orders').delete(orderId));
+                setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
+              }}
+              onStatusChange={async (orderId, statusId) => {
+                const updated = await authenticatedCall(() => 
+                  pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId })
+                );
+                setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? updated : o));
+              }}
+              translations={translations}
+              statuses={statuses}
+              translateStatus={(status) => status}
+            />
+          </ScrollArea>
+          
+          {filteredOrders.length > 0 && (
+            <div className="mt-4">
+              <OrderPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                totalItems={filteredOrders.length}
+                translations={translations}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="flex items-center space-x-2 mb-4">
-        <OrderSearch
-          value={filterText}
-          onChange={setFilterText}
-          placeholder={translations.filterOrdersPlaceholder}
-        />
+      {/* Sidebar Card - 25% width */}
+      <div className="relative flex">
+        <div
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={cn(
+            "absolute -left-3 h-full w-1.5 bg-border hover:bg-primary/50 cursor-pointer transition-colors group flex items-center justify-center",
+            "after:absolute after:w-6 after:h-12 after:bg-border/10 after:left-0 after:top-1/2 after:-translate-y-1/2 after:rounded-md after:transition-colors",
+            "hover:after:bg-primary/20"
+          )}
+        >
+          <div className="relative z-10 bg-background rounded-full p-0.5 shadow-sm">
+            {isCollapsed ? 
+              <ChevronLeft className="h-3 w-3 text-muted-foreground group-hover:text-primary" /> : 
+              <ChevronRight className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
+            }
+          </div>
+        </div>
+
+        <Card className={cn(
+          "transition-all duration-300 ease-in-out h-[calc(100vh--5rem)]",
+          isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-80 opacity-100"
+        )}>
+          <CardHeader>
+            <CardTitle>{translations.actionsAndStatistics}</CardTitle>
+          </CardHeader> 
+          <CardContent className="flex flex-col h-[calc(100%-5rem)]">
+          <div className="pt-6 mt-auto">
+              <RozetkaSync onSyncComplete={() => {
+                authenticatedCall(() => 
+                  pb.collection('orders').getFullList({
+                    sort: '-created',
+                    expand: 'deliveryMethod,paymentMethod,status,currency,source'
+                  })
+                ).then(records => {
+                  setOrders(records as OrdersResponse[]);
+                });
+              }} />
+            </div>
+            <div className="space-y-6 flex-1">
+              <Button 
+                className="w-full hover:bg-accent"
+                size="lg"
+                variant="ghost"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {translations.createNewOrder}
+              </Button>
+
+              <Separator />
+
+              <OrderStats 
+                orders={orders as (OrdersResponse & { expand?: { currency?: CurrencyOptionsResponse }})[]} 
+                translations={translations} 
+              />
+
+              <Separator />
+
+              <ScrollArea className="flex-1">
+                <OrderFilters
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  statuses={statuses}
+                  translations={translations}
+                  maxAmount={Math.max(...orders.map(order => order.amount), 5000)}
+                  translateStatus={(status) => status}
+                />
+              </ScrollArea>
+            </div>
+
+            
+          </CardContent>
+        </Card>
       </div>
-
-      <OrderFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        statuses={statuses}
-        translations={translations}
-        maxAmount={Math.max(...orders.map(order => order.amount), 5000)}
-        translateStatus={(status) => status}
-      />
-
-      <OrderList
-        orders={currentOrders}
-        onViewDetails={(order) => {
-          setSelectedOrder(order);
-          setIsDetailsModalOpen(true);
-        }}
-        onDeleteOrder={async (orderId) => {
-          await authenticatedCall(() => pb.collection('orders').delete(orderId));
-          setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
-        }}
-        onStatusChange={async (orderId, statusId) => {
-          const updated = await authenticatedCall(() => 
-            pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId })
-          );
-          setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? updated : o));
-        }}
-        translations={translations}
-        statuses={statuses}
-        translateStatus={(status) => status}
-      />
-
-      {filteredOrders.length > 0 && (
-        <OrderPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          startIndex={startIndex}
-          endIndex={endIndex}
-          totalItems={filteredOrders.length}
-          translations={translations}
-        />
-      )}
 
       <OrderDetails
         isOpen={isDetailsModalOpen}

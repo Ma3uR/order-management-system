@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form";
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
+import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { useTranslations } from "next-intl";
 import { ZodSchema } from "zod";
 import {
@@ -90,7 +90,6 @@ export function ColorPicker({
 }
 
 export function SettingsForm<T extends FieldValues>({ 
-  title,
   schema, 
   form: externalForm,
   defaultValues, 
