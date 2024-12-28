@@ -1,16 +1,19 @@
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { auth } from '@/app/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
-import SettingsPage from './SettingsPage';
-import { Footer } from '@/components/footer';
+import { getTranslations } from 'next-intl/server';
+import SettingsPageClient from '@/app/[locale]/settings/SettingsPageClient';
 
-export default async function Page({ params: { locale } }: { params: { locale: string } }) {
+export default async function SettingsPage({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
-  
-  return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1">
-        <SettingsPage />
-      </div>
-      <Footer />
-    </div>
-  );
+  const t = await getTranslations('Navigation');
+
+  const session = await getServerSession(auth);
+
+  if (!session?.user) {
+    redirect('/auth/signin');
+  }
+
+  return <SettingsPageClient translations={{ backToDashboard: t('backToDashboard') }} />;
 }

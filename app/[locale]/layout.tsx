@@ -1,12 +1,10 @@
 import '@/styles/globals.css';
 import { NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
-import { locales } from '@/config';
-import { Providers } from '../providers';
-import { unstable_setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
+  return [{ locale: 'ua' }, { locale: 'en' }];
 }
 
 export default async function LocaleLayout({
@@ -16,28 +14,19 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  if (!locales.includes(locale as any)) notFound();
-
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
 
   let messages;
   try {
     messages = (await import(`../../messages/${locale}.json`)).default;
-  } catch {
+  } catch (error) {
+    console.error('Error importing messages:', error);
     notFound();
   }
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <Providers>
-          <NextIntlClientProvider locale={locale} messages={messages}>
-            <div className="flex flex-col min-h-screen">
-              {children}
-            </div>
-          </NextIntlClientProvider>
-        </Providers>
-      </body>
-    </html>
+    <NextIntlClientProvider messages={messages} locale={locale}>
+      {children}
+    </NextIntlClientProvider>
   );
 }

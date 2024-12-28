@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import pb from "@/lib/pocketbase";
+import pb from "@/app/lib/pocketbase";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -22,6 +22,7 @@ export const authOptions: NextAuthOptions = {
             role: authData.record.role
           };
         } catch (error) {
+          console.error('Authorization error:', error);
           return null;
         }
       }

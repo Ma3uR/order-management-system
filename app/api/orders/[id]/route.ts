@@ -1,17 +1,6 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
-
-type OrderData = {
-  id: string;
-  status: string;
-};
-
-const dummyUser = {
-  id: '123',
-  email: 'test@test.com',
-  username: 'test',
-  name: 'test'
-};
+import pb from '@/app/lib/pocketbase';  
+import { OrdersRecord } from '@/app/types/pocketbase-types';
 
 export async function GET(
   request: Request,
@@ -45,7 +34,7 @@ export async function PUT(
     const data = await request.json();
     
     // Create update data object
-    const updateData: any = {};
+    const updateData: Partial<OrdersRecord> = {};
     
     // Add fields that can be updated
     if (data.orderNumber) updateData.orderNumber = data.orderNumber;
@@ -61,7 +50,7 @@ export async function PUT(
     if (data.deliveryMethod) updateData.deliveryMethod = data.deliveryMethod;
     if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
 
-    const record = await pb.collection('orders').update(params.id, updateData);
+    await pb.collection('orders').update(params.id, updateData);
     
     // Fetch the updated record with expanded relations
     const updatedRecord = await pb.collection('orders').getOne(params.id, {

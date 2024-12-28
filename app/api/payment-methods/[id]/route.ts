@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pb from '@/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
 
 export async function DELETE(
   request: Request,
@@ -29,7 +29,7 @@ export async function DELETE(
   }
 }
 
-export async function PUT(
+export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
