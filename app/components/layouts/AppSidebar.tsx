@@ -44,7 +44,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b px-4 py-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold group-data-[state=collapsed]:opacity-0 group-data-[state=collapsed]:hidden">
-            {t('navigation')}
+          <span className="text-purple-600 font-bold">Balemala</span> Digital
           </h2>
           <SidebarTrigger location="sidebar" />
         </div>
