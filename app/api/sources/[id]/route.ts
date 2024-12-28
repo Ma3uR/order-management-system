@@ -3,23 +3,6 @@ import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 
-// Admin authentication
-async function authenticateAdmin() {
-  try {
-    const adminEmail = process.env.POCKETBASE_ADMIN_EMAIL;
-    const adminPassword = process.env.POCKETBASE_ADMIN_PASSWORD;
-
-    if (!adminEmail || !adminPassword) {
-      throw new Error('Admin credentials not configured');
-    }
-
-    await pb.admins.authWithPassword(adminEmail, adminPassword);
-  } catch (error) {
-    console.error('Admin authentication error:', error);
-    throw error;
-  }
-}
-
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -30,8 +13,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await authenticateAdmin();
-    const source = await pb.collection('sources').getOne(params.id);
+    const source = await authenticatedCall(() => pb.collection('sources').getOne(params.id));
     return NextResponse.json(source);
   } catch (error) {
     console.error('Error fetching source:', error);
@@ -72,14 +54,11 @@ export async function DELETE(
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await authenticateAdmin();
-    
+    }    
     // Check if source is used in any orders
-    const orders = await pb.collection('orders').getList(1, 1, {
+    const orders = await authenticatedCall(() => pb.collection('orders').getList(1, 1, {
       filter: `source = "${params.id}"`,
-    });
+    }));
 
     if (orders.totalItems > 0) {
       return NextResponse.json(
@@ -88,7 +67,7 @@ export async function DELETE(
       );
     }
 
-    await pb.collection('sources').delete(params.id);
+    await authenticatedCall(() => pb.collection('sources').delete(params.id));
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting source:', error);

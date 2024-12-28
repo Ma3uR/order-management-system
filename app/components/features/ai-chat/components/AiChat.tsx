@@ -2,9 +2,7 @@
 
 import { Bot } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/app/components/shared/ui/avatar"
-import { Button } from "@/app/components/shared/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "@/app/components/shared/ui/card"
-import { Input } from "@/app/components/shared/ui/input"
+import { Card, CardContent, CardHeader } from "@/app/components/shared/ui/card"
 import { useTranslations } from 'next-intl'
 import { motion } from "framer-motion"
 import { useEffect, useState } from 'react'
@@ -64,7 +62,7 @@ export function AiChat() {
       </div>
       
       <div className="border-t p-4 w-full">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2 w-full">
+        {/* <form onSubmit={handleSubmit} className="flex flex-col gap-2 w-full">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -74,7 +72,7 @@ export function AiChat() {
           <Button type="submit" className="w-full">
             Send
           </Button>
-        </form>
+        </form> */}
       </div>
     </div>
   )
