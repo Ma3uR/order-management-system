@@ -27,7 +27,7 @@ export function TotalRevenue({ value, change, data, className }: TotalRevenuePro
       transition={{ duration: 0.3 }}
       className={className}
     >
-      <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+      <Card className="bg-white/50 dark:bg-black/90 backdrop-blur-sm">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-base font-medium">
             {t('totalRevenue')}

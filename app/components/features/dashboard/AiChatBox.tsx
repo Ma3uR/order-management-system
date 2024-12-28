@@ -77,12 +77,12 @@ export function AiChatBox() {
   };
 
   return (
-    <Card className="h-[500px] flex flex-col bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+    <Card className="h-[500px] flex flex-col bg-white/50 dark:bg-black/90 backdrop-blur-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-medium">{t('title')}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col space-y-4">
-        <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
+      <CardContent className="flex-1 flex flex-col p-0">
+        <ScrollArea className="flex-1 px-4 mb-4" ref={scrollAreaRef}>
           <AnimatePresence initial={false}>
             {messages.map((message, index) => (
               <motion.div
@@ -135,22 +135,24 @@ export function AiChatBox() {
           </AnimatePresence>
         </ScrollArea>
 
-        <form onSubmit={handleSubmit} className="flex space-x-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={t('placeholder')}
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button 
-            type="submit" 
-            size="sm"
-            disabled={isLoading || !input.trim()}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+        <div className="border-t">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 p-4">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={t('placeholder')}
+              disabled={isLoading}
+              className="flex-1"
+            />
+            <Button 
+              type="submit" 
+              size="icon"
+              disabled={isLoading || !input.trim()}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
       </CardContent>
     </Card>
   );
