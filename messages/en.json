@@ -21,7 +21,7 @@
     "title": "Orders Management",
     "totalAmount": "Total Amount",
     "filterOrders": "Filter Orders",
-    "filterOrdersPlaceholder": "Search by order number or name",
+    "filterOrdersPlaceholder": "Search by order number, name or product name",
     "createNewOrder": "Create New Order",
     "orders": "Orders",
     "orderNumber": "Order Number",
@@ -262,5 +262,21 @@
   },
   "Navigation": {
     "backToDashboard": "Back to Dashboard"
+  },
+  "Calendar": {
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    }
   }
 }

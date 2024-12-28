@@ -39,8 +39,6 @@ interface OrdersManagementProps {
     selectStatus: string
     all: string
     amountRange: string
-    dateRange: string
-    selectDateRange: string
     resetFilters: string
     // List view translations
     orderNumber: string
@@ -79,6 +77,8 @@ interface OrdersManagementProps {
     price: string
     totalItems: string
     updateOrder: string
+    dateRange: string
+    selectDateRange: string
   }
   initialOrders: OrdersResponse[]
   itemsPerPage?: number
@@ -254,8 +254,12 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       matches = matches && (
         order.orderNumber?.toLowerCase().includes(searchTerm) ||
         order.fullName?.toLowerCase().includes(searchTerm) ||
+        order.phoneNumber?.toLowerCase().includes(searchTerm) ||
+        order.deliveryPostNumber?.toLowerCase().includes(searchTerm) ||
         expandedSource?.name?.toLowerCase().includes(searchTerm) ||
-        order.phoneNumber?.toLowerCase().includes(searchTerm)
+        (Array.isArray(order.products) && (order.products as { name: string }[]).some(product => 
+          product.name.toLowerCase().includes(searchTerm)
+        ))
       );
     }
 
@@ -275,14 +279,14 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     // Date range filter
     if (filters.dateRange.from || filters.dateRange.to) {
       const orderDate = new Date(order.created);
+      orderDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
       if (filters.dateRange.from) {
-        // Set time to start of day for from date
         const fromDate = new Date(filters.dateRange.from);
         fromDate.setHours(0, 0, 0, 0);
         matches = matches && orderDate >= fromDate;
       }
       if (filters.dateRange.to) {
-        // Set time to end of day for to date
         const toDate = new Date(filters.dateRange.to);
         toDate.setHours(23, 59, 59, 999);
         matches = matches && orderDate <= toDate;
@@ -383,7 +387,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         </div>
 
         <Card className={cn(
-          "transition-all duration-300 ease-in-out h-[calc(100vh--5rem)]",
+          "transition-all duration-300 ease-in-out h-[calc(100vh--6rem)]",
           isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-80 opacity-100"
         )}>
           <CardHeader>

@@ -21,7 +21,7 @@
     "title": "Управління замовленнями",
     "totalAmount": "Загальна сума",
     "filterOrders": "Фільтр замовлень",
-    "filterOrdersPlaceholder": "Пошук за номером замовлення або ім'ям",
+    "filterOrdersPlaceholder": "Пошук за номером замовлення, ім'ям або назвою товару",
     "createNewOrder": "Створити нове замовлення",
     "orders": "Замовлення",
     "orderNumber": "Номер замовлення",
@@ -64,7 +64,7 @@
     "editOrderDescription": "Внесіть зміни до цього замовлення.",
     "createNewOrderDescription": "Заповніть деталі для створення нового замовлення. Натисніть зберегти, коли закінчите.",
     "backToDashboard": "Повернутися до панелі керування",
-    "selectDeliveryMethod": "Виберіть спосіб ��оставки",
+    "selectDeliveryMethod": "Виберіть спосіб доставки",
     "selectPaymentMethod": "Виберіть спосіб оплати",
     "selectSource": "Виберіть джерело",
     "sourceRequired": "Джерело обов'язкове",
@@ -121,7 +121,7 @@
     "removeError": "Помилка при видаленні з чорного списку",
     "error": "Помилка",
     "blacklist": "Чорний список",
-    "noItems": "Немає записів у чорному списк��",
+    "noItems": "Немає записів у чорному списку",
     "searching": "Пошук...",
     "retry": "Спробувати ще раз",
     "totalOrderSum": "Загальна сума замовлень",
@@ -223,7 +223,7 @@
     "deliveryMethodName": "Назва способу доставки",
     "deliveryMethodPlaceholder": "Наприклад: Нова Пошта",
     "deliveryMethodSaveSuccess": "Спосіб доставки успішно збережено",
-    "deliveryMethodSaveError": "Помилка при з��ереженні способу доставки",
+    "deliveryMethodSaveError": "Помилка при збереженні способу доставки",
     "deliveryMethodDeleteSuccess": "Спосіб доставки успішно видалено",
     "deliveryMethodDeleteError": "Помилка при видаленні способу доставки",
     "deliveryMethodFetchError": "Помилка при завантаженні способів доставки",
@@ -241,7 +241,7 @@
     "required": "Це поле обов'язкове",
     "invalidUrl": "Невірний формат URL",
     "invalidColor": "Невірний формат кольору",
-    "invalidPriority": "Пріоритет ��ає бути від 1 до 99",
+    "invalidPriority": "Пріоритет має бути від 1 до 99",
     "minimumLength": "Мінімальна довжина: {{length}} символів",
     "maximumLength": "Максимальна довжина: {{length}} символів",
     "save": "Зберегти",
@@ -257,7 +257,7 @@
     "paymentMethodUpdateSuccess": "Спосіб оплати успішно оновлено",
     "editDeliveryMethod": "Редагувати спосіб доставки",
     "editSource": "Редагувати джерело",
-    "sourceUpdateSuccess": "Джер��ло успішно оновлено",
+    "sourceUpdateSuccess": "Джерело успішно оновлено",
     "duplicatePriorityError": "Статус з таким пріоритетом вже існує",
     "deliveryMethodUpdateSuccess": "Спосіб доставки успішно оновлено"
   },
@@ -275,5 +275,21 @@
   },
   "Navigation": {
     "backToDashboard": "Повернутися до панелі керування"
+  },
+  "Calendar": {
+    "months": {
+      "january": "Січень",
+      "february": "Лютий",
+      "march": "Березень",
+      "april": "Квітень",
+      "may": "Травень",
+      "june": "Червень",
+      "july": "Липень",
+      "august": "Серпень",
+      "september": "Вересень",
+      "october": "Жовтень",
+      "november": "Листопад",
+      "december": "Грудень"
+    }
   }
 }
