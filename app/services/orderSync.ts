@@ -49,13 +49,14 @@ export class OrderSyncService {
       if (existingOrders.items.length > 0) {
         return;
       }
-
-      // Get status with minimal priority with error handling
-      let defaultStatus = 'fyd1lih4h6aqyv5'; // Fallback status ID
+      
+      let defaultStatus = '';
       try {
         const statuses = await pb.collection('statuses').getList(1, 50, {
-          sort: '+priority',
+          sort: '-priority', // Changed to sort by priority descending
         });
+
+        console.log('statuses', statuses);
         
         if (statuses.items.length > 0) {
           defaultStatus = statuses.items[0].id;
