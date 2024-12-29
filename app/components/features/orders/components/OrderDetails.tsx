@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/shared/ui/dialog";
-import { Label } from "@/app/components/shared/ui/label";
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select";
@@ -10,18 +9,19 @@ import { OrderProducts } from './OrderProducts';
 import { useEntities } from '@/app/hooks/useEntities';
 import { StatusSelect } from "@/app/components/shared/ui/StatusSelect";
 import { UtilityService } from '@/app/services/utilityService';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { orderSchema, OrderFormData } from '@/app/lib/validations/orders';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form";
+import { Alert, AlertDescription } from "@/app/components/shared/ui/alert";
+import pb from '@/app/lib/pocketbase';
+import { Toaster, toast } from 'sonner';
 
 type Status = {
   id: string;
   name: string;
   color: string;
 };
-
-interface ProductInput {
-  title: string;
-  quantity: number;
-  price: number;
-}
 
 interface OrderDetailsProps {
   isOpen: boolean;
@@ -69,258 +69,422 @@ export function OrderDetails({
   translateStatus
 }: OrderDetailsProps) {
   const { deliveryMethods, paymentMethods, sources, statuses, isLoading } = useEntities();
-
-  const [orderData, setOrderData] = useState<Partial<OrdersResponse> | null>(null);
-  const [productInputs, setProductInputs] = useState<ProductInput[]>([]);
   const [isBlacklisted] = useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const form = useForm<OrderFormData>({
+    resolver: zodResolver(orderSchema),
+    defaultValues: {
+      orderNumber: '',
+      source: '',
+      status: '',
+      deliveryMethod: '',
+      deliveryPostNumber: '',
+      phoneNumber: '',
+      fullName: '',
+      paymentMethod: '',
+      notes: '',
+      products: [],
+      numberOfItems: 0,
+      amount: 0,
+      created: new Date().toISOString(),
+    },
+  });
 
   useEffect(() => {
     if (order) {
-      setOrderData(order);
-      setProductInputs(
-        (order.products as Array<{ name: string; quantity: number; price: number }>).map((p) => ({
-          title: p.name,
-          quantity: p.quantity,
-          price: p.price
-        }))
-      );
-    }
-  }, [order]);
+      const orderProducts = (order.products as Array<{ name: string; quantity: number; price: number }>).map(p => ({
+        title: p.name,
+        quantity: p.quantity,
+        price: p.price
+      }));
 
-  const handleInputChange = (name: string, value: string) => {
-    setOrderData(prev => prev ? { ...prev, [name]: value } : null);
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    if (!orderData) return;
-
-    if (name === 'deliveryMethod') {
-      const selectedMethod = deliveryMethods.find(method => method.id === value);
-      if (selectedMethod) {
-        setOrderData({
-          ...orderData,
-          deliveryMethod: selectedMethod.id
-        });
-      }
-    } else if (name === 'paymentMethod') {
-      const selectedMethod = paymentMethods.find(method => method.id === value);
-      if (selectedMethod) {
-        setOrderData({
-          ...orderData,
-          paymentMethod: selectedMethod.id
-        });
-      }
-    } else if (name === 'source') {
-      setOrderData({
-        ...orderData,
-        source: value
+      form.reset({
+        orderNumber: order.orderNumber,
+        source: order.source,
+        status: order.status,
+        deliveryMethod: order.deliveryMethod,
+        deliveryPostNumber: order.deliveryPostNumber || '',
+        phoneNumber: order.phoneNumber,
+        fullName: order.fullName,
+        paymentMethod: order.paymentMethod,
+        notes: order.notes || '',
+        products: orderProducts,
+        numberOfItems: order.numberOfItems,
+        amount: order.amount,
+        created: order.created
       });
     }
-  };
+  }, [order, form]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orderData || !order) return;
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (!order || !isOpen) return;
+
+    let unsubscribe: (() => void) | undefined;
+
+    const setupSubscription = async () => {
+      try {
+        unsubscribe = await pb.collection('orders').subscribe(order.id, (e) => {
+          if (e.action === 'update' && !isUpdating) {
+            // Update the form with new data
+            const updatedOrder = e.record as OrdersResponse;
+            const orderProducts = (updatedOrder.products as Array<{ name: string; quantity: number; price: number }>).map(p => ({
+              title: p.name,
+              quantity: p.quantity,
+              price: p.price
+            }));
+
+            form.reset({
+              orderNumber: updatedOrder.orderNumber,
+              source: updatedOrder.source,
+              status: updatedOrder.status,
+              deliveryMethod: updatedOrder.deliveryMethod,
+              deliveryPostNumber: updatedOrder.deliveryPostNumber || '',
+              phoneNumber: updatedOrder.phoneNumber,
+              fullName: updatedOrder.fullName,
+              paymentMethod: updatedOrder.paymentMethod,
+              notes: updatedOrder.notes || '',
+              products: orderProducts,
+              numberOfItems: updatedOrder.numberOfItems,
+              amount: updatedOrder.amount,
+              created: updatedOrder.created
+            });
+
+            toast("Order Updated", {
+              description: "The order has been updated by another user.",
+            });
+          }
+        });
+        console.log('Subscribed to order updates:', order.id);
+      } catch (error) {
+        console.error('Error subscribing to order updates:', error);
+      }
+    };
+
+    setupSubscription();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+        console.log('Unsubscribed from order updates:', order.id);
+      }
+    };
+  }, [order, form, isOpen, isUpdating]);
+
+  const onSubmit = async (data: OrderFormData) => {
+    if (!order) return;
 
     try {
-      // Calculate totals from product inputs
-      const totalItems = productInputs.reduce((sum, p) => sum + p.quantity, 0);
-      const totalAmount = productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0);
-
-      const updateData = {
-        ...orderData,
-        products: productInputs.map(p => ({
+      setIsUpdating(true);
+      const updateData: Partial<OrdersResponse> = {
+        orderNumber: data.orderNumber,
+        source: data.source,
+        status: data.status,
+        deliveryMethod: data.deliveryMethod,
+        deliveryPostNumber: data.deliveryPostNumber,
+        phoneNumber: data.phoneNumber,
+        fullName: data.fullName,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes,
+        products: data.products.map(p => ({
           name: p.title,
           quantity: p.quantity,
           price: p.price
         })),
-        numberOfItems: totalItems,
-        amount: totalAmount
+        numberOfItems: data.numberOfItems,
+        amount: data.amount
       };
 
-      await onUpdate(order.orderNumber, updateData);
+      await onUpdate(order.id, updateData);
       onClose();
+      
+      toast.success("Success", {
+        description: "Order updated successfully",
+      });
     } catch (error) {
       console.error('Error updating order:', error);
+      toast.error("Error", {
+        description: "Failed to update order. Please try again.",
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  if (isLoading || !orderData) return null;
+  if (isLoading || !order) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-background border-border max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
-            {translations.orderDetails}
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            {translations.editOrder}
-          </p>
-        </DialogHeader>
+    <>
+      <Toaster richColors />
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[600px] bg-background border-border max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+              {translations.orderDetails}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {translations.editOrder}
+            </p>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-2">
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{translations.orderNumber}</Label>
-                <Input
-                  name="orderNumber"
-                  value={orderData.orderNumber}
-                  onChange={(e) => handleInputChange('orderNumber', e.target.value)}
-                  readOnly
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto pr-2">
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="orderNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.orderNumber}</FormLabel>
+                        <FormControl>
+                          <Input {...field} readOnly />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="source"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.source}</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={translations.selectSource} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {sources.map(source => (
+                              <SelectItem key={source.id} value={source.id}>
+                                {source.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.status}</FormLabel>
+                        <FormControl>
+                          <StatusSelect
+                            status={field.value ? { 
+                              id: field.value,
+                              name: statuses.find(s => s.id === field.value)?.name || '',
+                              color: statuses.find(s => s.id === field.value)?.color || '#000000'
+                            } : undefined}
+                            statuses={statuses as Status[]}
+                            onStatusChange={(statusId) => {
+                              field.onChange(statusId);
+                              if (!order) return Promise.resolve();
+                              return onStatusChange(order.id, statusId);
+                            }}
+                            translateStatus={translateStatus}
+                            getContrastColor={UtilityService.getContrastColor}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="created"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.createdAt}</FormLabel>
+                        <FormControl>
+                          <Input
+                            value={new Date(field.value).toLocaleString()}
+                            readOnly
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="deliveryMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{translations.deliveryMethod}</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={translations.selectDeliveryMethod} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {deliveryMethods.map(method => (
+                            <SelectItem key={method.id} value={method.id}>
+                              {method.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="deliveryPostNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.deliveryPostNumber}</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phoneNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.phoneNumber}</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{translations.fullName}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="products"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{translations.products}</FormLabel>
+                      <FormControl>
+                        <OrderProducts
+                          products={field.value}
+                          onChange={(products) => {
+                            field.onChange(products);
+                            const totalItems = products.reduce((sum: number, p) => sum + (p.quantity || 0), 0);
+                            const totalAmount = products.reduce((sum: number, p) => sum + ((p.quantity || 0) * (p.price || 0)), 0);
+                            form.setValue('numberOfItems', totalItems);
+                            form.setValue('amount', totalAmount);
+                          }}
+                          translations={translations}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {isBlacklisted && (
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      {translations.blacklistedCustomerWarning}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{translations.paymentMethod}</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={isBlacklisted}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={translations.selectPaymentMethod} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {paymentMethods
+                            .filter(method => !isBlacklisted || method.name.toLowerCase().includes('prepayment'))
+                            .map(method => (
+                              <SelectItem key={method.id} value={method.id}>
+                                {method.name}
+                              </SelectItem>
+                            ))
+                          }
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{translations.notes}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder={translations.notesPlaceholder}
+                          className="min-h-[100px]"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>{translations.source}</Label>
-                <Select
-                  value={orderData.source}
-                  onValueChange={(value) => handleSelectChange('source', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={translations.selectSource} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sources.map(source => (
-                      <SelectItem key={source.id} value={source.id}>
-                        {source.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{translations.status}</Label>
-                <StatusSelect
-                  status={orderData.status ? { 
-                    id: orderData.status,
-                    name: statuses.find(s => s.id === orderData.status)?.name || '',
-                    color: statuses.find(s => s.id === orderData.status)?.color || '#000000'
-                  } : undefined}
-                  statuses={statuses as Status[]}
-                  onStatusChange={(statusId) => {
-                    if (!order) return Promise.resolve();
-                    return onStatusChange(order.orderNumber, statusId);
-                  }}
-                  translateStatus={translateStatus}
-                  getContrastColor={UtilityService.getContrastColor}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{translations.createdAt}</Label>
-                <Input
-                  value={new Date(orderData?.created || new Date()).toLocaleString()}
-                  readOnly
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{translations.deliveryMethod}</Label>
-              <Select
-                value={orderData.deliveryMethod}
-                onValueChange={(value) => handleSelectChange('deliveryMethod', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={translations.selectDeliveryMethod} />
-                </SelectTrigger>
-                <SelectContent>
-                  {deliveryMethods.map(method => (
-                    <SelectItem key={method.id} value={method.id}>
-                      {method.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{translations.deliveryPostNumber}</Label>
-                <Input
-                  name="deliveryPostNumber"
-                  value={orderData.deliveryPostNumber || ''}
-                  onChange={(e) => handleInputChange('deliveryPostNumber', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{translations.phoneNumber}</Label>
-                <Input
-                  name="phoneNumber"
-                  value={orderData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{translations.fullName}</Label>
-              <Input
-                name="fullName"
-                value={orderData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-              />
-            </div>
-
-            <OrderProducts
-              products={productInputs}
-              onChange={setProductInputs}
-              translations={translations}
-            />
-
-            {isBlacklisted && (
-              <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/50 p-4 border-l-4 border-yellow-400 dark:border-yellow-600">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  {translations.blacklistedCustomerWarning}
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label>{translations.paymentMethod}</Label>
-              <Select
-                value={orderData.paymentMethod}
-                onValueChange={(value) => handleSelectChange('paymentMethod', value)}
-                disabled={isBlacklisted}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={translations.selectPaymentMethod} />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods
-                    .filter(method => !isBlacklisted || method.name.toLowerCase().includes('prepayment'))
-                    .map(method => (
-                      <SelectItem key={method.id} value={method.id}>
-                        {method.name}
-                      </SelectItem>
-                    ))
-                  }
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{translations.notes}</Label>
-              <Textarea
-                name="notes"
-                value={orderData.notes || ''}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                placeholder={translations.notesPlaceholder}
-                className="min-h-[100px]"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="submit" className="w-full">
-              {translations.updateOrder}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <DialogFooter>
+                <Button type="submit" className="w-full">
+                  {translations.updateOrder}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 } 

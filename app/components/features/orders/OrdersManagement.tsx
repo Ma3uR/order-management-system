@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
 import { PlusCircle, Search, ChevronRight, ChevronLeft } from 'lucide-react'
 import pb, { authenticatedCall, authenticateAdmin } from '@/app/lib/pocketbase'
@@ -16,6 +16,7 @@ import { Button } from "@/app/components/shared/ui/button"
 import { Separator } from "@/app/components/shared/ui/separator"
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
 import { cn } from "@/app/lib/utils"
+import { toast, Toaster } from 'sonner'
 import { 
   OrdersResponse, 
   SourcesResponse, 
@@ -107,6 +108,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Keep track of whether the current user initiated the change
+  const userActionRef = useRef<string | null>(null);
 
   // Add debounced search effect
   useEffect(() => {
@@ -243,6 +247,61 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     };
   }, []);
 
+  // Add real-time subscription effect
+  useEffect(() => {
+    const setupSubscription = async () => {
+      try {
+        const subscription = await pb.collection('orders').subscribe('*', (e) => {
+          const isUserAction = userActionRef.current === e.record.id;
+          const record = e.record as OrdersResponse;
+          
+          switch (e.action) {
+            case 'delete':
+              if (!isUserAction) {
+                toast.info("Order Deleted", {
+                  description: `Order ${record.orderNumber} was deleted by another user`
+                });
+                setOrders(prev => prev.filter(o => o.id !== record.id));
+              }
+              break;
+            case 'update':
+              if (!isUserAction) {
+                toast.info("Order Updated", {
+                  description: `Order ${record.orderNumber} was updated by another user`
+                });
+                setOrders(prev => prev.map(o => o.id === record.id ? record : o));
+              }
+              break;
+            case 'create':
+              if (!isUserAction) {
+                toast.info("New Order", {
+                  description: `Order ${record.orderNumber} was created`
+                });
+                setOrders(prev => [...prev, record]);
+              }
+              break;
+          }
+          
+          // Reset the user action flag
+          userActionRef.current = null;
+        }, {
+          expand: 'currency,status,source'
+        });
+
+        return () => {
+          subscription();
+        };
+      } catch (error) {
+        console.error('Error setting up real-time subscription:', error);
+      }
+    };
+
+    const cleanup = setupSubscription();
+    return () => {
+      cleanup?.then(unsubscribe => unsubscribe?.());
+    };
+  }, []);
+
   // Filter orders based on search and filters
   const filteredOrders = orders.filter(order => {
     let matches = true;
@@ -302,6 +361,36 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const endIndex = startIndex + itemsPerPage
   const currentOrders = filteredOrders.slice(startIndex, endIndex)
 
+  // Modify the delete handler to set userActionRef
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      userActionRef.current = orderId;
+      await authenticatedCall(() => pb.collection('orders').delete(orderId));
+      setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
+      toast.success("Order deleted successfully");
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error("Failed to delete order. Please try again.");
+      userActionRef.current = null;
+    }
+  };
+
+  // Modify the status change handler to set userActionRef
+  const handleStatusChange = async (orderId: string, statusId: string) => {
+    try {
+      userActionRef.current = orderId;
+      const updated = await authenticatedCall(() => 
+        pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId })
+      );
+      setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? updated : o));
+      toast.success("Order status updated successfully");
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error("Failed to update order status. Please try again.");
+      userActionRef.current = null;
+    }
+  };
+
   if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error: {error}</div>
 
@@ -311,6 +400,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
   return (
     <div className="flex gap-6 p-1">
+      <Toaster richColors />
       {/* Main Orders List Card - 75% width */}
       <Card className={cn(
         "transition-all duration-300 ease-in-out",
@@ -336,16 +426,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 setSelectedOrder(order);
                 setIsDetailsModalOpen(true);
               }}
-              onDeleteOrder={async (orderId) => {
-                await authenticatedCall(() => pb.collection('orders').delete(orderId));
-                setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
-              }}
-              onStatusChange={async (orderId, statusId) => {
-                const updated = await authenticatedCall(() => 
-                  pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId })
-                );
-                setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? updated : o));
-              }}
+              onDeleteOrder={handleDeleteOrder}
+              onStatusChange={handleStatusChange}
               translations={translations}
               statuses={statuses}
               translateStatus={(status) => status}
@@ -456,12 +538,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           );
           setIsDetailsModalOpen(false);
         }}
-        onStatusChange={async (orderId, statusId) => {
-          const updated = await authenticatedCall(() => 
-            pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId })
-          );
-          setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? updated : o));
-        }}
+        onStatusChange={handleStatusChange}
         translations={translations}
         translateStatus={(status) => status}
       />
