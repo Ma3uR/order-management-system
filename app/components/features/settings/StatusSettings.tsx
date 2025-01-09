@@ -9,8 +9,6 @@ import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
-import type { StatusOptionsResponse } from "@/app/types/pocketbase-types";
-import { statusService } from "@/app/services/api";
 import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
 import {
@@ -38,6 +36,8 @@ import {
 import { cn } from "@/app/lib/utils";
 import { ControllerRenderProps } from "react-hook-form";
 import { motion } from "framer-motion";
+import { createStatus, deleteStatus, getAllStatuses, updateStatus } from "@/app/actions/statuses";
+import { StatusResponse } from "@/app/types/pocketbase-types";
 type TranslationKeys = {
   priority: string;
   statusName: string;
@@ -62,12 +62,12 @@ type TranslationKeys = {
 };
 
 interface SortableItemProps {
-  status: StatusOptionsResponse;
+  status: StatusResponse;
   editingId: string | null;
   t: (key: keyof TranslationKeys) => string;
-  onEdit: (status: StatusOptionsResponse) => void;
+  onEdit: (status: StatusResponse) => void;
   onDelete: (id: string) => void;
-  onSave: (status: StatusOptionsResponse, data: StatusFormData) => void;
+  onSave: (status: StatusResponse, data: StatusFormData) => void;
 }
 
 function ColorPicker({ 
@@ -232,7 +232,7 @@ type FormField = {
 export function StatusSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
-  const [statuses, setStatuses] = useState<StatusOptionsResponse[]>([]);
+  const [statuses, setStatuses] = useState<StatusResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -281,9 +281,13 @@ export function StatusSettings() {
   const fetchStatuses = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await statusService.fetchAll();
-      const sortedStatuses = [...response].sort((a, b) => a.priority - b.priority);
-      setStatuses(sortedStatuses);
+      const response = await getAllStatuses();
+      if (response.data) {
+        const sortedStatuses = [...response.data].sort((a, b) => a.priority - b.priority);
+        setStatuses(sortedStatuses);
+      } else {
+        throw new Error('No statuses found');
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(t('fetchError'), {
@@ -312,7 +316,7 @@ export function StatusSettings() {
       }
 
       // Create new status with next priority, overriding the form's priority
-      await statusService.create({
+      await createStatus({
         ...data,
         priority: highestPriority + 1
       });
@@ -324,7 +328,6 @@ export function StatusSettings() {
       fetchStatuses();
       setIsFormOpen(false);
     } catch (error: unknown) {
-      console.error('Status creation error:', error);
       if (error instanceof Error) {
         toast.error(t('saveError'), {
           description: error.message,
@@ -341,7 +344,7 @@ export function StatusSettings() {
 
   const handleDelete = async (id: string) => {
     try {
-      await statusService.delete(id);
+      await deleteStatus(id);
 
       toast.success(t('deleteSuccess'), {
         description: t('statusDeleteSuccess'),
@@ -363,24 +366,22 @@ export function StatusSettings() {
     }
   };
 
-  const handleEdit = async (status: StatusOptionsResponse) => {
+  const handleEdit = async (status: StatusResponse) => {
     setEditingId(status.id);
   };
 
-  const handleSave = async (status: StatusOptionsResponse, data: StatusFormData) => {
+  const handleSave = async (status: StatusResponse, data: StatusFormData) => {
     try {
-      console.log('data', data);
       const hasDuplicatePriority = statuses.some(s => 
         s.priority === data.priority && s.id !== status.id
       );
-      console.log('hasDuplicatePriority', hasDuplicatePriority);
       if (hasDuplicatePriority) {
         throw new Error(t('duplicatePriorityError')); 
       }
 
-      const response = await statusService.update(status.id, data);
+      const response = await updateStatus(status.id, data);
       
-      if (!response.ok) throw new Error(t('statusUpdateError'));
+      if (response.error) throw new Error(response.error);
       
       setEditingId(null);
       fetchStatuses();
@@ -420,14 +421,14 @@ export function StatusSettings() {
 
       // Update the backend one by one in sequence
       for (const status of updatedStatuses) {
-        const response = await statusService.update(status.id, {
+        const response = await updateStatus(status.id, {
           name: status.name,
           color: status.color,
           priority: status.priority
         });
         
-        if (!response.ok) {
-          throw new Error(t('statusUpdateError'));
+        if (response.error) {
+          throw new Error(response.error);
         }
       }
 
@@ -435,7 +436,6 @@ export function StatusSettings() {
         description: t('statusOrderUpdateSuccess'),
       });
     } catch (error) {
-      console.error('Error updating priorities:', error);
       toast.error(t('saveError'), {
         description: error instanceof Error ? error.message : t('statusOrderUpdateError'),
       });

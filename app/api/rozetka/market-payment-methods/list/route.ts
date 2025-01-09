@@ -1,38 +1,33 @@
-import { NextResponse } from 'next/server';
+  import { NextResponse } from 'next/server';
 import axios, { AxiosError } from 'axios';
 import { getAccessToken } from '@/app/lib/rozetka-auth';
 
 const ROZETKA_API_BASE = 'https://api-seller.rozetka.com.ua';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
     const token = await getAccessToken();
-
-    const response = await axios.get(`${ROZETKA_API_BASE}/orders/search`, {
+    const response = await axios.get(`${ROZETKA_API_BASE}/sites/market-payment-methods/list`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept-Validate-Exception': '1',
-        'Content-Language': 'uk'
-      },
-      params: Object.fromEntries(searchParams)
+        'Content-Type': 'application/json'
+      }
     });
-    
+
     return NextResponse.json({
       success: true,
       content: response.data.content,
       errors: null
     });
   } catch (error) {
-    console.error('Failed to fetch Rozetka orders:', error);
+    console.error('Failed to fetch payment methods:', error);
     
     if (error instanceof AxiosError) {
       return NextResponse.json({
         success: false,
         content: null,
         errors: {
-          description: error.response?.data?.errors?.description || 'Failed to fetch orders',
+          description: error.response?.data?.errors?.description || 'Failed to fetch payment methods',
           code: error.response?.status || 500
         }
       }, { status: error.response?.status || 500 });
@@ -47,4 +42,4 @@ export async function GET(request: Request) {
       }
     }, { status: 500 });
   }
-}
+} 

@@ -1,11 +1,5 @@
 import { z } from "zod";
-import type { 
-  CurrencyOptionsRecord, 
-  StatusOptionsRecord, 
-  PaymentOptionsRecord, 
-  DeliveryOptionsRecord,
-  SourcesRecord 
-} from "@/app/types/pocketbase-types";
+import type { OrdersRecord } from "@/app/types/pocketbase-types";
 
 const productSchema = z.object({
   title: z.string().min(1, "Product name is required"),
@@ -27,7 +21,8 @@ export const orderSchema = z.object({
   numberOfItems: z.number().min(1, "Number of items must be at least 1"),
   amount: z.number().min(0, "Amount must be non-negative"),
   created: z.string(),
-});
+  currency: z.string().min(1, "Currency is required"),
+}) satisfies z.ZodType<OrdersRecord>;
 
 export type OrderFormData = z.infer<typeof orderSchema>;
 export type ProductFormData = z.infer<typeof productSchema>; 

@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server';
-import pb from '@/app/lib/pocketbase';
+import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import { BlacklistEntriesResponse } from '@/app/types/pocketbase-types';
 
 export async function POST(request: Request) {
   try {
     const { fullName, phoneNumber } = await request.json();
-    
-    // Authenticate admin
-    await pb.admins.authWithPassword(
-      process.env.POCKETBASE_ADMIN_EMAIL!,
-      process.env.POCKETBASE_ADMIN_PASSWORD!
-    );
 
     // Normalize and escape the inputs
     const normalizedPhone = (phoneNumber || '').replace(/[^\d+]/g, '');
@@ -28,9 +23,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ isBlacklisted: false, record: null });
     }
 
-    const records = await pb.collection('blacklist_entries').getFullList({
+    const records = await authenticatedCall(() => pb.collection('blacklist_entries').getFullList<BlacklistEntriesResponse>({
       filter: filter,
-    });
+    }));
 
     return NextResponse.json({
       isBlacklisted: records.length > 0,

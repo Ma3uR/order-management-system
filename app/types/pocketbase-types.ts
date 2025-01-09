@@ -107,12 +107,12 @@ export type UsersRecord = {
 // Response types include system fields and match responses from the PocketBase API
 export type BlacklistEntriesResponse = BlacklistEntriesRecord & BaseSystemFields
 export type ChatMessagesResponse<Texpand = unknown> = ChatMessagesRecord & BaseSystemFields<Texpand>
-export type CurrencyOptionsResponse = CurrencyOptionsRecord & BaseSystemFields
+export type CurrencyResponse = CurrencyOptionsRecord & BaseSystemFields
 export type DeliveryOptionsResponse = DeliveryOptionsRecord & BaseSystemFields
 export type OrdersResponse<Tproducts = unknown, Texpand = unknown> = OrdersRecord<Tproducts> & BaseSystemFields<Texpand>
-export type PaymentOptionsResponse = PaymentOptionsRecord & BaseSystemFields
+export type PaymentMethodsResponse = PaymentOptionsRecord & BaseSystemFields
 export type SourcesResponse = SourcesRecord & BaseSystemFields
-export type StatusOptionsResponse = StatusOptionsRecord & BaseSystemFields
+export type StatusResponse = StatusOptionsRecord & BaseSystemFields
 export type UsersResponse = UsersRecord & AuthSystemFields
 
 // Types containing all Records and Responses, useful for creating typing helper functions
@@ -132,11 +132,11 @@ export type CollectionRecords = {
 export type CollectionResponses = {
 	blacklist_entries: BlacklistEntriesResponse
 	chat_messages: ChatMessagesResponse
-	currency_options: CurrencyOptionsResponse
+	currencies: CurrencyResponse
 	delivery_options: DeliveryOptionsResponse
 	orders: OrdersResponse
-	payment_options: PaymentOptionsResponse
+	payment_methods: PaymentMethodsResponse	
 	sources: SourcesResponse
-	status_options: StatusOptionsResponse
+	status_options: StatusResponse
 	users: UsersResponse
 }

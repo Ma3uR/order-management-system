@@ -28,6 +28,8 @@ export interface RozetkaOrderResponse {
     name_uk: string;
     color: string;
   };
+  payment_type: string;
+  delivery_type: string;
 }
 
 // Your application's order type (based on your existing schema)

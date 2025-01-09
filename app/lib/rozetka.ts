@@ -31,7 +31,11 @@ class RozetkaAPI {
   private token: string | null = null;
   private tokenExpiry: Date | null = null;
   
-  private constructor() {}
+  constructor() {
+    if (typeof window !== 'undefined') {
+      throw new Error('RozetkaAPI can only be used on the server side');
+    }
+  }
   
   static getInstance(): RozetkaAPI {
     if (!RozetkaAPI.instance) {
@@ -119,6 +123,46 @@ class RozetkaAPI {
       return response.data.content.orders;
     } catch (error) {
       console.error('Failed to fetch Rozetka orders:', error);
+      throw error;
+    }
+  }
+
+  async getPaymentMethods() {
+    try {
+      const token = await this.ensureValidToken();
+      const response = await axios.get(`${LOCAL_API_BASE}/market-payment-methods/list`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.errors?.description || 'Failed to fetch payment methods');
+      }
+
+      return response.data.content;
+    } catch (error) {
+      console.error('Failed to fetch Rozetka payment methods:', error);
+      throw error;
+    }
+  }
+
+  async getDeliveryMethods() {
+    try {
+      const token = await this.ensureValidToken();
+      const response = await axios.get(`${LOCAL_API_BASE}/orders/available-deliveries`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.errors?.description || 'Failed to fetch delivery methods');
+      }
+
+      return response.data.content;
+    } catch (error) {
+      console.error('Failed to fetch Rozetka delivery methods:', error);
       throw error;
     }
   }
