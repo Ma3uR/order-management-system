@@ -36,7 +36,7 @@ import {
 import { cn } from "@/app/lib/utils";
 import { ControllerRenderProps } from "react-hook-form";
 import { motion } from "framer-motion";
-import { createStatus, deleteStatus, getAllStatuses, updateStatus } from "@/app/actions/statuses";
+import { createStatus, deleteStatus, getAllStatuses, updateStatus } from "@/app/[locale]/settings/actions/statuses";
 import { StatusResponse } from "@/app/types/pocketbase-types";
 type TranslationKeys = {
   priority: string;
@@ -282,12 +282,9 @@ export function StatusSettings() {
     try {
       setIsLoading(true);
       const response = await getAllStatuses();
-      if (response.data) {
-        const sortedStatuses = [...response.data].sort((a, b) => a.priority - b.priority);
-        setStatuses(sortedStatuses);
-      } else {
-        throw new Error('No statuses found');
-      }
+      if (response.error || !response.data) throw new Error(response.error || 'No data returned');
+      const sortedStatuses = [...response.data].sort((a, b) => a.priority - b.priority);
+      setStatuses(sortedStatuses);
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(t('fetchError'), {

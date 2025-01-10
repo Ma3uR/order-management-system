@@ -11,9 +11,9 @@ import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { motion, AnimatePresence } from 'framer-motion';
-import { deletePaymentMethod, getAllPaymentMethods, updatePaymentMethod } from "@/app/actions/payment-methods";
+import { deletePaymentMethod, getAllPaymentMethods, updatePaymentMethod } from "@/app/[locale]/settings/actions/payment-methods";
 import { PaymentMethodsResponse } from "@/app/types/pocketbase-types";
-import { createPaymentMethod } from "@/app/actions/payment-methods";
+import { createPaymentMethod } from "@/app/[locale]/settings/actions/payment-methods";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },

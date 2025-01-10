@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import axios, { AxiosError } from 'axios';
+import { createBlackList, deleteBlackList, getBlackList, getBlackListPaginated } from '@/app/[locale]/blacklist/actions/black-list';
 import { BlacklistForm } from './BlacklistForm';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
@@ -50,7 +50,7 @@ interface PaginationInfo {
 export default function BlacklistManagement() {
   const router = useRouter();
   const t = useTranslations('Blacklist');
-  const { data: session, status } = useSession({
+  const { status } = useSession({
     required: true,
     onUnauthenticated() {
       router.push('/auth/signin');
@@ -75,40 +75,31 @@ export default function BlacklistManagement() {
     try {
       setIsSearching(true);
       setError(null);
-      console.log('Fetching blacklist...', { page, searchTerm, session });
       
-      const response = await axios.get(`/api/blacklist?page=${page}&perPage=${pagination.perPage}&search=${searchTerm}`);
-      console.log('Blacklist response:', response.data);
-      
-      if (!response.data.items) {
-        console.warn('No items in response:', response.data);
+      const response = await getBlackListPaginated(page, pagination.perPage, searchTerm);
+      const data = response.data;
+      if (!data) {
+        console.warn('No items in response:', data);
         setItems([]);
       } else {
-        setItems(response.data.items);
+        setItems(data.items);
       }
       
       setPagination({
-        page: response.data.page || 1,
-        perPage: response.data.perPage || 10,
-        totalItems: response.data.totalItems || 0,
-        totalPages: response.data.totalPages || 0
+        page: data?.page || 1,
+        perPage: data?.perPage || 10,
+        totalItems: data?.totalItems || 0,
+        totalPages: data?.totalPages || 0
       });
     } catch (error: unknown) {
       console.error('Error fetching blacklist:', error);
-      if (error instanceof AxiosError) {
-        console.error('Axios error details:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message
-        });
-      }
-      setError(error instanceof AxiosError ? error.response?.data?.message || t('error') : t('error'));
-      toast.error(error instanceof AxiosError ? error.response?.data?.message || t('error') : t('error'));
+      setError(error instanceof Error ? error.message : t('error'));
+      toast.error(error instanceof Error ? error.message : t('error'));
     } finally {
       setIsSearching(false);
       setIsLoading(false);
     }
-  }, [pagination.perPage, t, session]);
+  }, [pagination.perPage, t]);
 
   useEffect(() => {
     console.log('Session status:', status);
@@ -127,14 +118,21 @@ export default function BlacklistManagement() {
   const handleAddItem = async (data: BlacklistFormData) => {
     try {
       setIsLoading(true);
-      const response = await axios.post('/api/blacklist', data);
-      setItems(prev => [...prev, response.data]);
-      toast.success(t('addSuccess'), {
-        duration: 4000,
-        position: "top-right",
-        dismissible: true
-      });
-      await fetchBlacklist(pagination.page, '');
+      const result = await createBlackList(data);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (result.data) {
+        setItems(prev => [...prev, result.data]);
+        toast.success(t('addSuccess'), {
+          duration: 4000,
+          position: "top-right",
+          dismissible: true
+        });
+        await fetchBlacklist(pagination.page, '');
+      }
     } catch (error) {
       toast.error(t('addError'), {
         duration: 4000,
@@ -149,7 +147,12 @@ export default function BlacklistManagement() {
 
   const handleRemoveItem = async (id: string) => {
     try {
-      await axios.delete('/api/blacklist', { data: { id } });
+      const result = await deleteBlackList(id);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
       setItems(prev => prev.filter(item => item.id !== id));
       toast.success(t('removeSuccess'), {
         duration: 4000,

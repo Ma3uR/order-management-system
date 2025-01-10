@@ -12,9 +12,9 @@ import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { Input } from "@/app/components/shared/ui/input";
 import { motion, AnimatePresence } from 'framer-motion';
-import { createSource, deleteSource } from "@/app/actions/sources";
-import { getAllSources } from "@/app/actions/sources";
-import { updateSource } from "@/app/actions/sources";
+import { createSource, deleteSource } from "@/app/[locale]/settings/actions/sources";
+import { getAllSources } from "@/app/[locale]/settings/actions/sources";
+import { updateSource } from "@/app/[locale]/settings/actions/sources";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },

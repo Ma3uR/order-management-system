@@ -9,7 +9,7 @@ import { Button } from "@/app/components/shared/ui/button";
 import { Trash2 } from "lucide-react";
 import type { CurrencyResponse } from "@/app/types/pocketbase-types";
 import { toast } from 'sonner';
-import { createCurrency, deleteCurrency, getDefaultCurrency } from "@/app/actions/currencies";
+import { createCurrency, deleteCurrency, getDefaultCurrency } from "@/app/[locale]/settings/actions/currencies";
 
 export function CurrencySettings() {
   const t = useTranslations('Settings');

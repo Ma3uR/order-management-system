@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { SettingsForm } from "./SettingsForm";
-import { deliveryMethodSchema, type DeliveryMethodFormData } from "@/app/lib/validations/settings";
+import { deliveryMethodSchema, DeliveryMethodUpdateData, type DeliveryMethodFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
@@ -12,7 +12,7 @@ import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAllDeliveryMethods, createDeliveryMethod, deleteDeliveryMethod, updateDeliveryMethod } from "@/app/actions/delivery-methods";
+import { getAllDeliveryMethods, createDeliveryMethod, deleteDeliveryMethod, updateDeliveryMethod } from "@/app/[locale]/settings/actions/delivery-methods";
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
@@ -100,11 +100,11 @@ export function DeliveryMethodSettings() {
     setEditingId(method.id);
   };
 
-  const handleSave = async (id: string, data: DeliveryMethodFormData) => {
+  const handleSave = async (data: DeliveryMethodUpdateData) => {
     try {
       if (!data.name) return;
       
-      const deliveryMethod = await updateDeliveryMethod(id, data);
+      const deliveryMethod = await updateDeliveryMethod({id:data.id,name:data.name});
       if (deliveryMethod.error) throw new Error(deliveryMethod.error);
       toast.success(t('saveSuccess'), {
         description: t('deliveryMethodUpdateSuccess'),
@@ -223,7 +223,8 @@ export function DeliveryMethodSettings() {
                                   e.target.value = method.name;
                                   return;
                                 }
-                                handleSave(method.id, { name: e.target.value.trim() });
+                                const data = { id: method.id, name: e.target.value.trim() };
+                                handleSave(data);
                               }}
                             />
                           </div>
