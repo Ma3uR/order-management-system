@@ -1,6 +1,7 @@
 import { RozetkaOrderResponse } from '@/app/types/orders';
 import RozetkaAPI from '@/app/lib/rozetka';
-import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
+import { authenticatedCall } from '@/app/lib/pocketbase';
 
 export class OrderSyncService {
   private static instance: OrderSyncService;
@@ -44,17 +45,21 @@ export class OrderSyncService {
 
   private async processOrder(rozetkaOrder: RozetkaOrderResponse) {
     try {
-      const existingOrders = await authenticatedCall(() => pb.collection('orders').getList(1, 1, {
-        filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
-      }));
+      const existingOrders = await authenticatedCall(async () => {
+        return await pb.collection('orders').getList(1, 1, {
+          filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
+        });
+      });
 
       if (existingOrders.items.length > 0) {
         return;
       }
       
-      const defaultCurrency = await authenticatedCall(() => pb.collection('currency_options').getList(1, 1, {
-        filter: "isDefault = true"
-      }));
+      const defaultCurrency = await authenticatedCall(async () => {
+        return await pb.collection('currency_options').getList(1, 1, {
+          filter: "isDefault = true"
+        });
+      });
 
       if (defaultCurrency.items.length === 0) {
         throw new Error('No default currency found');
@@ -62,10 +67,12 @@ export class OrderSyncService {
 
       let defaultStatus = '';
       try {
-        const statuses = await authenticatedCall(() => pb.collection('status_options').getList(1, 50, {
-          sort: '+priority', //TODO: Change to -priority if we want to use the last created status
-          limit: 1
-        }));
+        const statuses = await authenticatedCall(async () => {
+          return await pb.collection('status_options').getList(1, 50, {
+            sort: '+priority',
+            limit: 1
+          });
+        });
         
         if (statuses.items.length > 0) {
           defaultStatus = statuses.items[0].id;
@@ -88,21 +95,21 @@ export class OrderSyncService {
         }))),
         numberOfItems: rozetkaOrder.total_quantity || 0,
         amount: parseFloat(rozetkaOrder.amount || '0'),
-        paymentMethod: this.mapPaymentMethod(rozetkaOrder.payment_type || ''),
-        deliveryMethod: this.mapDeliveryMethod(rozetkaOrder.delivery_type || ''),
+        paymentMethod: await this.mapPaymentMethod(rozetkaOrder.payment_type || ''),
+        deliveryMethod: await this.mapDeliveryMethod(rozetkaOrder.delivery_type || ''),
         status: defaultStatus,
         currency: defaultCurrency.items[0].id,
         notes: rozetkaOrder.comment || ''
       };
 
-      await authenticatedCall(() => pb.collection('orders').create(orderData));
+      await authenticatedCall(async () => {
+        return await pb.collection('orders').create(orderData);
+      });
     } catch (error) {
       console.error(`Failed to process order ${rozetkaOrder.id}:`, error);
       throw error;
     }
   }
-
-  
 
   async initializeMethodMappings() {
     const rozetkaAPI = RozetkaAPI.getInstance();
@@ -119,14 +126,13 @@ export class OrderSyncService {
       }
     } catch (error) {
       console.error('Failed to initialize method mappings:', error);
+      throw error;
     }
   }
 
   private async mapPaymentMethod(rozetkaPaymentType: string): Promise<string> {
     const mappings = await this.initializeMethodMappings();
     const paymentMethods = mappings?.paymentMethods;
-
-    console.log('paymentMethods', paymentMethods);
 
     if (!paymentMethods) {
       throw new Error('No payment methods found');
@@ -142,8 +148,6 @@ export class OrderSyncService {
   private async mapDeliveryMethod(rozetkaDeliveryType: string): Promise<string> {
     const mappings = await this.initializeMethodMappings();
     const deliveryMethods = mappings?.deliveryMethods;
-
-    console.log('deliveryMethods', deliveryMethods);
 
     if (!deliveryMethods) {
       throw new Error('No delivery methods found');

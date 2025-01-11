@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
 import { PlusCircle, Search, ChevronRight, ChevronLeft } from 'lucide-react'
-import pb, { authenticatedCall, authenticateAdmin } from '@/app/lib/pocketbase'
+import pb from '@/app/lib/pocketbase'
+import type { RecordSubscription } from 'pocketbase'
 import { RozetkaSync } from "@/app/components/features/sync/RozetkaSync"
 import { OrderStats } from "./components/OrderStats"
 import { OrderFilters, FilterOptions } from "./components/OrderFilters"
@@ -20,11 +21,19 @@ import { toast, Toaster } from 'sonner'
 import { 
   OrdersResponse, 
   SourcesResponse, 
-  StatusOptionsResponse, 
+  StatusResponse, 
   DeliveryOptionsResponse, 
-  PaymentOptionsResponse, 
-  CurrencyOptionsResponse 
+  PaymentMethodsResponse, 
+  CurrencyResponse 
 } from '@/app/types/pocketbase-types'
+import { 
+  getOrders, 
+  createOrder, 
+  updateOrder, 
+  deleteOrder,
+  getSettings 
+} from '@/app/[locale]/orders/actions/orders'
+import { OrderFormData } from '@/app/lib/validations/orders'
 
 interface OrdersManagementProps {
   translations: {
@@ -95,10 +104,10 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [selectedOrder, setSelectedOrder] = useState<OrdersResponse | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [sources, setSources] = useState<SourcesResponse[]>([])
-  const [statuses, setStatuses] = useState<StatusOptionsResponse[]>([])
+  const [statuses, setStatuses] = useState<StatusResponse[]>([])
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryOptionsResponse[]>([])
-  const [paymentMethods, setPaymentMethods] = useState<PaymentOptionsResponse[]>([])
-  const [defaultCurrency, setDefaultCurrency] = useState<CurrencyOptionsResponse | null>(null)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodsResponse[]>([])
+  const [defaultCurrency, setDefaultCurrency] = useState<CurrencyResponse | null>(null)
   const [filters, setFilters] = useState<FilterOptions>({
     status: '',
     dateRange: { from: null, to: null },
@@ -125,102 +134,33 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   useEffect(() => {
     let isSubscribed = true;
 
-    const initializeAdmin = async () => {
-      try {
-        setIsLoading(true)
-        await authenticateAdmin()
-        // Continue with your orders fetching logic here
-      } catch (err) {
-        setError('Failed to authenticate admin')
-        console.error('Authentication error:', err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     const fetchData = async () => {
       try {
-        const promises = [
-          authenticatedCall(() => pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>()),
-          authenticatedCall(() => pb.collection('payment_options').getFullList<PaymentOptionsResponse>()),
-          authenticatedCall(async () => {
-            const currencies = await pb.collection('currency_options').getFullList<CurrencyOptionsResponse>();
-            return currencies.find(c => c.isDefault) || currencies[0] || { code: 'UAH', symbol: '���', isDefault: true };
-          }),
-          authenticatedCall(() => pb.collection('status_options').getFullList<StatusOptionsResponse>()),
-          authenticatedCall(() => pb.collection('sources').getFullList<SourcesResponse>())
-        ];
+        setIsLoading(true);
+        const result = await getSettings();
+        if (!result.data || result.error) {
+          throw new Error(result.error || 'Failed to fetch settings');
+        }
 
-        const results = await Promise.allSettled(promises);
-        
         if (!isSubscribed) return;
 
-        results.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            switch(index) {
-              case 0:
-                setDeliveryMethods(result.value as DeliveryOptionsResponse[]);
-                break;
-              case 1:
-                setPaymentMethods(result.value as PaymentOptionsResponse[]);
-                break;
-              case 2:
-                setDefaultCurrency(result.value as CurrencyOptionsResponse);
-                break;
-              case 3:
-                setStatuses(result.value as StatusOptionsResponse[]);
-                break;
-              case 4:
-                const sourcesData = result.value as SourcesResponse[];
-                if (sourcesData.length === 0) {
-                  setSources([{
-                    id: 'default',
-                    name: 'Default',
-                    color: '#CBD5E1',
-                    created: new Date().toISOString(),
-                    updated: new Date().toISOString(),
-                    collectionId: 'sources',
-                    collectionName: 'sources'
-                  } as SourcesResponse]);
-                } else {
-                  setSources(sourcesData);
-                }
-                break;
-            }
-          } else {
-            console.error(`Error fetching data for index ${index}:`, result.reason);
-            // Set default values for failed fetches
-            switch(index) {
-              case 0:
-                setDeliveryMethods([]);
-                break;
-              case 1:
-                setPaymentMethods([]);
-                break;
-              case 2:
-                setDefaultCurrency(null);
-                break;
-              case 3:
-                setStatuses([]);
-                break;
-              case 4:
-                setSources([{
-                  id: 'default',
-                  name: 'Default',
-                  color: '#CBD5E1',
-                  created: new Date().toISOString(),
-                  updated: new Date().toISOString(),
-                  collectionId: 'sources',
-                  collectionName: 'sources'
-                } as SourcesResponse]);
-                break;
-            }
-          }
-        });
+        const {
+          deliveryMethods,
+          paymentMethods,
+          defaultCurrency,
+          statuses,
+          sources
+        } = result.data;
 
+        setDeliveryMethods(deliveryMethods);
+        setPaymentMethods(paymentMethods);
+        setDefaultCurrency(defaultCurrency);
+        setStatuses(statuses);
+        setSources(sources);
         setIsClient(true);
       } catch (error) {
         console.error('Error in fetchData:', error);
+        setError(error instanceof Error ? error.message : 'Unknown error');
         // Set default values for all states
         setDeliveryMethods([]);
         setPaymentMethods([]);
@@ -235,11 +175,11 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           collectionId: 'sources',
           collectionName: 'sources'
         } as SourcesResponse]);
-        setIsClient(true);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    initializeAdmin()
     fetchData();
 
     return () => {
@@ -247,17 +187,97 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     };
   }, []);
 
-  // Add real-time subscription effect
+  // Modify the delete handler to use server action
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      userActionRef.current = orderId;
+      const result = await deleteOrder(orderId);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
+      toast.success("Order deleted successfully");
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error("Failed to delete order. Please try again.");
+      userActionRef.current = null;
+    }
+  };
+
+  // Modify the status change handler to use server action
+  const handleStatusChange = async (orderId: string, statusId: string) => {
+    try {
+      userActionRef.current = orderId;
+      const order = orders.find(o => o.id === orderId);
+      if (!order) throw new Error('Order not found');
+
+      // Validate products before update
+      if (!Array.isArray(order.products) || order.products.length === 0) {
+        throw new Error('Invalid products data');
+      }
+
+      const validProducts = (order.products as Array<{ 
+        title?: string; 
+        name?: string; 
+        quantity: number; 
+        price: number 
+      }>).map(p => {
+        // Ensure we have a valid title
+        if (!p.title && (p.name || p.title)) {
+          return {
+            title: (p.name || p.title) as string,
+            quantity: p.quantity || 0,
+            price: p.price || 0
+          };
+        }
+        // Keep existing product data if it's valid
+        return {
+          title: p.title as string,
+          quantity: p.quantity,
+          price: p.price
+        };
+      }).filter(p => p.title && p.title.length > 0); // Filter out any products with empty titles
+
+      if (validProducts.length === 0) {
+        throw new Error('No valid products found');
+      }
+
+      // Only update the status and include validated products
+      const result = await updateOrder(orderId, {
+        ...order,
+        status: statusId,
+        products: validProducts
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Update local state if successful
+      setOrders(prevOrders => 
+        prevOrders.map(o => o.id === orderId ? { ...o, status: statusId } : o)
+      );
+      toast.success("Order status updated successfully");
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to update order status");
+    } finally {
+      userActionRef.current = null;
+    }
+  };
+
+  // Modify the real-time subscription effect to use server action for refreshing data
   useEffect(() => {
+    let isSubscribed = true;
     const setupSubscription = async () => {
       try {
-        const subscription = await pb.collection('orders').subscribe('*', (e) => {
+        const subscription = await pb.collection('orders').subscribe<OrdersResponse>('*', async (e: RecordSubscription<OrdersResponse>) => {
           const isUserAction = userActionRef.current === e.record.id;
-          const record = e.record as OrdersResponse;
+          const record = e.record;
           
           switch (e.action) {
             case 'delete':
-              if (!isUserAction) {
+              if (!isUserAction && isSubscribed) {
                 toast.info("Order Deleted", {
                   description: `Order ${record.orderNumber} was deleted by another user`
                 });
@@ -265,40 +285,70 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               }
               break;
             case 'update':
-              if (!isUserAction) {
-                toast.info("Order Updated", {
-                  description: `Order ${record.orderNumber} was updated by another user`
-                });
-                setOrders(prev => prev.map(o => o.id === record.id ? record : o));
+              if (!isUserAction && isSubscribed) {
+                try {
+                  // Fetch the single updated record with expanded data
+                  const updatedOrder = await pb.collection('orders').getOne<OrdersResponse>(record.id, {
+                    expand: 'currency,status,source'
+                  });
+                  if (isSubscribed) {
+                    setOrders(prev => prev.map(o => o.id === record.id ? updatedOrder : o));
+                    toast.info("Order Updated", {
+                      description: `Order ${record.orderNumber} was updated by another user`
+                    });
+                  }
+                } catch (error: unknown) {
+                  // Ignore autocancelled requests
+                  if (error instanceof Error && !error.message?.includes('autocancelled')) {
+                    console.error('Error fetching updated order:', error);
+                  }
+                }
               }
               break;
             case 'create':
-              if (!isUserAction) {
-                toast.info("New Order", {
-                  description: `Order ${record.orderNumber} was created`
-                });
-                setOrders(prev => [...prev, record]);
+              if (!isUserAction && isSubscribed) {
+                try {
+                  // Fetch the single new record with expanded data
+                  const newOrder = await pb.collection('orders').getOne<OrdersResponse>(record.id, {
+                    expand: 'currency,status,source'
+                  });
+                  if (isSubscribed) {
+                    setOrders(prev => [newOrder, ...prev]);
+                    toast.info("New Order", {
+                      description: `Order ${record.orderNumber} was created`
+                    });
+                  }
+                } catch (error: unknown) {
+                  // Ignore autocancelled requests
+                  if (error instanceof Error && !error.message?.includes('autocancelled')) {
+                    console.error('Error fetching new order:', error);
+                  }
+                }
               }
               break;
           }
           
           // Reset the user action flag
-          userActionRef.current = null;
-        }, {
-          expand: 'currency,status,source'
+          if (isSubscribed) {
+            userActionRef.current = null;
+          }
         });
 
         return () => {
           subscription();
         };
-      } catch (error) {
-        console.error('Error setting up real-time subscription:', error);
+      } catch (error: unknown) {
+        if (error instanceof Error && !error.message?.includes('autocancelled')) {
+          console.error('Error setting up real-time subscription:', error);
+        }
       }
     };
 
-    const cleanup = setupSubscription();
+    const unsubscribe = setupSubscription();
+
     return () => {
-      cleanup?.then(unsubscribe => unsubscribe?.());
+      isSubscribed = false;
+      unsubscribe?.then(unsub => unsub?.());
     };
   }, []);
 
@@ -353,43 +403,13 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     }
 
     return matches;
-  });
+  }).sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()); // Sort by created date, newest first
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentOrders = filteredOrders.slice(startIndex, endIndex)
-
-  // Modify the delete handler to set userActionRef
-  const handleDeleteOrder = async (orderId: string) => {
-    try {
-      userActionRef.current = orderId;
-      await authenticatedCall(() => pb.collection('orders').delete(orderId));
-      setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
-      toast.success("Order deleted successfully");
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      toast.error("Failed to delete order. Please try again.");
-      userActionRef.current = null;
-    }
-  };
-
-  // Modify the status change handler to set userActionRef
-  const handleStatusChange = async (orderId: string, statusId: string) => {
-    try {
-      userActionRef.current = orderId;
-      const updated = await authenticatedCall(() => 
-        pb.collection('orders').update<OrdersResponse>(orderId, { status: statusId })
-      );
-      setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? updated : o));
-      toast.success("Order status updated successfully");
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      toast.error("Failed to update order status. Please try again.");
-      userActionRef.current = null;
-    }
-  };
 
   if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error: {error}</div>
@@ -477,15 +497,11 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           </CardHeader> 
           <CardContent className="flex flex-col h-[calc(100%-5rem)]">
           <div className="pt-6 mt-auto">
-              <RozetkaSync onSyncComplete={() => {
-                authenticatedCall(() => 
-                  pb.collection('orders').getFullList({
-                    sort: '-created',
-                    expand: 'deliveryMethod,paymentMethod,status,currency,source'
-                  })
-                ).then(records => {
-                  setOrders(records as OrdersResponse[]);
-                });
+              <RozetkaSync onSyncComplete={async () => {
+                const result = await getOrders();
+                if (result.data) {
+                  setOrders(result.data);
+                }
               }} />
             </div>
             <div className="space-y-6 flex-1">
@@ -502,7 +518,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               <Separator />
 
               <OrderStats 
-                orders={orders as (OrdersResponse & { expand?: { currency?: CurrencyOptionsResponse }})[]} 
+                orders={orders as (OrdersResponse & { expand?: { currency?: CurrencyResponse }})[]} 
                 translations={translations} 
               />
 
@@ -530,13 +546,75 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         onClose={() => setIsDetailsModalOpen(false)}
         order={selectedOrder}
         onUpdate={async (orderId, orderData) => {
-          const updated = await authenticatedCall(() => 
-            pb.collection('orders').update<OrdersResponse>(orderId, orderData)
-          );
-          setOrders(prevOrders => 
-            prevOrders.map(o => o.id === orderId ? updated : o)
-          );
-          setIsDetailsModalOpen(false);
+          try {
+            if (!selectedOrder) return;
+            userActionRef.current = orderId;
+
+            // Validate and transform products
+            type ProductData = {
+              title?: string;
+              name?: string;
+              quantity: number;
+              price: number;
+            };
+
+            type ValidProduct = {
+              title: string;
+              quantity: number;
+              price: number;
+            };
+
+            const products: ValidProduct[] = ((orderData.products || selectedOrder.products) as ProductData[]).map((p) => ({
+              title: p.title || p.name || '',
+              quantity: Math.max(1, p.quantity || 1),
+              price: Math.max(0, p.price || 0)
+            })).filter(p => p.title && p.title.length > 0);
+
+            if (products.length === 0) {
+              throw new Error("At least one valid product is required");
+            }
+
+            // Calculate totals
+            const numberOfItems = products.reduce((sum, p) => sum + p.quantity, 0);
+            const amount = products.reduce((sum, p) => sum + (p.quantity * p.price), 0);
+
+            // Ensure all required fields are present
+            const updatePayload = {
+              status: orderData.status || selectedOrder.status,
+              orderNumber: orderData.orderNumber || selectedOrder.orderNumber,
+              source: orderData.source || selectedOrder.source,
+              deliveryMethod: orderData.deliveryMethod || selectedOrder.deliveryMethod,
+              phoneNumber: orderData.phoneNumber || selectedOrder.phoneNumber,
+              fullName: orderData.fullName || selectedOrder.fullName,
+              paymentMethod: orderData.paymentMethod || selectedOrder.paymentMethod,
+              products,
+              numberOfItems,
+              amount,
+              currency: orderData.currency || selectedOrder.currency,
+              created: orderData.created || selectedOrder.created,
+              notes: orderData.notes,
+              deliveryPostNumber: orderData.deliveryPostNumber
+            };
+
+            const result = await updateOrder(orderId, updatePayload);
+
+            if (result.error) {
+              throw new Error(result.error);
+            }
+
+            if (result.data) {
+              setOrders(prevOrders => 
+                prevOrders.map(o => o.id === orderId ? result.data! : o)
+              );
+              setIsDetailsModalOpen(false);
+              toast.success("Order updated successfully");
+            }
+          } catch (error) {
+            console.error('Error updating order:', error);
+            toast.error(error instanceof Error ? error.message : "Failed to update order. Please try again.");
+          } finally {
+            userActionRef.current = null;
+          }
         }}
         onStatusChange={handleStatusChange}
         translations={translations}
@@ -546,12 +624,37 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       <OrderCreate
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={async (orderData) => {
-          const newOrder = await authenticatedCall(() => 
-            pb.collection('orders').create<OrdersResponse>(orderData)
-          );
-          setOrders(prev => [...prev, newOrder]);
+        onSubmit={async (orderData: Partial<OrdersResponse>, productInputs) => {
+          const formData: OrderFormData = {
+            ...orderData,
+            status: orderData.status || '',
+            orderNumber: orderData.orderNumber || '',
+            source: orderData.source || '',
+            deliveryMethod: orderData.deliveryMethod || '',
+            phoneNumber: orderData.phoneNumber || '',
+            fullName: orderData.fullName || '',
+            paymentMethod: orderData.paymentMethod || '',
+            products: productInputs.map(p => ({
+              title: p.title,
+              quantity: p.quantity,
+              price: p.price
+            })),
+            numberOfItems: productInputs.reduce((sum, p) => sum + p.quantity, 0),
+            amount: productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0),
+            currency: orderData.currency || defaultCurrency?.id || '',
+            created: new Date().toISOString(),
+            notes: orderData.notes,
+            deliveryPostNumber: orderData.deliveryPostNumber
+          };
+
+          const result = await createOrder(formData);
+          if (result.error) {
+            toast.error("Failed to create order. Please try again.");
+            return;
+          }
+          setOrders(prev => [result.data!, ...prev]);
           setIsCreateModalOpen(false);
+          toast.success("Order created successfully");
         }}
         translations={translations}
         deliveryMethods={deliveryMethods}

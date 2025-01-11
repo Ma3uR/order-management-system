@@ -104,7 +104,7 @@ export function PaymentMethodSettings() {
     try {
       if (!data.name) return;
       
-      await updatePaymentMethod(id, { name: data.name });
+      await updatePaymentMethod({ name: data.name, id: id });
       toast.success(t('saveSuccess'), {
         description: t('paymentMethodUpdateSuccess'),
       });
@@ -121,7 +121,7 @@ export function PaymentMethodSettings() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deletePaymentMethod(id);
+      await deletePaymentMethod({ id: id });
       toast.success(t('deleteSuccess'), {
         description: t('paymentMethodDeleteSuccess'),
       });

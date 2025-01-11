@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import { createBlackList, deleteBlackList, getBlackList, getBlackListPaginated } from '@/app/[locale]/blacklist/actions/black-list';
+import { createBlackList, deleteBlackList, getBlackListPaginated } from '@/app/[locale]/blacklist/actions/black-list';
 import { BlacklistForm } from './BlacklistForm';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";

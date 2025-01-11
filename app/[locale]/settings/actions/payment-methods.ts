@@ -42,10 +42,10 @@ export const createPaymentMethod = async (data: PaymentMethodFormData)=>{
     }
 }
 
-export const updatePaymentMethod = async (id: string, data: PaymentMethodUpdateData)=>{
+export const updatePaymentMethod = async (data: PaymentMethodUpdateData)=>{
     try {
         paymentMethodSchema.parse(data);
-        const paymentMethod = await authenticatedCall(() => pb.collection('payment_options').update<PaymentMethodsResponse>(id, data));
+        const paymentMethod = await authenticatedCall(() => pb.collection('payment_options').update<PaymentMethodsResponse>(data.id, data));
         const validatedMethod = validatePocketbaseResponse(paymentMethod, paymentMethodSchema);
         return { error: undefined, data: validatedMethod };
     } catch (error: unknown) {
@@ -58,17 +58,17 @@ export const updatePaymentMethod = async (id: string, data: PaymentMethodUpdateD
     }
 }
 
-export const deletePaymentMethod = async (id: string)=>{
+export const deletePaymentMethod = async (data: { id: string })=>{
     try {
         const orders = await authenticatedCall(() => 
             pb.collection('orders').getList<OrdersResponse>(1, 1, {
-                filter: `paymentMethod = "${id}"`,
+                filter: `paymentMethod = "${data.id}"`,
             })
         );
         if (orders.totalItems > 0) {
             throw new Error('Cannot delete payment method that is being used in orders');
         }
-        const deletionStatus = await authenticatedCall(() => pb.collection('payment_options').delete(id));
+        const deletionStatus = await authenticatedCall(() => pb.collection('payment_options').delete(data.id));
         return { error: undefined, data: deletionStatus };
     } catch (error: unknown) {
         if (error instanceof Error) {

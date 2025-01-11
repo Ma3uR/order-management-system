@@ -46,7 +46,6 @@ export async function PUT(
     if (data.amount) updateData.amount = data.amount;
     if (data.statusId) updateData.status = data.statusId;
     if (data.notes !== undefined) updateData.notes = data.notes;
-    // Add delivery and payment method fields
     if (data.deliveryMethod) updateData.deliveryMethod = data.deliveryMethod;
     if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
 

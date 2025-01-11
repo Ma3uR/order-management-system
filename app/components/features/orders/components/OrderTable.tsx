@@ -9,14 +9,14 @@ import {
 } from "@/app/components/shared/ui/table"
 import { StatusSelect } from "@/app/components/shared/ui/StatusSelect"
 import { Eye, Trash2 } from 'lucide-react'
-import { OrdersResponse, StatusOptionsResponse, CurrencyOptionsResponse } from '@/app/types/pocketbase-types';
+import { OrdersResponse, StatusResponse, CurrencyResponse } from '@/app/types/pocketbase-types';
 import { toast, Toaster } from 'sonner';
 import { useEffect, useRef } from 'react';
 import pb from '@/app/lib/pocketbase';
 
 type OrderWithExpand = OrdersResponse & {
   expand?: {
-    currency?: CurrencyOptionsResponse;
+    currency?: CurrencyResponse;
   };
 };
 
@@ -35,7 +35,7 @@ interface OrdersTableProps {
     actions: string
     deleteConfirmation: string
   }
-  statuses: StatusOptionsResponse[]
+  statuses: StatusResponse[]
   onStatusChange: (orderId: string, statusId: string) => Promise<void>
   translateStatus: (status: string) => string
   getContrastColor: (color: string) => string
