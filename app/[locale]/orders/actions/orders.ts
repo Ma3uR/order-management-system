@@ -6,7 +6,7 @@ import { OrdersResponse } from "@/app/types/pocketbase-types";
 import { OrderFormData, orderSchema } from "@/app/lib/validations/orders";
 import { DeliveryOptionsResponse, PaymentMethodsResponse, CurrencyResponse, StatusResponse, SourcesResponse } from "@/app/types/pocketbase-types";
 import { Collections } from "@/app/types/pocketbase-types";
-import { OrderSyncService } from "@/app/services/orderSync";
+import { syncOrders } from "./sync";
 
 export const getOrders = async () => {
     try {
@@ -161,8 +161,7 @@ export const getSettings = async () => {
 
 export const syncRozetkaOrders = async () => {
     try {
-        const syncService = OrderSyncService.getInstance();
-        const result = await syncService.syncOrders();
+        const result = await syncOrders();
         return { error: undefined, data: result };
     } catch (error: unknown) {
         if (error instanceof Error) {

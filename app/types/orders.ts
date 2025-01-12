@@ -1,3 +1,5 @@
+import { rozetkaAPI } from "../actions/rozetka";
+
 // Rozetka API types
 export interface RozetkaOrderResponse {
   id: number;
@@ -71,12 +73,15 @@ export interface Order {
 }
 
 // Mapping function to convert Rozetka order to your application's order
-export function mapRozetkaOrderToOrder(rozetkaOrder: RozetkaOrderResponse): Order {
+export async function mapRozetkaOrderToOrder(rozetkaOrder: RozetkaOrderResponse): Promise<Order> {
   const products = rozetkaOrder.items_photos.map(item => ({
     name: item.item_name,
     quantity: item.quantity || 1,
     price: parseFloat(item.item_price || '0')
   }));
+
+  const deliveryMethod = await rozetkaAPI.getDeliveryMethodById(rozetkaOrder.delivery_type || '');
+  console.log('Delivery method:', deliveryMethod);
 
   return {
     id: rozetkaOrder.id.toString(),

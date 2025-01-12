@@ -5,7 +5,8 @@ const withNextIntl = createNextIntlPlugin();
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-  }
+    serverActions: true,
+  },
 }
 
 export default withNextIntl(nextConfig);

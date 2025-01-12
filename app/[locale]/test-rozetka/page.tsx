@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import RozetkaAPI from '@/app/lib/rozetka';
+import RozetkaAPI from '@/app/actions/rozetka';
 import { RozetkaOrderResponse } from '@/app/types/orders';
 
 export default function TestRozetka() {
