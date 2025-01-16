@@ -28,9 +28,11 @@ export const createDeliveryMethod = async (data:DeliveryMethodFormData)=>{
         return { error: undefined, data: validatedMethod };
     } catch (error:unknown) {
         if (error instanceof Error) {
+            console.log('delivery method data', data);
             console.error('Error in createDeliveryMethod:', error);
             return { data: undefined, error: 'Failed to create delivery method' };
         }
+        console.log('delivery method data', data);
         console.error('Error in createDeliveryMethod:', error);
         return { data: undefined, error: 'Unknown error in createDeliveryMethod' };
     }

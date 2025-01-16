@@ -222,6 +222,6 @@ export async function getPaymentMethods() {
   return api.getPaymentMethods();
 }
 
-export async function getAllDeliveryMethods() {
+export async function getDeliveryMethods() {
   return api.getAllDeliveryMethods();
 }

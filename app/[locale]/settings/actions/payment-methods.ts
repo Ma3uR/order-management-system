@@ -34,6 +34,7 @@ export const createPaymentMethod = async (data: PaymentMethodFormData)=>{
         return { error: undefined, data: validatedMethod };
     } catch (error: unknown) {
         if (error instanceof Error) {
+            console.log('payment method data', data);
             console.error('Error in createPaymentMethod', error);
             return { error: error.message, data: undefined };
         }
