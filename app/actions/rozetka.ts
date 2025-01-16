@@ -3,7 +3,6 @@
 import axios from 'axios';
 import { RozetkaOrderResponse } from '@/app/types/orders';
 import * as dotenv from 'dotenv';
-import { log } from 'console';
 
 dotenv.config();
 
@@ -113,7 +112,7 @@ class RozetkaAPI {
           type: params?.type || 1,
           created_from: params?.from || defaultFrom,
           created_to: params?.to || defaultTo,
-          expand: 'delivery,user,purchases,status_data'
+          expand: 'delivery,user,status_data,payment_method_id'
         }
       });
 
@@ -149,6 +148,31 @@ class RozetkaAPI {
     }
   }
 
+  async getAllDeliveryMethods() {
+    try {
+      const token = await this.ensureValidToken();
+      const response = await axios.get(`${ROZETKA_API_BASE}/delivery-services/search`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.errors?.description || 'Failed to fetch delivery methods');
+      }
+
+      return response.data.content;
+    } catch (error: unknown) {
+      if (error instanceof Error) { 
+        console.error('Failed to fetch Rozetka delivery methods:', error.message);
+      } else {
+        console.error('Failed to fetch Rozetka delivery methods:', error);
+      }
+      throw error;
+    }
+  }
+
   async getDeliveryMethodById(id: string) {
     try {
       const token = await this.ensureValidToken();
@@ -172,64 +196,11 @@ class RozetkaAPI {
       throw error;
     }
   }
-
-  private paymentMethodsCache: { [key: string]: string } = {};
-  private deliveryMethodsCache: { [key: string]: string } = {};
-
-  async getPaymentMethodTitle(id: string | number): Promise<string> {
-    try {
-      // Check cache first
-      if (!Object.keys(this.paymentMethodsCache).length) {
-        const methods = await this.getPaymentMethods();
-        console.log('Payment methods:', methods);
-
-        methods.forEach((method: any) => {
-          this.paymentMethodsCache[method.id] = method.title;
-        });
-      }
-
-      return this.paymentMethodsCache[id] || 'Unknown Payment Method';
-    } catch (error) {
-      console.error('Failed to get payment method title:', error);
-      return 'Unknown Payment Method';
-    }
-  }
-
-  async getDeliveryMethodTitle(id: string): Promise<string> {
-    try {
-      // Check cache first
-      if (!Object.keys(this.deliveryMethodsCache).length) {
-        const methods = await this.getDeliveryMethodById(id);
-        console.log('Delivery methods:', methods);
-        methods.forEach((method: any) => {
-          this.deliveryMethodsCache[method.id] = method.title;
-        });
-      }
-
-      return this.deliveryMethodsCache[id] || 'Unknown Delivery Method';
-    } catch (error) {
-      console.error('Failed to get delivery method title:', error);
-      return 'Unknown Delivery Method';
-    }
-  }
-
-  // Optional: Add a method to get both titles at once
-  async getOrderMethodTitles(paymentId: string, deliveryId: string) {
-    const [paymentTitle, deliveryTitle] = await Promise.all([
-      this.getPaymentMethodTitle(paymentId),
-      this.getDeliveryMethodTitle(deliveryId)
-    ]);
-
-    return {
-      paymentMethod: paymentTitle,
-      deliveryMethod: deliveryTitle
-    };
-  } 
 }
 
 const api = RozetkaAPI.getInstance();
 
-// Instead of exporting the instance, export async functions that use it
+// Export only the functions
 export async function ensureValidToken() {
   return api.ensureValidToken();
 }
@@ -243,4 +214,14 @@ export async function getOrders(params?: {
   return api.getOrders(params);
 }
 
-// ... export other methods as needed
+export async function getDeliveryMethodById(id: string) {
+  return api.getDeliveryMethodById(id);
+}
+
+export async function getPaymentMethods() {
+  return api.getPaymentMethods();
+}
+
+export async function getAllDeliveryMethods() {
+  return api.getAllDeliveryMethods();
+}

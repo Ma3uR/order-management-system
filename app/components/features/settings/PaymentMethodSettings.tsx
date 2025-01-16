@@ -46,6 +46,7 @@ export function PaymentMethodSettings() {
 
   const defaultValues: PaymentMethodFormData = {
     name: "",
+    rozetkaId: 0
   };
 
   const fields = [
@@ -54,7 +55,11 @@ export function PaymentMethodSettings() {
       label: t('paymentMethodName'), 
       placeholder: t('paymentMethodNamePlaceholder') 
     },
-
+    {
+      name: "rozetkaId" as const,
+      label: t('rozetkaId'),
+      placeholder: t('rozetkaIdPlaceholder')
+    }
   ];
 
   useEffect(() => {
@@ -104,7 +109,7 @@ export function PaymentMethodSettings() {
     try {
       if (!data.name) return;
       
-      await updatePaymentMethod({ name: data.name, id: id });
+      await updatePaymentMethod({ name: data.name, id: id, rozetkaId: data.rozetkaId || 0 });
       toast.success(t('saveSuccess'), {
         description: t('paymentMethodUpdateSuccess'),
       });
@@ -218,7 +223,10 @@ export function PaymentMethodSettings() {
                                 e.target.value = method.name;
                                 return;
                               }
-                              handleSave(method.id, { name: e.target.value.trim() });
+                              handleSave(method.id, { 
+                                name: e.target.value.trim(),
+                                rozetkaId: method.rozetkaId || 0
+                              });
                             }}
                           />
                         ) : (

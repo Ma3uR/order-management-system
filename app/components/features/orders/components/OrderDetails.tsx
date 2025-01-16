@@ -175,7 +175,7 @@ export function OrderDetails({
         console.log('Unsubscribed from order updates:', order.id);
       }
     };
-  }, [order?.id, isOpen]); // Only re-run if order ID or isOpen changes
+  }, [order, isOpen, form]); // Added order to dependencies
 
   const onSubmit = async (data: OrderFormData) => {
     console.log('Form submitted with data:', data);  // Debug log

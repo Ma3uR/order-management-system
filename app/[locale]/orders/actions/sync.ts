@@ -2,12 +2,9 @@ import { RozetkaOrderResponse } from '@/app/types/orders';
 import pb from '@/app/lib/pocketbase';
 import { authenticatedCall } from '@/app/lib/pocketbase';
 import { orderSchema } from '@/app/lib/validations/orders';
-import { getOrders, getDeliveryMethodById, getPaymentMethods } from '@/app/actions/rozetka';
-interface SyncRecord {
-  source: string;
-  ordersProcessed: number;
-  failures: number;
-}
+import { getDeliveryMethodById, getOrders } from '@/app/actions/rozetka';
+import { SyncRecordsRecord } from '@/app/types/pocketbase-types';
+import { appendFileSync } from 'fs';
 
 export async function syncOrders() {
   try {
@@ -27,7 +24,7 @@ export async function syncOrders() {
       }
     }
     
-    await pb.collection('sync_records').create({
+    await pb.collection('sync_records').create<SyncRecordsRecord>({
       source: 'rozetka',
       orders_processed: syncedOrders,
       orders_failures: failedOrders
@@ -43,7 +40,7 @@ export async function syncOrders() {
 async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   const existingOrders = await authenticatedCall(async () => {
     return await pb.collection('orders').getList(1, 1, {
-      filter: `source = "rozetka" && orderNumber = "${rozetkaOrder.id}"`
+      filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
     });
   });
 
@@ -78,36 +75,42 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   } catch (error) {
     console.warn('Failed to fetch statuses, using fallback status:', error);
   }
-  console.log('Rozetka order:', rozetkaOrder);
-  const deliveryMethod = await getDeliveryMethodById(rozetkaOrder.delivery_type || '');
-  console.log('Delivery method:', deliveryMethod);
-  const paymentMethods = await getPaymentMethods();
-  console.log('Payment methods:', paymentMethods);
 
-  //TODO: order structure parsing here
+  const deliveryPostNumber = rozetkaOrder.delivery?.place_id?.toString() || '';
+
+  console.log(rozetkaOrder);
+
+
+  //TODO: remove toString's and change type in pocketbase to int
   const orderData = {
     source: '4tvf116a5aitwmb',
     orderNumber: rozetkaOrder.id.toString(),
     phoneNumber: rozetkaOrder.user_phone,
     fullName: rozetkaOrder.user_title?.full_name || 'Unknown',
     products: (rozetkaOrder.items_photos || []).map(item => ({
-      name: item.item_name,
-      quantity: item.quantity || 1,
+      title: item.item_name,
+      quantity: 1,
       price: parseFloat(item.item_price || '0')
     })),
     numberOfItems: rozetkaOrder.total_quantity || 0,
     amount: parseFloat(rozetkaOrder.amount || '0'),
-    paymentMethod: await mapPaymentMethod(rozetkaOrder.payment_type || ''),
-    deliveryMethod: await mapDeliveryMethod(rozetkaOrder.delivery_type || ''),
+    paymentMethod: (await mapPaymentMethod(rozetkaOrder.payment_method_id)).pbRecordId, 
+    deliveryMethod: (await mapDeliveryMethod(rozetkaOrder.delivery.delivery_method_id)).pbRecordId,
     status: defaultStatus,
     currency: defaultCurrency.items[0].id,
     notes: rozetkaOrder.comment || '',
-    created: new Date().toISOString()
+    deliveryPostNumber: deliveryPostNumber
   };
-
 
   const validationResult = orderSchema.safeParse(orderData);
   if (!validationResult.success) {
+    appendFileSync(
+      'orders-validation-errors.log',
+      `${new Date().toISOString()} - Validation Error:\n${JSON.stringify({
+        orderData,
+        validationErrors: validationResult.error.format()
+      }, null, 2)}\n\n`
+    );
     throw new Error(`Invalid order data: ${validationResult.error.message}`);
   }
 
@@ -116,18 +119,61 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   });
 }
 
-async function mapPaymentMethod(rozetkaPaymentType: string): Promise<string> {
-  const paymentMethodMap: Record<string, string> = {
-    'cash': '72p22vqr2viqrnw',
-  };
+async function mapPaymentMethod(paymentMethodId: number) {
+  try {
+    const paymentMethod = await authenticatedCall(() => 
+      pb.collection('payment_options').getList(1, 1, {
+        filter: `rozetkaId = "${paymentMethodId}"`
+      })
+    );
 
-  return paymentMethodMap[rozetkaPaymentType] || '72p22vqr2viqrnw';
+    if (!paymentMethod.items.length) {
+      const defaultPaymentMethod = await authenticatedCall(() => pb.collection('payment_options').getList(1, 1, {
+        filter: "isDefault = true"
+      }));
+      if (defaultPaymentMethod.items.length) {
+        return {error: null, pbRecordId: defaultPaymentMethod.items[0].id};
+      }
+      throw new Error('Payment method not found');
+    } 
+
+    return {error: null, pbRecordId: paymentMethod.items[0].id};
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to map payment method: ${error.message}`);
+    } else {
+      throw new Error('Failed to map payment method');
+    }
+  }
 }
 
-async function mapDeliveryMethod(rozetkaDeliveryType: string): Promise<string> {
-  const deliveryMethodMap: Record<string, string> = {
-    'nova_poshta': 'd83lh5dgtgigugn',
-  };
+async function mapDeliveryMethod(deliveryMethodId: number) {
+  try {
+    const deliveryMethod = await authenticatedCall(() => 
+      pb.collection('delivery_options').getList(1, 1, {
+        filter: `rozetkaId = "${deliveryMethodId}"`
+      })
+    );
 
-  return deliveryMethodMap[rozetkaDeliveryType] || 'd83lh5dgtgigugn';
+    if (!deliveryMethod.items.length) {
+      const deliveryMethod = await getDeliveryMethodById(deliveryMethodId.toString());
+      appendFileSync(
+        'delivery-method-not-found.log',
+        `${new Date().toISOString()} - Delivery method not found:\n${JSON.stringify({
+          deliveryMethodId,
+          deliveryMethod,
+        }, null, 2)}\n\n`
+      );
+
+      return {error: null, pbRecordId: 'epux4piv45by0ot'};
+    }
+
+    return {error: null, pbRecordId: deliveryMethod.items[0].id};
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to map delivery method: ${error.message}`);
+    } else {
+      throw new Error('Failed to map delivery method');
+    }
+  }
 } 

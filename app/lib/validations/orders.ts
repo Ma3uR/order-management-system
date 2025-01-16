@@ -20,7 +20,6 @@ export const orderSchema = z.object({
   products: z.array(productSchema).min(1, "At least one product is required"),
   numberOfItems: z.number().min(1, "Number of items must be at least 1"),
   amount: z.number().min(0, "Amount must be non-negative"),
-  created: z.string(),
   currency: z.string().min(1, "Currency is required"),
 }) satisfies z.ZodType<OrdersRecord>;
 

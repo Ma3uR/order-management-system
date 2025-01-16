@@ -1,4 +1,4 @@
-import PocketBase, { AdminAuthResponse, ClientResponseError } from 'pocketbase';
+import PocketBase, { AdminAuthResponse } from 'pocketbase';
 import { OrdersResponse, OrdersRecord } from '../types/pocketbase-types';
 import * as dotenv from 'dotenv';
 dotenv.config();

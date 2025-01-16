@@ -43,6 +43,7 @@ export const paymentMethodSchema = z.object({
     .min(2, "Payment method name must be at least 2 characters")
     .max(50, "Payment method name must be less than 50 characters")
     .regex(/^[a-zA-Z0-9\u0400-\u04FF\s]+$/, "Only letters, numbers and cyrillic characters are allowed"),
+  rozetkaId: z.number()
 }) satisfies z.ZodType<PaymentOptionsRecord>;
 
 // Delivery method validation schema
@@ -51,6 +52,7 @@ export const deliveryMethodSchema = z.object({
     .min(2, "Delivery method name must be at least 2 characters")
     .max(50, "Delivery method name must be less than 50 characters")
     .regex(/^[a-zA-Z0-9\u0400-\u04FF\s]+$/, "Only letters, numbers and cyrillic characters are allowed"),
+  rozetkaId: z.number()
 }) satisfies z.ZodType<DeliveryOptionsRecord>;
 
 // Source validation schema

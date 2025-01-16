@@ -8,7 +8,7 @@ import { StatusSettings } from "@/app/components/features/settings/StatusSetting
 import { PaymentMethodSettings } from "@/app/components/features/settings/PaymentMethodSettings";
 import { DeliveryMethodSettings } from "@/app/components/features/settings/DeliveryMethodSettings";
 import { SourceSettings } from "@/app/components/features/settings/SourceSettings";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Toaster } from 'sonner';
 import { Badge } from "@/app/components/shared/ui/badge";
 import { Button } from "@/app/components/shared/ui/button";
@@ -16,12 +16,11 @@ import { CircleIcon, RefreshCcw, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import pb, { authenticatedCall } from "@/app/lib/pocketbase";
 import { format } from "date-fns";
-import { handleSync } from "./actions/sync";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { checkConnection } from "./actions/connection";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
-
+import { syncMethods } from "./actions/sync";
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
@@ -259,13 +258,13 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
                         onClick={async () => {
                           setIsSyncing(true);
                           try {
-                            const result = await handleSync();
+                            const result = await syncMethods();
                             if (result.success) {
                               toast.success('Sync completed successfully');
                               // Refresh the last sync time
-                              const records = await pb.collection('sync_records').getList(1, 1, {
+                              const records = await authenticatedCall(() => pb.collection('sync_records').getList(1, 1, {
                                 sort: '-created',
-                              });
+                              }));
                               if (records.items.length > 0) {
                                 setLastSync(format(new Date(records.items[0].created), 'yyyy-MM-dd HH:mm'));
                               }

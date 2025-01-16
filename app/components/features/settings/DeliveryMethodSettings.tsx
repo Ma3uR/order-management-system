@@ -44,6 +44,7 @@ export function DeliveryMethodSettings() {
 
   const defaultValues: DeliveryMethodFormData = {
     name: "",
+    rozetkaId: 0
   };
 
   const fields = [
@@ -104,7 +105,11 @@ export function DeliveryMethodSettings() {
     try {
       if (!data.name) return;
       
-      const deliveryMethod = await updateDeliveryMethod({id:data.id,name:data.name});
+      const deliveryMethod = await updateDeliveryMethod({
+        id: data.id,
+        name: data.name,
+        rozetkaId: data.rozetkaId || 0
+      });
       if (deliveryMethod.error) throw new Error(deliveryMethod.error);
       toast.success(t('saveSuccess'), {
         description: t('deliveryMethodUpdateSuccess'),
@@ -223,7 +228,11 @@ export function DeliveryMethodSettings() {
                                   e.target.value = method.name;
                                   return;
                                 }
-                                const data = { id: method.id, name: e.target.value.trim() };
+                                const data = { 
+                                  id: method.id, 
+                                  name: e.target.value.trim(),
+                                  rozetkaId: method.rozetkaId || 0
+                                };
                                 handleSave(data);
                               }}
                             />
