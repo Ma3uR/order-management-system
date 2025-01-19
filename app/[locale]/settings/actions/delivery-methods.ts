@@ -77,3 +77,19 @@ export const deleteDeliveryMethod = async (id: string) => {
         return { error: 'Unknown error in deleteDeliveryMethod', data: undefined };
     }
 }
+
+export const getDefaultDeliveryMethod = async () => {
+    try {
+        const defaultDeliveryMethod = await authenticatedCall(() =>
+            pb.collection('delivery_options').getFirstListItem<DeliveryOptionsResponse>('isDefault = true')
+        );
+        return { error: undefined, data: defaultDeliveryMethod };
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            console.error('Error in getDefaultDeliveryMethod:', error);
+            return { error: error.message, data: undefined };
+        }
+        console.error('Error in getDefaultDeliveryMethod:', error);
+        return { error: 'Unknown error in getDefaultDeliveryMethod', data: undefined };
+    }
+}

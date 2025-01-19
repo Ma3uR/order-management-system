@@ -80,3 +80,19 @@ export const deletePaymentMethod = async (data: { id: string })=>{
         return { error: 'Unknown error in deletePaymentMethod', data: undefined };
     }
 }
+
+export const getDefaultPaymentMethod = async () => {
+    try {
+        const defaultPaymentMethod = await authenticatedCall(() =>
+            pb.collection('payment_options').getFirstListItem<PaymentMethodsResponse>('isDefault = true')
+        );
+        return { error: undefined, data: defaultPaymentMethod };
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            console.error('Error in getDefaultPaymentMethod:', error);
+            return { error: error.message, data: undefined };
+        }
+        console.error('Error in getDefaultPaymentMethod:', error);
+        return { error: 'Unknown error in getDefaultPaymentMethod', data: undefined };
+    }
+}

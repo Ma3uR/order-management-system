@@ -2,6 +2,10 @@
 
 import axios from 'axios';
 import * as dotenv from 'dotenv';
+import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import { orderSchema } from '@/app/lib/validations/orders';
+import { appendFileSync } from 'fs';
+import { getDefaultDeliveryMethod } from '../[locale]/settings/actions/delivery-methods';
 
 dotenv.config();
 
@@ -103,6 +107,11 @@ interface PromOrdersResponse {
   status: string;
 }
 
+interface MappedMethod {
+  error: null;
+  pbRecordId: string;
+}
+
 class PromUaAPI {
   private static instance: PromUaAPI;
   private token: string;
@@ -127,16 +136,35 @@ class PromUaAPI {
     return PromUaAPI.instance;
   }
 
+  async checkToken() {
+    try {
+      const response = await axios.get(`${process.env.PROMUA_API_URL}/orders/list`, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.status === 200;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Failed to check Prom.ua connection:', error.message);
+      } else {
+        console.error('Failed to check Prom.ua connection:', error);
+      }
+      return false;
+    }
+  }
+
   async getOrders() {
     try {
-      const response = await axios.get<PromOrdersResponse>(`${process.env.PROM_UA_URL}/orders/list`, {
+      const response = await axios.get<PromOrdersResponse>(`${process.env.PROMUA_API_URL}/orders/list`, {
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (!response.data || response.data.status !== 'success') {
+      if (!response.data.orders) {
         throw new Error('Failed to fetch orders from Prom.ua');
       }
 
@@ -229,6 +257,182 @@ class PromUaAPI {
 }
 
 const api = PromUaAPI.getInstance();
+
+async function mapPaymentMethod(paymentOptionId: number): Promise<MappedMethod> {
+  try {
+    const paymentMethod = await authenticatedCall(() => 
+      pb.collection('payment_options').getList(1, 1, {
+        filter: `promId = "${paymentOptionId}"`
+      })
+    );
+
+    if (!paymentMethod.items.length) {
+      const defaultPaymentMethod = await authenticatedCall(() => pb.collection('payment_options').getList(1, 1, {
+        filter: "isDefault = true"
+      }));
+      if (defaultPaymentMethod.items.length) {
+        return {error: null, pbRecordId: defaultPaymentMethod.items[0].id};
+      }
+      throw new Error('Payment method not found');
+    } 
+
+    return {error: null, pbRecordId: paymentMethod.items[0].id};
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to map payment method: ${error.message}`);
+    } else {
+      throw new Error('Failed to map payment method');
+    }
+  }
+}
+
+async function mapDeliveryMethod(deliveryOptionId: number): Promise<MappedMethod> {
+  try {
+    const deliveryMethod = await authenticatedCall(() => 
+      pb.collection('delivery_options').getList(1, 1, {
+        filter: `promId = "${deliveryOptionId}"`
+      })
+    );
+
+    console.log('deliveryMethod', deliveryMethod);
+    console.log('deliveryOptionId', deliveryOptionId);
+
+    if (!deliveryMethod.items.length) {
+      const defaultDeliveryMethod = await getDefaultDeliveryMethod();
+      console.log('defaultDeliveryMethod', defaultDeliveryMethod);
+      if (!defaultDeliveryMethod.data?.id) {
+        throw new Error('Delivery method not found');
+      }
+      return {error: null, pbRecordId: defaultDeliveryMethod.data?.id};
+    }
+
+    return {error: null, pbRecordId: deliveryMethod.items[0].id};
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to map delivery method: ${error.message}`);
+    } else {
+      throw new Error('Failed to map delivery method');
+    }
+  }
+}
+
+async function processOrder(promOrder: PromOrderResponse) {
+  console.log('promOrder', promOrder);
+  const existingOrders = await authenticatedCall(async () => {
+    return await pb.collection('orders').getList(1, 1, {
+      filter: `source = "gfzk8nxfokgu9ku" && orderNumber = "${promOrder.id}"`
+    });
+  });
+
+  if (existingOrders.items.length > 0) {
+    return;
+  }
+  
+  const defaultCurrency = await authenticatedCall(async () => {
+    return await pb.collection('currency_options').getList(1, 1, {
+      filter: "isDefault = true"
+    });
+  });
+
+  if (defaultCurrency.items.length === 0) {
+    throw new Error('No default currency found');
+  }
+
+  let defaultStatus = '';
+  try {
+    const statuses = await authenticatedCall(async () => {
+      return await pb.collection('status_options').getList(1, 50, {
+        sort: '+priority',
+        limit: 1
+      });
+    });
+    
+    if (statuses.items.length > 0) {
+      defaultStatus = statuses.items[0].id;
+    } else {
+      console.warn('No statuses found, using fallback status');
+    }
+  } catch (error) {
+    console.warn('Failed to fetch statuses, using fallback status:', error);
+  }
+  const paymentMethod = await mapPaymentMethod(promOrder.payment_option.id);
+  const deliveryMethod = await mapDeliveryMethod(promOrder.delivery_option.id);
+  const deliveryPostNumber = promOrder.delivery_address || '';
+
+  const fullName = [promOrder.client_first_name, promOrder.client_second_name, promOrder.client_last_name]
+    .filter(Boolean)
+    .join(' ') || 'Unknown';
+
+  const orderData = {
+    source: 'gfzk8nxfokgu9ku',
+    orderNumber: promOrder.id.toString(),
+    phoneNumber: promOrder.phone,
+    fullName,
+    products: promOrder.products.map(item => ({
+      title: item.name,
+      quantity: item.quantity,
+      price: parseFloat(item.price)
+    })),
+    numberOfItems: promOrder.products.reduce((sum, item) => sum + item.quantity, 0),
+    amount: parseFloat(promOrder.price),
+    paymentMethod: paymentMethod.pbRecordId,
+    deliveryMethod: deliveryMethod.pbRecordId,
+    status: defaultStatus,
+    currency: defaultCurrency.items[0].id,
+    notes: promOrder.client_notes || '',
+    deliveryPostNumber: deliveryPostNumber
+  };
+
+  const validationResult = orderSchema.safeParse(orderData);
+  if (!validationResult.success) {
+    appendFileSync(
+      'orders-validation-errors.log',
+      `${new Date().toISOString()} - Validation Error:\n${JSON.stringify({
+        orderData,
+        validationErrors: validationResult.error.format()
+      }, null, 2)}\n\n`
+    );
+    throw new Error(`Invalid order data: ${validationResult.error.message}`);
+  }
+
+  await authenticatedCall(async () => {
+    return await pb.collection('orders').create(orderData);
+  });
+}
+
+export async function syncOrders() {
+  try {
+    const promOrders = await getOrders();
+    if (!promOrders.data) {
+      throw new Error('Failed to fetch Prom.ua orders');
+    }
+    
+    let syncedOrders = 0;
+    let failedOrders = 0;
+
+    // Process orders sequentially to avoid cancellation issues
+    for (const order of promOrders.data) {
+      try {
+        await processOrder(order);
+        syncedOrders++;
+      } catch (error) {
+        console.error(`Failed to process promua order ${order.id}:`, error);
+        failedOrders++;
+      }
+    }
+    
+    await pb.collection('sync_records').create({
+      source: 'gfzk8nxfokgu9ku',
+      orders_processed: syncedOrders,
+      orders_failures: failedOrders
+    });
+    
+    return { success: true, syncedOrders, failedOrders };
+  } catch (error) {
+    console.error('Failed to sync orders:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
 
 // Export functions
 export async function getOrders() {

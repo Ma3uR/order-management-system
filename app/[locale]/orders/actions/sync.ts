@@ -5,6 +5,8 @@ import { orderSchema } from '@/app/lib/validations/orders';
 import { getDeliveryMethodById, getOrders } from '@/app/actions/rozetka';
 import { SyncRecordsRecord } from '@/app/types/pocketbase-types';
 import { appendFileSync } from 'fs';
+import { getDefaultDeliveryMethod } from '../../settings/actions/delivery-methods';
+import { getDefaultPaymentMethod } from '../../settings/actions/payment-methods';
 
 export async function syncOrders() {
   try {
@@ -19,13 +21,13 @@ export async function syncOrders() {
         await processOrder(order);
         syncedOrders++;
       } catch (error) {
-        console.error(`Failed to process order ${order.id}:`, error);
+        console.error(`Failed to process rozetka order ${order.id}:`, error);
         failedOrders++;
       }
     }
     
     await pb.collection('sync_records').create<SyncRecordsRecord>({
-      source: 'rozetka',
+      source: '4tvf116a5aitwmb',
       orders_processed: syncedOrders,
       orders_failures: failedOrders
     });
@@ -38,6 +40,7 @@ export async function syncOrders() {
 }
 
 async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
+  console.log(rozetkaOrder);
   const existingOrders = await authenticatedCall(async () => {
     return await pb.collection('orders').getList(1, 1, {
       filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
@@ -76,10 +79,11 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     console.warn('Failed to fetch statuses, using fallback status:', error);
   }
 
-  const deliveryPostNumber = rozetkaOrder.delivery?.place_id?.toString() || '';
-
-  console.log(rozetkaOrder);
-
+  const deliveryPostNumber = [
+    rozetkaOrder.delivery?.place_street,
+    rozetkaOrder.delivery?.place_house,
+    rozetkaOrder.delivery?.place_number
+  ].filter(Boolean).join(' ');
 
   //TODO: remove toString's and change type in pocketbase to int
   const orderData = {
@@ -128,11 +132,9 @@ async function mapPaymentMethod(paymentMethodId: number) {
     );
 
     if (!paymentMethod.items.length) {
-      const defaultPaymentMethod = await authenticatedCall(() => pb.collection('payment_options').getList(1, 1, {
-        filter: "isDefault = true"
-      }));
-      if (defaultPaymentMethod.items.length) {
-        return {error: null, pbRecordId: defaultPaymentMethod.items[0].id};
+      const defaultPaymentMethod = await getDefaultPaymentMethod();
+      if (defaultPaymentMethod.data?.id) {
+        return {error: null, pbRecordId: defaultPaymentMethod.data?.id};
       }
       throw new Error('Payment method not found');
     } 
@@ -165,7 +167,9 @@ async function mapDeliveryMethod(deliveryMethodId: number) {
         }, null, 2)}\n\n`
       );
 
-      return {error: null, pbRecordId: 'epux4piv45by0ot'};
+      const defaultDeliveryMethod = await getDefaultDeliveryMethod();
+
+      return {error: null, pbRecordId: defaultDeliveryMethod.data?.id || ''};
     }
 
     return {error: null, pbRecordId: deliveryMethod.items[0].id};
