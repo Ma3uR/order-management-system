@@ -3,7 +3,7 @@ export interface RozetkaOrderResponse {
   id: number;
   market_id: number;
   created: string;
-  changed: string;
+  changed: string; //TODO: compare this witn my pb data, if they change i need update my oreder
   amount: string;
   amount_with_discount: string;
   cost: string;
