@@ -11,6 +11,7 @@ node_modules
 delivery-method-not-found.log
 # testing
 /coverage
+orders-validation-errors.log
 
 # next.js
 /.next/

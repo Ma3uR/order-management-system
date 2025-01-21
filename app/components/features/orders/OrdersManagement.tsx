@@ -367,7 +367,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         order.deliveryPostNumber?.toLowerCase().includes(searchTerm) ||
         expandedSource?.name?.toLowerCase().includes(searchTerm) ||
         (Array.isArray(order.products) && (order.products as { name: string }[]).some(product => 
-          product.name.toLowerCase().includes(searchTerm)
+          product?.name?.toLowerCase().includes(searchTerm)
         ))
       );
     }
@@ -642,7 +642,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             numberOfItems: productInputs.reduce((sum, p) => sum + p.quantity, 0),
             amount: productInputs.reduce((sum, p) => sum + (p.quantity * p.price), 0),
             currency: orderData.currency || defaultCurrency?.id || '',
-            created: new Date().toISOString(),
             notes: orderData.notes,
             deliveryPostNumber: orderData.deliveryPostNumber
           };

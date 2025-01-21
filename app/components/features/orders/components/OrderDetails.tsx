@@ -82,7 +82,6 @@ export function OrderDetails({
       products: [],
       numberOfItems: 0,
       amount: 0,
-      created: new Date().toISOString(),
     },
   });
 
@@ -107,7 +106,6 @@ export function OrderDetails({
         products: orderProducts,
         numberOfItems: order.numberOfItems,
         amount: order.amount,
-        created: order.created
       });
     }
   }, [order, form]);
@@ -148,7 +146,6 @@ export function OrderDetails({
               products: orderProducts,
               numberOfItems: updatedOrder.numberOfItems,
               amount: updatedOrder.amount,
-              created: updatedOrder.created
             });
 
             toast.info("Order Updated", {
@@ -315,22 +312,6 @@ export function OrderDetails({
                             />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="created"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{translations.createdAt}</FormLabel>
-                          <FormControl>
-                            <Input
-                              value={new Date(field.value).toLocaleString()}
-                              readOnly
-                            />
-                          </FormControl>
                         </FormItem>
                       )}
                     />
