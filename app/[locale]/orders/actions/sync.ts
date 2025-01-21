@@ -1,3 +1,5 @@
+'use server'
+
 import { RozetkaOrderResponse } from '@/app/types/orders';
 import pb from '@/app/lib/pocketbase';
 import { authenticatedCall } from '@/app/lib/pocketbase';

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/share
 import { PlusCircle, Search, ChevronRight, ChevronLeft } from 'lucide-react'
 import pb from '@/app/lib/pocketbase'
 import type { RecordSubscription } from 'pocketbase'
-import { RozetkaSync } from "@/app/components/features/sync/RozetkaSync"
+import { MarketplaceSync } from '@/app/components/features/sync/MarketplaceSync'
 import { OrderStats } from "./components/OrderStats"
 import { OrderFilters, FilterOptions } from "./components/OrderFilters"
 import { OrderList } from "./components/OrderList"
@@ -496,8 +496,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             <CardTitle>{translations.actionsAndStatistics}</CardTitle>
           </CardHeader> 
           <CardContent className="flex flex-col h-[calc(100%-5rem)]">
-          <div className="pt-6 mt-auto">
-              <RozetkaSync onSyncComplete={async () => {
+            <div className="pt-6 mt-auto">
+              <MarketplaceSync onSyncComplete={async () => {
                 const result = await getOrders();
                 if (result.data) {
                   setOrders(result.data);
@@ -535,8 +535,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 />
               </ScrollArea>
             </div>
-
-            
           </CardContent>
         </Card>
       </div>
