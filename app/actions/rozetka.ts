@@ -196,6 +196,27 @@ class RozetkaAPI {
       throw error;
     }
   }
+
+  async getOrderStatuses() {
+    try {
+      const token = await this.ensureValidToken();
+      const response = await axios.get(`${ROZETKA_API_BASE}/order-statuses/search`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.errors?.description || 'Failed to fetch order statuses');
+      }
+
+      return response.data.content;
+    } catch (error) {
+      console.error('Failed to fetch Rozetka order statuses:', error);
+      throw error;
+    }
+  }
 }
 
 const api = RozetkaAPI.getInstance();
@@ -224,4 +245,8 @@ export async function getPaymentMethods() {
 
 export async function getDeliveryMethods() {
   return api.getAllDeliveryMethods();
+}
+
+export async function getOrderStatuses() {
+  return api.getOrderStatuses();
 }

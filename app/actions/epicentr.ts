@@ -317,6 +317,44 @@ class EpicentrAPI {
       }
     }
   }
+
+  async getOrderStatuses(orderId: string) {
+    try {
+      const baseUrl = process.env.EPICENTR_API_URL?.replace(/\/$/, '');
+      const response = await axios.get<{ allowedStatuses: string[] }>(
+        `${baseUrl}/v2/oms/orders/${orderId}/allowed-statuses`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      return { error: undefined, data: response.data.allowedStatuses };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Failed to fetch statuses for order ${orderId}:`, error.message);
+        return { error: error.message, data: undefined };
+      }
+      console.error(`Failed to fetch statuses for order ${orderId}:`, error);
+      return { error: 'Unknown error in getOrderStatuses', data: undefined };
+    }
+  }
+
+  async updateOrderStatus(orderId: string, statusCode: string) {
+    try {
+      const baseUrl = process.env.EPICENTR_API_URL;
+      await axios.patch(`${baseUrl}/v2/oms/orders/${orderId}`, {
+        statusCode
+      }, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+    } catch (error) {
+      console.error(`Status update failed for ${orderId}:`, error);
+      throw new Error('Failed to update Epicentr status');
+    }
+  }
 }
 
 const api = EpicentrAPI.getInstance();
@@ -525,4 +563,8 @@ export async function getOffices(postOfficeProvider: string, settlementId: strin
 
 export async function getDeliveryAddress(order: EpicentrOrder) {
   return api.getDeliveryAddress(order);
+}
+
+export async function getOrderStatuses(orderId: string) {
+  return api.getOrderStatuses(orderId);
 }

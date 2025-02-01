@@ -6,15 +6,15 @@ async function main() {
   console.log('Starting order sync cron job...');
   try {
 
-   // Sync Epicentr orders
+    // Sync Epicentr orders
     const epicentr = await syncEpicentrOrders();
     console.log('Epicentr order sync completed:', epicentr);
 
-    // //  // Sync Rozetka orders
+    // Sync Rozetka orders
     const rozetkaResult = await syncRozetkaOrders();
     console.log('Rozetka order sync completed:', rozetkaResult);
 
-    // //  // Sync Prom orders 
+    // Sync Prom orders 
     const promResult = await syncPromOrders();
     console.log('Prom order sync completed:', promResult);
   } catch (error: unknown) {

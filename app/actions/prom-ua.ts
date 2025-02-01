@@ -254,6 +254,33 @@ class PromUaAPI {
       return { error: 'Unknown error in getDeliveryMethods', data: undefined };
     }
   }
+
+  async getOrderStatuses() {
+    try {
+      const response = await axios.get<{ status: string; order_status_options: Array<{ id: number, name: string }> }>(
+        `${process.env.PROMUA_API_URL}/order_status_options/list`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.data.order_status_options) {
+        throw new Error('Failed to fetch order statuses from Prom.ua');
+      }
+      
+      return { error: undefined, data: response.data.order_status_options };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Failed to fetch order statuses from Prom.ua:', error.message);
+        return { error: error.message, data: undefined };
+      }
+      console.error('Failed to fetch order statuses from Prom.ua:', error);
+      return { error: 'Unknown error in getOrderStatuses', data: undefined };
+    }
+  }
 }
 
 const api = PromUaAPI.getInstance();
@@ -449,4 +476,8 @@ export async function getDeliveryMethods() {
 
 export async function getPaymentMethods() {
   return api.getPaymentMethods();
+}
+
+export async function getOrderStatuses() {
+  return api.getOrderStatuses();
 }
