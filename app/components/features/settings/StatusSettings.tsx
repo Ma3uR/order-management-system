@@ -7,7 +7,7 @@ import { statusSchema, type StatusFormData } from "@/app/lib/validations/setting
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp, Settings } from "lucide-react";
+import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp, Settings, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
@@ -245,6 +245,7 @@ export function StatusSettings() {
   const [statuses, setStatuses] = useState<StatusResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -454,8 +455,34 @@ export function StatusSettings() {
     }
   };
 
-  const handleSettingsClick = async () => {
-    //TODO: Implement status settings
+  const handleSettingsClick = async (status: StatusResponse) => {
+    setIsSettingsOpen(status.id);
+  };
+
+  const handleMappingChange = async (mappings: Record<string, string>) => {
+    try {
+      const status = statuses.find(s => s.id === isSettingsOpen);
+      if (!status) return;
+
+      const response = await updateStatus(status.id, {
+        ...status,
+        epicentrCode: mappings.epicentr,
+        rozetkaCode: mappings.rozetka,
+        promuaCode: mappings.promua
+      });
+
+      if (response.error) throw new Error(response.error);
+
+      toast.success(t('saveSuccess'), {
+        description: t('statusUpdateSuccess'),
+      });
+
+      fetchStatuses();
+    } catch (error) {
+      toast.error(t('saveError'), {
+        description: error instanceof Error ? error.message : t('statusUpdateError'),
+      });
+    }
   };
 
   return (
@@ -551,10 +578,47 @@ export function StatusSettings() {
         </CardContent>
       </Card>
 
-      <StatusMapping 
-        appStatuses={statuses}
-        onChange={(mappings) => console.log('Save mappings:', mappings)}
-      />
+      {isSettingsOpen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+          onClick={() => setIsSettingsOpen(null)}
+        >
+          <div 
+            className="fixed left-[50%] top-[50%] z-50 w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background shadow-lg duration-200 sm:rounded-lg max-h-[90vh] overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 pb-2 border-b">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold">Status Mapping Settings</h2>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+                  <div 
+                    className="w-3 h-3 rounded-full ring-1 ring-border" 
+                    style={{ 
+                      backgroundColor: statuses.find(s => s.id === isSettingsOpen)?.color 
+                    }} 
+                  />
+                  <span className="text-sm font-medium">
+                    {statuses.find(s => s.id === isSettingsOpen)?.name}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSettingsOpen(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-6 pt-4 overflow-y-auto max-h-[calc(90vh-4rem)]">
+              <StatusMapping 
+                currentStatus={statuses.find(s => s.id === isSettingsOpen) as StatusResponse}
+                onChange={handleMappingChange}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,41 +1,50 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/shared/ui/select";
+import React, { useState, useEffect, useMemo } from "react";
 import { toast } from 'sonner';
 import { StatusResponse } from "@/app/types/pocketbase-types";
 import { getOrderStatuses as getPromuaStatuses } from "@/app/actions/prom-ua";
 import { getOrderStatuses as getRozetkaStatuses } from "@/app/actions/rozetka";
 import { getHardcodedStatuses } from "@/app/actions/epicentr";
+import { cn } from "@/app/lib/utils";
+import { Check, Search } from "lucide-react";
+import { Input } from "@/app/components/shared/ui/input";
 
 interface MarketplaceStatus {
-  id: string;
   code: string;
   name: string;
 }
 
 interface StatusMappingProps {
-  appStatuses: StatusResponse[];
+  currentStatus: StatusResponse;
   onChange: (mappings: Record<string, string>) => void;
 }
 
-export function StatusMapping({ appStatuses, onChange }: StatusMappingProps) {
+export function StatusMapping({ currentStatus, onChange }: StatusMappingProps) {
   const [activeMarketplace, setActiveMarketplace] = useState(0);
   const [marketplaceStatuses, setMarketplaceStatuses] = useState<MarketplaceStatus[]>([]);
-  const [mappings, setMappings] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mappings, setMappings] = useState<Record<string, string>>({
+    epicentr: currentStatus.epicentrCode || '',
+    rozetka: currentStatus.rozetkaCode || '',
+    promua: currentStatus.promuaCode || ''
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const marketplaces = [
-    { name: "PromUa", color: "#3B82F6" },
-    { name: "Rozetka", color: "#EF4444" },
-    { name: "Epicentr", color: "#10B981" }
+    { name: "PromUa", color: "#3B82F6", key: 'promua' },
+    { name: "Rozetka", color: "#EF4444", key: 'rozetka' },
+    { name: "Epicentr", color: "#10B981", key: 'epicentr' }
   ];
+
+  // Filter statuses based on search query
+  const filteredStatuses = useMemo(() => {
+    if (!searchQuery.trim()) return marketplaceStatuses;
+    
+    return marketplaceStatuses.filter(status => 
+      status.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [marketplaceStatuses, searchQuery]);
 
   useEffect(() => {
     const fetchStatuses = async () => {
@@ -45,11 +54,9 @@ export function StatusMapping({ appStatuses, onChange }: StatusMappingProps) {
         switch(activeMarketplace) {
           case 0:
             response = await getPromuaStatuses();
-            console.log('response PROMUA', response);
             break;
           case 1:
             response = await getRozetkaStatuses();
-            console.log('response ROZETKA', response);
             break;
           case 2:
             response = await getHardcodedStatuses();
@@ -60,27 +67,10 @@ export function StatusMapping({ appStatuses, onChange }: StatusMappingProps) {
 
         if (response.error) throw new Error(response.error);
         
-        const formattedStatuses = (response.data || []).map((status: { id: number | string, title: string; name?: string }) => {
-          switch(activeMarketplace) {
-            case 0: // PromUa
-              return {
-                code: status.id,
-                name: status.title
-              };
-            case 1: // Rozetka
-              return {
-                code: status.id,
-                name: status.title
-              };
-            case 2: // Epicentr
-              return {
-                code: status.id,
-                name: status.title
-              };
-            default:
-              return status;
-          }
-        });
+        const formattedStatuses = (response.data || []).map((status: { id: number | string, title: string; name?: string }) => ({
+          code: status.id.toString(),
+          name: status.title || status.name || ''
+        }));
         
         setMarketplaceStatuses(formattedStatuses);
       } catch (error) {
@@ -95,15 +85,16 @@ export function StatusMapping({ appStatuses, onChange }: StatusMappingProps) {
     fetchStatuses();
   }, [activeMarketplace]);
 
-  const handleMappingChange = (marketplaceStatusId: string, appStatusId: string) => {
-    const newMappings = { ...mappings, [marketplaceStatusId]: appStatusId };
+  const handleStatusSelect = (statusId: string) => {
+    const newMappings = { ...mappings };
+    newMappings[marketplaces[activeMarketplace].key] = statusId;
     setMappings(newMappings);
     onChange(newMappings);
   };
 
   return (
-    <div className="border-2 rounded-[32px] p-6 shadow-md w-full max-w-4xl bg-background">
-      <div className="rounded-full relative w-full bg-muted p-1.5 flex items-center mb-6">
+    <div className="space-y-6">
+      <div className="rounded-full relative w-full bg-muted p-1.5 flex items-center">
         {marketplaces.map((marketplace, index) => (
           <button
             key={marketplace.name}
@@ -134,53 +125,63 @@ export function StatusMapping({ appStatuses, onChange }: StatusMappingProps) {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search statuses..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="font-medium">{marketplaces[activeMarketplace].name} Statuses</h3>
+          {mappings[marketplaces[activeMarketplace].key] && (
+            <div className="text-sm text-muted-foreground">
+              (Currently mapped: {
+                marketplaceStatuses.find(s => s.code === mappings[marketplaces[activeMarketplace].key])?.name || 'Unknown'
+              })
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2 min-h-[300px]">
         {isLoading ? (
           <div className="text-center py-4">Loading statuses...</div>
-        ) : marketplaceStatuses.length === 0 ? (
-          <div className="text-center py-4">No statuses available</div>
+        ) : filteredStatuses.length === 0 ? (
+          <div className="text-center py-4">
+            {marketplaceStatuses.length === 0 ? 'No statuses available' : 'No matching statuses found'}
+          </div>
         ) : (
-          marketplaceStatuses.map((status, index) => (
-            <div 
-              key={`${marketplaces[activeMarketplace].name}-${status.id || index}`}
-              className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
-            >
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: marketplaces[activeMarketplace].color }}
-                />
-                <div className="flex flex-col">
-                  <span className="text-sm text-muted-foreground">
-                    {marketplaces[activeMarketplace].name} Status
-                  </span>
+          filteredStatuses.map((status) => {
+            const isSelected = mappings[marketplaces[activeMarketplace].key] === status.code;
+            
+            return (
+              <button
+                key={status.code}
+                onClick={() => handleStatusSelect(status.code)}
+                className={cn(
+                  "flex items-center justify-between w-full p-4 rounded-lg transition-colors",
+                  "hover:bg-muted/80",
+                  isSelected && "bg-muted"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: marketplaces[activeMarketplace].color }}
+                  />
                   <span className="font-medium">{status.name}</span>
                 </div>
-              </div>
-              
-              <Select
-                value={mappings[status.id] || ""}
-                onValueChange={(value) => handleMappingChange(status.id, value)}
-              >
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Map to app status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {appStatuses.map((appStatus) => (
-                    <SelectItem key={appStatus.id} value={appStatus.id}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-2 h-2 rounded-full" 
-                          style={{ backgroundColor: appStatus.color }}
-                        />
-                        {appStatus.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ))
+                {isSelected && (
+                  <Check className="h-4 w-4 text-primary" />
+                )}
+              </button>
+            );
+          })
         )}
       </div>
     </div>

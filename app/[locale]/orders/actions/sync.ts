@@ -87,10 +87,9 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     rozetkaOrder.delivery?.place_number
   ].filter(Boolean).join(' ');
 
-  //TODO: remove toString's and change type in pocketbase to int
   const orderData = {
     source: '4tvf116a5aitwmb',
-    orderNumber: rozetkaOrder.id.toString(),
+    orderNumber: rozetkaOrder.id,
     phoneNumber: rozetkaOrder.user_phone,
     fullName: rozetkaOrder.user_title?.full_name || 'Unknown',
     products: (rozetkaOrder.items_photos || []).map(item => ({
