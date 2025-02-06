@@ -211,8 +211,12 @@ class RozetkaAPI {
         throw new Error(response.data.errors?.description || 'Failed to fetch order statuses');
       }
 
-      return response.data.content;
-    } catch (error) {
+      return { error: undefined, data: response.data.content.orderStatuses };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Failed to fetch Rozetka order statuses:', error.message);
+        return { error: error.message, data: undefined };
+      }
       console.error('Failed to fetch Rozetka order statuses:', error);
       throw error;
     }

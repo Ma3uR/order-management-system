@@ -7,7 +7,7 @@ import { statusSchema, type StatusFormData } from "@/app/lib/validations/setting
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ import { ControllerRenderProps } from "react-hook-form";
 import { motion } from "framer-motion";
 import { createStatus, deleteStatus, getAllStatuses, updateStatus } from "@/app/[locale]/settings/actions/statuses";
 import { StatusResponse } from "@/app/types/pocketbase-types";
+import { StatusMapping } from "./StatusMapping";
 type TranslationKeys = {
   priority: string;
   statusName: string;
@@ -68,6 +69,7 @@ interface SortableItemProps {
   onEdit: (status: StatusResponse) => void;
   onDelete: (id: string) => void;
   onSave: (status: StatusResponse, data: StatusFormData) => void;
+  onSettings: (status: StatusResponse) => void;
 }
 
 function ColorPicker({ 
@@ -126,7 +128,7 @@ function ColorPicker({
   );
 }
 
-function SortableItem({ status, editingId, t, onEdit, onDelete, onSave }: SortableItemProps) {
+function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettings }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -210,6 +212,14 @@ function SortableItem({ status, editingId, t, onEdit, onDelete, onSave }: Sortab
         <Button
           variant="ghost"
           size="sm"
+          className="hover:bg-muted"
+          onClick={() => onSettings(status)}
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           className="hover:bg-destructive/10 hover:text-destructive"
           onClick={() => onDelete(status.id)}
         >
@@ -264,7 +274,7 @@ export function StatusSettings() {
       render: ({ field }: { field: ControllerRenderProps<StatusFormData, keyof StatusFormData> }) => (
         <div className="flex flex-col gap-2">
           <ColorPicker
-            color={typeof field.value === 'string' ? field.value : field.value.toString()}
+            color={typeof field.value === 'string' ? field.value : field.value?.toString() || '#000000'}
             onChange={field.onChange}
           />
         </div>
@@ -444,6 +454,10 @@ export function StatusSettings() {
     }
   };
 
+  const handleSettingsClick = async () => {
+    //TODO: Implement status settings
+  };
+
   return (
     <div className="space-y-8">
     
@@ -528,6 +542,7 @@ export function StatusSettings() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onSave={handleSave}
+                    onSettings={handleSettingsClick}
                   />
                 ))}
               </div>
@@ -535,6 +550,11 @@ export function StatusSettings() {
           </DndContext>
         </CardContent>
       </Card>
+
+      <StatusMapping 
+        appStatuses={statuses}
+        onChange={(mappings) => console.log('Save mappings:', mappings)}
+      />
     </div>
   );
 }

@@ -64,10 +64,13 @@ export type CurrencyOptionsRecord = {
 export type DeliveryOptionsRecord = {
 	name: string
 	rozetkaId?: number
+	promId?: number
+	isDefault?: boolean
 }
 
 export type OrdersRecord<Tproducts = unknown> = {
 	orderNumber: string
+	marketplaceId?: string
 	source: string
 	deliveryMethod: RecordIdString
 	deliveryPostNumber?: string
@@ -85,6 +88,8 @@ export type OrdersRecord<Tproducts = unknown> = {
 export type PaymentOptionsRecord = {
 	name: string
 	rozetkaId?: number
+	isDefault?: boolean
+	promId?: number
 }
 
 export type SourcesRecord = {
@@ -96,6 +101,9 @@ export type StatusOptionsRecord = {
 	name: string
 	color: string
 	priority: number
+	epicentrCode?: string
+	rozetkaCode?: string
+	promuaCode?: string
 }
 
 export type SyncRecordsRecord = {

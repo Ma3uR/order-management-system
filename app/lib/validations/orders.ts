@@ -9,6 +9,7 @@ const productSchema = z.object({
 
 export const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
+  marketplaceId: z.string().optional(),
   source: z.string().min(1, "Source is required"),
   status: z.string().min(1, "Status is required"),
   deliveryMethod: z.string().min(1, "Delivery method is required"),

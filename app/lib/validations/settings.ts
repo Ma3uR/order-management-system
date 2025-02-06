@@ -35,6 +35,9 @@ export const statusSchema = z.object({
     .int()
     .min(1, "Priority must be at least 1")
     .max(99, "Priority must be less than 99"),
+  epicentrCode: z.string().optional(),
+  rozetkaCode: z.string().optional(),
+  promuaCode: z.string().optional()
 }) satisfies z.ZodType<StatusOptionsRecord>;
 
 // Payment method validation schema
@@ -44,7 +47,8 @@ export const paymentMethodSchema = z.object({
     .max(120, "Payment method name must be less than 50 characters")
     .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-(),/]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, commas and forward slashes are allowed"),
   rozetkaId: z.number().optional(),
-  promId: z.number().optional()
+  promId: z.number().optional(),
+  isDefault: z.boolean().optional()
 }) satisfies z.ZodType<PaymentOptionsRecord>;
 
 // Delivery method validation schema
@@ -54,7 +58,8 @@ export const deliveryMethodSchema = z.object({
     .max(120, "Delivery method name must be less than 50 characters")
     .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-(),/]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, commas and forward slashes are allowed"),
   rozetkaId: z.number().optional(),
-  promId: z.number().optional()
+  promId: z.number().optional(),
+  isDefault: z.boolean().optional()
 }) satisfies z.ZodType<DeliveryOptionsRecord>;
 
 // Source validation schema

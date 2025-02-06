@@ -255,9 +255,19 @@ class PromUaAPI {
     }
   }
 
+  async getLastOrderId() {
+    const orders = await authenticatedCall(async () => {
+      return await pb.collection('orders').getList(1, 1, {
+        filter: 'source = "pj9sejm9vqtu8xq"',
+        sort: '-created'
+      });
+    });
+    return orders.items[0]?.marketplaceId;
+  }
+
   async getOrderStatuses() {
     try {
-      const response = await axios.get<{ status: string; order_status_options: Array<{ id: number, name: string }> }>(
+      const response = await axios.get<{ status: string; order_status_options: Array<{ id: number, name: string, code: string }> }>(
         `${process.env.PROMUA_API_URL}/order_status_options/list`,
         {
           headers: {
@@ -393,6 +403,7 @@ async function processOrder(promOrder: PromOrderResponse) {
   const orderData = {
     source: 'gfzk8nxfokgu9ku',
     orderNumber: promOrder.id.toString(),
+    marketplaceId: promOrder.id.toString(),
     phoneNumber: promOrder.phone,
     fullName,
     products: promOrder.products.map(item => ({
@@ -480,4 +491,8 @@ export async function getPaymentMethods() {
 
 export async function getOrderStatuses() {
   return api.getOrderStatuses();
+}
+
+export async function getLastOrderId() {
+  return api.getLastOrderId();
 }

@@ -318,9 +318,31 @@ class EpicentrAPI {
     }
   }
 
+  async getHardcodedStatuses() {
+    return { 
+      error: undefined, 
+      data: [
+        { id: 'new', title: 'Новий' },
+        { id: 'confirmed_by_merchant', title: 'Підтверджено продавцем' },
+        { id: 'confirmed', title: 'Підтверджено' },
+        { id: 'sent', title: 'Відправлено' },
+        { id: 'delivered', title: 'Доставлено' },
+        { id: 'completed', title: 'Завершено' },
+        { id: 'closed', title: 'Закрито' },
+        { id: 'canceled', title: 'Скасовано' },
+        { id: 'returned', title: 'Повернено' },
+        { id: 'return_requested', title: 'Запит на повернення' },
+        { id: 'canceled_by_merchant', title: 'Скасовано продавцем' },
+        { id: 'completed_merchant_rejection', title: 'Завершено (відмова продавця)' },
+        { id: 'closed_merchant_rejection', title: 'Закрито (відмова продавця)' }
+      ] 
+    };
+  }
+
   async getOrderStatuses(orderId: string) {
     try {
       const baseUrl = process.env.EPICENTR_API_URL?.replace(/\/$/, '');
+      console.log('epicentr api url', baseUrl);
       const response = await axios.get<{ allowedStatuses: string[] }>(
         `${baseUrl}/v2/oms/orders/${orderId}/allowed-statuses`,
         {
@@ -329,8 +351,14 @@ class EpicentrAPI {
             'Content-Type': 'application/json'
           }
         }
-      );
-      
+      ).catch(error => {
+        if (error.response?.status === 404) {
+          throw new Error(error.response.data?.message || 'Statuses not found');
+        }
+        throw error;
+      });
+
+      console.log('response.data', response.data);
       return { error: undefined, data: response.data.allowedStatuses };
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -435,6 +463,7 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
   const orderData = {
     source: 'pj9sejm9vqtu8xq',
     orderNumber: epicentrOrder.number,
+    marketplaceId: epicentrOrder.id,
     phoneNumber: epicentrOrder.address.phone,
     fullName,
     products: epicentrOrder.items.map(item => ({
@@ -567,4 +596,8 @@ export async function getDeliveryAddress(order: EpicentrOrder) {
 
 export async function getOrderStatuses(orderId: string) {
   return api.getOrderStatuses(orderId);
+}
+
+export async function getHardcodedStatuses() {
+  return api.getHardcodedStatuses();
 }
