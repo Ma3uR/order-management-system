@@ -26,14 +26,12 @@ import {
   PaymentMethodsResponse, 
   CurrencyResponse 
 } from '@/app/types/pocketbase-types'
-import { 
-  getOrders, 
-  createOrder, 
-  updateOrder, 
-  deleteOrder,
-  getSettings 
-} from '@/app/[locale]/orders/actions/orders'
+import { getSettings } from '@/app/[locale]/orders/actions/orders'
+import { getOrders, updateOrder, deleteOrder, createOrder } from '@/app/[locale]/orders/actions/orders'
 import { OrderFormData } from '@/app/lib/validations/orders'
+import { setOrderStatus as setEpicentrStatus } from '@/app/actions/epicentr'
+import { setOrderStatus as setPromuaStatus } from '@/app/actions/prom-ua'
+import { setOrderStatus as setRozetkaStatus } from '@/app/actions/rozetka'
 
 interface OrdersManagementProps {
   translations: {
@@ -211,6 +209,44 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       const order = orders.find(o => o.id === orderId);
       if (!order) throw new Error('Order not found');
 
+      // Get the status to find the marketplace-specific code
+      const status = statuses.find(s => s.id === statusId);
+      if (!status) throw new Error('Status not found');
+
+      // Get the marketplace-specific code based on the source
+      let marketplaceCode: string | undefined;
+      let marketplaceUpdateFn;
+
+      switch (order.source) {
+        case 'pj9sejm9vqtu8xq': // Epicentr
+          marketplaceCode = status.epicentrCode;
+          marketplaceUpdateFn = () => setEpicentrStatus(order.orderNumber, marketplaceCode!);
+          break;
+        case 'gfzk8nxfokgu9ku': // PromUa
+          marketplaceCode = status.promuaCode;
+          marketplaceUpdateFn = () => setPromuaStatus(order.orderNumber, marketplaceCode!);
+          break;
+        case '4tvf116a5aitwmb': // Rozetka
+          marketplaceCode = status.rozetkaCode;
+          marketplaceUpdateFn = () => setRozetkaStatus(order.orderNumber, marketplaceCode!);
+          break;
+      }
+
+      console.log('marketplaceCode', marketplaceCode);
+      console.log('marketplaceUpdateFn', marketplaceUpdateFn);
+      // If we have a marketplace code and update function, update the marketplace first
+      if (marketplaceCode && marketplaceUpdateFn) {
+        const marketplaceResult = await marketplaceUpdateFn();
+        if (marketplaceResult.error) {
+          throw new Error(`Failed to update marketplace status: ${marketplaceResult.error}`);
+        }
+        if (!marketplaceResult.data) {
+          throw new Error('Failed to update marketplace status: No confirmation from marketplace');
+        }
+        toast.info(`Marketplace status updated successfully`);
+      }
+
+      // Only proceed with app update if marketplace update was successful or if no marketplace update was needed
       // Validate products before update
       if (!Array.isArray(order.products) || order.products.length === 0) {
         throw new Error('Invalid products data');
@@ -222,7 +258,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         quantity: number; 
         price: number 
       }>).map(p => {
-        // Ensure we have a valid title
         if (!p.title && (p.name || p.title)) {
           return {
             title: (p.name || p.title) as string,
@@ -230,19 +265,18 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             price: p.price || 0
           };
         }
-        // Keep existing product data if it's valid
         return {
           title: p.title as string,
           quantity: p.quantity,
           price: p.price
         };
-      }).filter(p => p.title && p.title.length > 0); // Filter out any products with empty titles
+      }).filter(p => p.title && p.title.length > 0);
 
       if (validProducts.length === 0) {
         throw new Error('No valid products found');
       }
 
-      // Only update the status and include validated products
+      // Update local database
       const result = await updateOrder(orderId, {
         ...order,
         status: statusId,

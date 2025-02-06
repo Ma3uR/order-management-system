@@ -277,6 +277,7 @@ class PromUaAPI {
         }
       );
       
+      console.log('response.data', response.data);
       if (!response.data.order_status_options) {
         throw new Error('Failed to fetch order statuses from Prom.ua');
       }
@@ -291,7 +292,32 @@ class PromUaAPI {
       return { error: 'Unknown error in getOrderStatuses', data: undefined };
     }
   }
+
+  async setOrderStatus(orderId: string, statusCode: string): Promise<{ error: string | null, data: boolean | null }> {
+    try {
+      const baseUrl = process.env.PROMUA_API_URL;
+      const response = await axios.patch(`${baseUrl}/orders/set_status`, {
+        status: statusCode,
+        ids: [orderId],
+        cancellation_reason: "not_available",
+        cancellation_text: "string",
+        custom_status_id: 0
+      }, {
+        headers: { 
+          Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return { error: null, data: response.status == 200 ? true : false };
+    } catch (error) {
+      console.error(`Status update failed for ${orderId}:`, error);
+      return { error: 'Failed to update Prom.ua status', data: null };
+    }
+  }
 }
+
+
+
 
 const api = PromUaAPI.getInstance();
 
@@ -495,4 +521,8 @@ export async function getOrderStatuses() {
 
 export async function getLastOrderId() {
   return api.getLastOrderId();
+}
+
+export async function setOrderStatus(orderId: string, statusCode: string) {
+  return api.setOrderStatus(orderId, statusCode);
 }

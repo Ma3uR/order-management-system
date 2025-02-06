@@ -370,19 +370,23 @@ class EpicentrAPI {
     }
   }
 
-  async updateOrderStatus(orderId: string, statusCode: string) {
+  async setOrderStatus(orderId: string, statusCode: string): Promise<{ error: string | null, data: boolean | null }> {
     try {
       const baseUrl = process.env.EPICENTR_API_URL;
-      await axios.patch(`${baseUrl}/v2/oms/orders/${orderId}`, {
-        statusCode
-      }, {
+      const response = await axios.patch(`${baseUrl}/v2/oms/orders/${orderId}/change-status/to/${statusCode}`, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
-    } catch (error) {
-      console.error(`Status update failed for ${orderId}:`, error);
-      throw new Error('Failed to update Epicentr status');
+      return { error: null, data: response.status == 202 ? true : false };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Status update failed for ${orderId}:`, error.message);
+        return { error: error.message, data: null };
+      } else {
+        console.error(`Status update failed for ${orderId}:`, error);
+        return { error: 'Failed to update Epicentr status', data: null };
+      }
     }
-  }
+  } 
 }
 
 const api = EpicentrAPI.getInstance();
@@ -555,20 +559,6 @@ function mapPaymentProvider(epicentrProvider: string): string {
   return PAYMENT_PROVIDER_MAP[epicentrProvider] || epicentrProvider;
 }
 
-
-// const PAYMENT_PROVIDER_MAP: Record<string, string> = {
-//   'nova_poshta': 'novaposhta',
-//   'ukrposhta': 'ukrposhta', 
-//   'pickup': 'pickup',
-//   'meest': 'meest',
-//   'cvz_epicentr': 'epicentr',
-//   'parcel_box_epicentr': 'epicentr'
-// };
-
-// function mapPaymentProvider(epicentrProvider: string): string {
-//   return PAYMENT_PROVIDER_MAP[epicentrProvider] || epicentrProvider;
-// }
-
 // Export functions
 export async function getOrders() {
   return api.getOrders();
@@ -596,6 +586,10 @@ export async function getDeliveryAddress(order: EpicentrOrder) {
 
 export async function getOrderStatuses(orderId: string) {
   return api.getOrderStatuses(orderId);
+}
+
+export async function setOrderStatus(orderId: string, statusCode: string) {
+  return api.setOrderStatus(orderId, statusCode);
 }
 
 export async function getHardcodedStatuses() {

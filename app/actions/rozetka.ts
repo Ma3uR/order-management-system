@@ -221,6 +221,32 @@ class RozetkaAPI {
       throw error;
     }
   }
+
+  async setOrderStatus(orderId: string, statusCode: string): Promise<{ error: string | null, data: boolean | null }> {
+    try {
+      const token = await this.ensureValidToken();
+      const response = await axios.put(`${ROZETKA_API_BASE}/orders/${orderId}`, 
+        {
+          status: statusCode
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      console.log('response ROZETKA', response);
+      return { error: null, data: response.status === 200 ? true : false };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Status update failed for ${orderId}:`, error.message);
+        return { error: error.message, data: null };
+      }
+      console.error(`Status update failed for ${orderId}:`, error);
+      return { error: 'Failed to update Rozetka status', data: null };
+    }
+  }
 }
 
 const api = RozetkaAPI.getInstance();
@@ -254,3 +280,7 @@ export async function getDeliveryMethods() {
 export async function getOrderStatuses() {
   return api.getOrderStatuses();
 }
+
+export async function setOrderStatus(orderId: string, statusCode: string): Promise<{ error: string | null, data: boolean | null }> {
+  return api.setOrderStatus(orderId, statusCode);
+} 
