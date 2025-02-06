@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import pb from '@/app/lib/pocketbase';
-import { DeliveryOptionsResponse, PaymentOptionsResponse, SourcesResponse, StatusOptionsResponse } from '@/app/types/pocketbase-types';
+import { DeliveryOptionsResponse, PaymentOptionsRecord, SourcesResponse, StatusResponse } from '@/app/types/pocketbase-types';
 
 export function useOrderEntities() {
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryOptionsResponse[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentOptionsResponse[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentOptionsRecord[]>([]);
   const [sources, setSources] = useState<SourcesResponse[]>([]);
-  const [statuses, setStatuses] = useState<StatusOptionsResponse[]>([]);
+  const [statuses, setStatuses] = useState<StatusResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -20,9 +20,9 @@ export function useOrderEntities() {
         statusesData
       ] = await Promise.all([
         pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>(),
-        pb.collection('payment_options').getFullList<PaymentOptionsResponse>(),
+        pb.collection('payment_options').getFullList<PaymentOptionsRecord>(),
         pb.collection('sources').getFullList<SourcesResponse>(),
-        pb.collection('status_options').getFullList<StatusOptionsResponse>()
+        pb.collection('status_options').getFullList<StatusResponse>()
       ]);
 
       setDeliveryMethods(deliveryMethodsData);

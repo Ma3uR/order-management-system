@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { OrdersRecord, DeliveryOptionsResponse, PaymentOptionsResponse, SourcesResponse, CurrencyOptionsResponse } from '@/app/types/pocketbase-types';
+import { OrdersRecord, DeliveryOptionsResponse, PaymentMethodsResponse, SourcesResponse, CurrencyResponse } from '@/app/types/pocketbase-types';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/shared/ui/dialog";
 import { Label } from "@/app/components/shared/ui/label";
 import { Input } from "@/app/components/shared/ui/input";
@@ -45,9 +45,9 @@ interface OrderCreateProps {
     totalAmount: string;
   };
   deliveryMethods: DeliveryOptionsResponse[];
-  paymentMethods: PaymentOptionsResponse[];
+  paymentMethods: PaymentMethodsResponse[];
   sources: SourcesResponse[];
-  defaultCurrency: CurrencyOptionsResponse | null;
+  defaultCurrency: CurrencyResponse | null;
 }
 
 export function OrderCreate({
@@ -276,7 +276,7 @@ export function OrderCreate({
                 <SelectContent>
                   {paymentMethods
                     .filter(method => !isBlacklisted || method.name.toLowerCase().includes('prepayment'))
-                    .map(method => (
+                    .map((method: PaymentMethodsResponse) => (
                       <SelectItem key={method.id} value={method.id}>
                         {method.name}
                       </SelectItem>

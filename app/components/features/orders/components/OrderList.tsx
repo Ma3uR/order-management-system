@@ -1,4 +1,4 @@
-import { OrdersResponse, StatusOptionsResponse } from '@/app/types/pocketbase-types';
+import { OrdersResponse, StatusResponse } from '@/app/types/pocketbase-types';
 import { Button } from "@/app/components/shared/ui/button";
 import { UtilityService } from '@/app/services/utilityService';
 import { StatusSelect } from "@/app/components/shared/ui/StatusSelect";
@@ -19,7 +19,7 @@ interface OrderListProps {
     delete: string;
     deleteConfirmation: string;
   };
-  statuses: StatusOptionsResponse[];
+  statuses: StatusResponse[];
   translateStatus: (status: string) => string;
 }
 
@@ -68,7 +68,13 @@ export function OrderList({
             {orders.map((order) => (
               <tr
                 key={order.id}
-                className="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                className="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer"
+                onClick={(e) => {
+                  if (!(e.target as HTMLElement).closest('button') && 
+                      !(e.target as HTMLElement).closest('select')) {
+                    onViewDetails(order);
+                  }
+                }}
               >
                 <td className="p-4 align-middle">{order.orderNumber}</td>
                 <td className="p-4 align-middle">{order.fullName}</td>

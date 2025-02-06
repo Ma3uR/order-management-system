@@ -11,10 +11,12 @@ import type {
 export const currencySchema = z.object({
   code: z.string()
     .min(2, "Currency code must be at least 2 characters")
-    .max(10, "Currency code must be less than 10 characters"),
+    .max(10, "Currency code must be less than 10 characters")
+    .regex(/^[a-zA-Z0-9\s]+$/, "Only letters and numbers are allowed"),
   name: z.string()
     .min(2, "Currency name must be at least 2 characters")
-    .max(50, "Currency name must be less than 50 characters"),
+    .max(50, "Currency name must be less than 50 characters")
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s]+$/, "Only letters, numbers and cyrillic characters are allowed"),
   symbol: z.string()
     .min(1, "Currency symbol is required")
     .max(5, "Currency symbol must be less than 5 characters"),
@@ -25,42 +27,81 @@ export const currencySchema = z.object({
 export const statusSchema = z.object({
   name: z.string()
     .min(2, "Status name must be at least 2 characters")
-    .max(50, "Status name must be less than 50 characters"),
+    .max(50, "Status name must be less than 50 characters")
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s]+$/, "Only letters, numbers and cyrillic characters are allowed"),
   color: z.string()
     .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Invalid color format"),
   priority: z.number()
     .int()
     .min(1, "Priority must be at least 1")
     .max(99, "Priority must be less than 99"),
+  epicentrCode: z.string().optional(),
+  rozetkaCode: z.string().optional(),
+  promuaCode: z.string().optional()
 }) satisfies z.ZodType<StatusOptionsRecord>;
 
 // Payment method validation schema
 export const paymentMethodSchema = z.object({
   name: z.string()
     .min(2, "Payment method name must be at least 2 characters")
-    .max(50, "Payment method name must be less than 50 characters"),
+    .max(120, "Payment method name must be less than 50 characters")
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-(),/]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, commas and forward slashes are allowed"),
+  rozetkaId: z.number().optional(),
+  promId: z.number().optional(),
+  isDefault: z.boolean().optional()
 }) satisfies z.ZodType<PaymentOptionsRecord>;
 
 // Delivery method validation schema
 export const deliveryMethodSchema = z.object({
   name: z.string()
     .min(2, "Delivery method name must be at least 2 characters")
-    .max(50, "Delivery method name must be less than 50 characters"),
+    .max(120, "Delivery method name must be less than 50 characters")
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-(),/]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, commas and forward slashes are allowed"),
+  rozetkaId: z.number().optional(),
+  promId: z.number().optional(),
+  isDefault: z.boolean().optional()
 }) satisfies z.ZodType<DeliveryOptionsRecord>;
 
 // Source validation schema
 export const sourceSchema = z.object({
   name: z.string()
     .min(2, "Source name must be at least 2 characters")
-    .max(50, "Source name must be less than 50 characters"),
+    .max(50, "Source name must be less than 50 characters")
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s]+$/, "Only letters, numbers and cyrillic characters are allowed"),
   url: z.string()
     .url("Invalid URL")
     .optional(),
 }) satisfies z.ZodType<SourcesRecord>;
+
+// New schema for updates
+export const deliveryMethodUpdateSchema = deliveryMethodSchema.extend({
+  id: z.string(),
+});
+
+export const paymentMethodUpdateSchema = paymentMethodSchema.extend({
+  id: z.string(),
+});
+
+export const currencyUpdateSchema = currencySchema.extend({
+  id: z.string(),
+});
+
+export const statusUpdateSchema = statusSchema.extend({
+  id: z.string(),
+});
+
+export const sourceUpdateSchema = sourceSchema.extend({
+  id: z.string(),
+});
 
 // Export types
 export type CurrencyFormData = z.infer<typeof currencySchema>;
 export type StatusFormData = z.infer<typeof statusSchema>;
 export type PaymentMethodFormData = z.infer<typeof paymentMethodSchema>;
 export type DeliveryMethodFormData = z.infer<typeof deliveryMethodSchema>;
+export type DeliveryMethodUpdateData = z.infer<typeof deliveryMethodUpdateSchema>;
 export type SourceFormData = z.infer<typeof sourceSchema>;
+export type SourceUpdateData = z.infer<typeof sourceUpdateSchema>;
+export type PaymentMethodUpdateData = z.infer<typeof paymentMethodUpdateSchema>;
+export type CurrencyUpdateData = z.infer<typeof currencyUpdateSchema>;
+export type StatusUpdateData = z.infer<typeof statusUpdateSchema>;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/shared/ui/tabs";
-import { Card } from "@/app/components/shared/ui/card";
+import { Card, CardHeader, CardContent } from "@/app/components/shared/ui/card";
 import { useTranslations } from "next-intl";
 import { CurrencySettings } from "@/app/components/features/settings/CurrencySettings";
 import { StatusSettings } from "@/app/components/features/settings/StatusSettings";
@@ -10,7 +10,17 @@ import { DeliveryMethodSettings } from "@/app/components/features/settings/Deliv
 import { SourceSettings } from "@/app/components/features/settings/SourceSettings";
 import { motion } from "framer-motion";
 import { Toaster } from 'sonner';
-
+import { Badge } from "@/app/components/shared/ui/badge";
+import { Button } from "@/app/components/shared/ui/button";
+import { CircleIcon, RefreshCcw, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import pb, { authenticatedCall } from "@/app/lib/pocketbase";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { checkConnection } from "./actions/connection";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
+import { syncMethods } from "./actions/sync";
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
@@ -25,6 +35,12 @@ const staggerContainer = {
   }
 };
 
+const slideIn = {
+  initial: { opacity: 0, x: -20 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -20 }
+};
+
 interface SettingsPageClientProps {
   translations: {
     backToDashboard: string;
@@ -33,6 +49,50 @@ interface SettingsPageClientProps {
 
 export default function SettingsPageClient({}: SettingsPageClientProps) {
   const t = useTranslations('Settings');
+  const [isConnected, setIsConnected] = useState(true);
+  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  const checkRozetkaConnection = async () => {
+    setIsCheckingConnection(true);
+    try {
+      const result = await checkConnection();
+      setIsConnected(result.success);
+    } catch (error) {
+      setIsConnected(false);
+      toast.error('Failed to connect to Rozetka');
+      console.error('Connection error:', error);
+    } finally {
+      setIsCheckingConnection(false);
+    }
+  };
+
+  useEffect(() => {
+    async function initialize() {
+      try {
+        await checkRozetkaConnection();
+        const records = await authenticatedCall(() => pb.collection('sync_records').getList(1, 1, {
+          sort: '-created',
+        }));
+        
+        if (records.items.length > 0) {
+          const lastSyncDate = new Date(records.items[0].created);
+          setLastSync(format(lastSyncDate, 'yyyy-MM-dd HH:mm'));
+        } else {
+          setLastSync(null);
+        }
+      } catch (error) {
+        console.error('Error initializing:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    initialize();
+  }, []);
 
   return (
     <>
@@ -135,6 +195,135 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
               </motion.div>
             </Tabs>
           </Card>
+        </motion.div>
+
+        <motion.div variants={slideIn}>
+          <Collapsible
+            open={!isCollapsed}
+            onOpenChange={() => setIsCollapsed(!isCollapsed)}
+            className="w-full"
+          >
+            <Card className="border shadow-sm">
+              <CollapsibleTrigger className="w-full">
+                <CardHeader className="pb-3 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 pb-2">
+                      <h3 className="text-lg font-medium">Rozetka Connection Status</h3>
+                      <Badge 
+                        variant={isConnected ? "success" : "destructive"}
+                        className="px-3"
+                      >
+                        <CircleIcon className="w-3 h-3 mr-1 fill-current" />
+                        {isConnected ? "Connected" : "Disconnected"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {isCollapsed && (
+                        <p className="text-sm text-muted-foreground">
+                          Last sync: {isLoading ? "Loading..." : lastSync || "Never"}
+                        </p>
+                      )}
+                      <ChevronDown className={cn(
+                        "h-4 w-4 transition-transform",
+                        !isCollapsed && "transform rotate-180"
+                      )} />
+                    </div>
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Last Synchronization
+                        </p>
+                        <p className="text-sm">
+                          {isLoading ? (
+                            <span className="text-muted-foreground">Loading...</span>
+                          ) : lastSync ? (
+                            lastSync
+                          ) : (
+                            <span className="text-muted-foreground">Never synced</span>
+                          )}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="flex items-center gap-2"
+                        disabled={isSyncing}
+                        onClick={async () => {
+                          setIsSyncing(true);
+                          try {
+                            const result = await syncMethods();
+                            if (result.success) {
+                              toast.success('Sync completed successfully');
+                              // Refresh the last sync time
+                              const records = await authenticatedCall(() => pb.collection('sync_records').getList(1, 1, {
+                                sort: '-created',
+                              }));
+                              if (records.items.length > 0) {
+                                setLastSync(format(new Date(records.items[0].created), 'yyyy-MM-dd HH:mm'));
+                              }
+                            } else {
+                              toast.error(result.error || 'Sync failed');
+                            }
+                          } catch (error) {
+                            toast.error('Failed to sync');
+                            console.error('Sync error:', error);
+                          } finally {
+                            setIsSyncing(false);
+                          }
+                        }}
+                      >
+                        <RefreshCcw className={cn("w-4 h-4", { "animate-spin": isSyncing })} />
+                        {isSyncing ? "Syncing..." : "Sync Now"}
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        API Status
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="px-2">
+                            Rate Limit: 100/100
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="px-2">
+                            Response Time: 150ms
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <Button 
+                        variant="secondary"
+                        className="w-full"
+                        disabled={isCheckingConnection}
+                        onClick={checkRozetkaConnection}
+                      >
+                        {isCheckingConnection ? (
+                          <>
+                            <RefreshCcw className="w-4 h-4 mr-2 animate-spin" />
+                            Checking Connection...
+                          </>
+                        ) : (
+                          'Reconnect to Rozetka'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         </motion.div>
       </motion.div>
       <Toaster

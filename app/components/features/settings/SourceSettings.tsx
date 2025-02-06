@@ -8,11 +8,13 @@ import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import type { SourcesResponse } from "@/app/types/pocketbase-types";
-import { sourceService } from "@/app/services/api";
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { Input } from "@/app/components/shared/ui/input";
 import { motion, AnimatePresence } from 'framer-motion';
+import { createSource, deleteSource } from "@/app/[locale]/settings/actions/sources";
+import { getAllSources } from "@/app/[locale]/settings/actions/sources";
+import { updateSource } from "@/app/[locale]/settings/actions/sources";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -61,8 +63,11 @@ export function SourceSettings() {
     const fetchSources = async () => {
       try {
         setIsLoading(true);
-        const data = await sourceService.fetchAll();
-        setSources(data);
+        const data = await getAllSources();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        setSources(data.data || []);
       } catch (error) {
         console.error('Error fetching sources:', error);
         toast.error(t('error'), {
@@ -83,12 +88,12 @@ export function SourceSettings() {
 
   const handleSave = async (id: string, data: { name: string; url?: string | undefined; }) => {
     try {
-      await sourceService.update(id, data);
+      await updateSource(id, data);
       toast.success(t('updateSuccess'), {
         description: t('sourceUpdateSuccess'),
       });
-      const updatedSources = await sourceService.fetchAll();
-      setSources(updatedSources);
+      const updatedSources = await getAllSources();
+      setSources(updatedSources.data || []);
     } catch (error) {
       console.error('Error updating source:', error);
       toast.error(t('updateError'), {
@@ -99,12 +104,12 @@ export function SourceSettings() {
 
   const handleDelete = async (id: string) => {
     try {
-      await sourceService.delete(id);
+      await deleteSource(id);
       toast.success(t('deleteSuccess'), {
         description: t('sourceDeleteSuccess'),
       });
-      const updatedSources = await sourceService.fetchAll();
-      setSources(updatedSources);
+      const updatedSources = await getAllSources();
+      setSources(updatedSources.data || []);
     } catch (error) {
       console.error('Error deleting source:', error);
       toast.error(t('deleteError'), {
@@ -165,12 +170,24 @@ export function SourceSettings() {
                   defaultValues={{}}
                   onSubmit={async (data) => {
                     try {
-                      await sourceService.create(data);
-                      const updatedSources = await sourceService.fetchAll();
-                      setSources(updatedSources);
+                      setIsLoading(true);
+                      const result = await createSource(data);
+                      if (result.error) {
+                        throw new Error(result.error);
+                      }
+                      toast.success(t('createSuccess'), {
+                        description: t('sourceCreateSuccess'),
+                      });
+                      const updatedSources = await getAllSources();
+                      if (updatedSources.error) {
+                        throw new Error(updatedSources.error);
+                      }
+                      setSources(updatedSources.data || []);
                       setIsFormOpen(false);
+                      setIsLoading(false);
                     } catch (error) {
                       console.error('Error creating source:', error);
+                      setIsLoading(false);
                     }
                   }}
                   isLoading={isLoading}

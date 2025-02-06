@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import RozetkaAPI from '@/app/lib/rozetka';
+import { getOrders, ensureValidToken } from '@/app/actions/rozetka';
 import { RozetkaOrderResponse } from '@/app/types/orders';
 
 export default function TestRozetka() {
@@ -16,13 +16,10 @@ export default function TestRozetka() {
   const testConnection = async () => {
     setTestResult({ status: 'loading' });
     try {
-      const api = RozetkaAPI.getInstance();
-      const token = await api.authenticate();
-      
+      await ensureValidToken();
       setTestResult({ 
         status: 'success', 
-        message: 'Successfully authenticated!',
-        data: { token: token ?? undefined }
+        message: 'Successfully authenticated!'
       });
     } catch (error) {
       console.error('Authentication error:', error);
@@ -36,9 +33,7 @@ export default function TestRozetka() {
   const testGetOrders = async () => {
     setTestResult({ status: 'loading' });
     try {
-      const api = RozetkaAPI.getInstance();
-      const orders = await api.getOrders();
-      
+      const orders = await getOrders();
       setTestResult({ 
         status: 'success', 
         message: `Successfully fetched ${orders.length} orders!`,

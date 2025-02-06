@@ -2,18 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { SettingsForm } from "./SettingsForm";
-import { deliveryMethodSchema, type DeliveryMethodFormData } from "@/app/lib/validations/settings";
+import { deliveryMethodSchema, DeliveryMethodUpdateData, type DeliveryMethodFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import type { DeliveryOptionsResponse } from "@/app/types/pocketbase-types";
-import { deliveryService } from "@/app/services/api";
 import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { motion, AnimatePresence } from 'framer-motion';
-
+import { getAllDeliveryMethods, createDeliveryMethod, deleteDeliveryMethod, updateDeliveryMethod } from "@/app/[locale]/settings/actions/delivery-methods";
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
@@ -45,6 +44,7 @@ export function DeliveryMethodSettings() {
 
   const defaultValues: DeliveryMethodFormData = {
     name: "",
+    rozetkaId: 0
   };
 
   const fields = [
@@ -59,8 +59,9 @@ export function DeliveryMethodSettings() {
     const fetchMethods = async () => {
       try {
         setIsLoading(true);
-        const data = await deliveryService.fetchAll();
-        setMethods(data);
+        const data = await getAllDeliveryMethods();
+        if (data.error || !data.data) throw new Error(data.error || 'No data returned');
+        setMethods(data.data);
       } catch (error) {
         console.error('Error fetching delivery methods:', error);
         toast.error(t('error'), {
@@ -77,12 +78,14 @@ export function DeliveryMethodSettings() {
   const onSubmit = async (data: DeliveryMethodFormData) => {
     try {
       setIsLoading(true);
-      await deliveryService.create(data);
+      const deliveryMethod = await createDeliveryMethod(data);
+      if (deliveryMethod.error) throw new Error(deliveryMethod.error);
       toast.success(t('saveSuccess'), {
         description: t('deliveryMethodSaveSuccess'),
       });
-      const updatedMethods = await deliveryService.fetchAll();
-      setMethods(updatedMethods);
+      const updatedMethods = await getAllDeliveryMethods();
+      if (updatedMethods.error || !updatedMethods.data) throw new Error(updatedMethods.error || 'No data returned');
+      setMethods(updatedMethods.data);
       setIsFormOpen(false);
     } catch (error) {
       console.error('Error creating delivery method:', error);
@@ -98,16 +101,22 @@ export function DeliveryMethodSettings() {
     setEditingId(method.id);
   };
 
-  const handleSave = async (id: string, data: DeliveryMethodFormData) => {
+  const handleSave = async (data: DeliveryMethodUpdateData) => {
     try {
       if (!data.name) return;
       
-      await deliveryService.update(id, data);
+      const deliveryMethod = await updateDeliveryMethod({
+        id: data.id,
+        name: data.name,
+        rozetkaId: data.rozetkaId || 0
+      });
+      if (deliveryMethod.error) throw new Error(deliveryMethod.error);
       toast.success(t('saveSuccess'), {
         description: t('deliveryMethodUpdateSuccess'),
       });
-      const updatedMethods = await deliveryService.fetchAll();
-      setMethods(updatedMethods);
+      const updatedMethods = await getAllDeliveryMethods();
+      if (updatedMethods.error || !updatedMethods.data) throw new Error(updatedMethods.error || 'No data returned');
+      setMethods(updatedMethods.data);
       setEditingId(null);
     } catch (error) {
       console.error('Error updating delivery method:', error);
@@ -119,17 +128,21 @@ export function DeliveryMethodSettings() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deliveryService.delete(id);
+      const deliveryMethod = await deleteDeliveryMethod(id);
+      if (deliveryMethod.error) throw new Error(deliveryMethod.error);
       toast.success(t('deleteSuccess'), {
         description: t('deliveryMethodDeleteSuccess'),
       });
-      const updatedMethods = await deliveryService.fetchAll();
-      setMethods(updatedMethods);
-    } catch (error) {
-      console.error('Error deleting delivery method:', error);
-      toast.error(t('deleteError'), {
-        description: t('deliveryMethodDeleteError'),
-      });
+      const updatedMethods = await getAllDeliveryMethods();
+      if (updatedMethods.error || !updatedMethods.data) throw new Error(updatedMethods.error || 'No data returned');
+      setMethods(updatedMethods.data);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error deleting delivery method:', error);
+        toast.error(t('deleteError'), {
+          description: t('deliveryMethodDeleteError'),
+        });
+      }
     }
   };
 
@@ -215,7 +228,12 @@ export function DeliveryMethodSettings() {
                                   e.target.value = method.name;
                                   return;
                                 }
-                                handleSave(method.id, { name: e.target.value.trim() });
+                                const data = { 
+                                  id: method.id, 
+                                  name: e.target.value.trim(),
+                                  rozetkaId: method.rozetkaId || 0
+                                };
+                                handleSave(data);
                               }}
                             />
                           </div>

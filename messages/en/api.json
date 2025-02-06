@@ -1,0 +1,7 @@
+{
+  "error": "Error occurred",
+  "addSuccess": "Successfully added to blacklist",
+  "addError": "Error adding to blacklist",
+  "removeSuccess": "Successfully removed from blacklist",
+  "removeError": "Error removing from blacklist"
+} 

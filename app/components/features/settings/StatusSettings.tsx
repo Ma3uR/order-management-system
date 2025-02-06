@@ -7,10 +7,8 @@ import { statusSchema, type StatusFormData } from "@/app/lib/validations/setting
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp, Settings, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
-import type { StatusOptionsResponse } from "@/app/types/pocketbase-types";
-import { statusService } from "@/app/services/api";
 import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
 import {
@@ -38,6 +36,9 @@ import {
 import { cn } from "@/app/lib/utils";
 import { ControllerRenderProps } from "react-hook-form";
 import { motion } from "framer-motion";
+import { createStatus, deleteStatus, getAllStatuses, updateStatus } from "@/app/[locale]/settings/actions/statuses";
+import { StatusResponse } from "@/app/types/pocketbase-types";
+import { StatusMapping } from "./StatusMapping";
 type TranslationKeys = {
   priority: string;
   statusName: string;
@@ -62,12 +63,13 @@ type TranslationKeys = {
 };
 
 interface SortableItemProps {
-  status: StatusOptionsResponse;
+  status: StatusResponse;
   editingId: string | null;
   t: (key: keyof TranslationKeys) => string;
-  onEdit: (status: StatusOptionsResponse) => void;
+  onEdit: (status: StatusResponse) => void;
   onDelete: (id: string) => void;
-  onSave: (status: StatusOptionsResponse, data: StatusFormData) => void;
+  onSave: (status: StatusResponse, data: StatusFormData) => void;
+  onSettings: (status: StatusResponse) => void;
 }
 
 function ColorPicker({ 
@@ -126,7 +128,7 @@ function ColorPicker({
   );
 }
 
-function SortableItem({ status, editingId, t, onEdit, onDelete, onSave }: SortableItemProps) {
+function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettings }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -210,6 +212,14 @@ function SortableItem({ status, editingId, t, onEdit, onDelete, onSave }: Sortab
         <Button
           variant="ghost"
           size="sm"
+          className="hover:bg-muted"
+          onClick={() => onSettings(status)}
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           className="hover:bg-destructive/10 hover:text-destructive"
           onClick={() => onDelete(status.id)}
         >
@@ -232,9 +242,10 @@ type FormField = {
 export function StatusSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
-  const [statuses, setStatuses] = useState<StatusOptionsResponse[]>([]);
+  const [statuses, setStatuses] = useState<StatusResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -264,7 +275,7 @@ export function StatusSettings() {
       render: ({ field }: { field: ControllerRenderProps<StatusFormData, keyof StatusFormData> }) => (
         <div className="flex flex-col gap-2">
           <ColorPicker
-            color={typeof field.value === 'string' ? field.value : field.value.toString()}
+            color={typeof field.value === 'string' ? field.value : field.value?.toString() || '#000000'}
             onChange={field.onChange}
           />
         </div>
@@ -281,8 +292,9 @@ export function StatusSettings() {
   const fetchStatuses = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await statusService.fetchAll();
-      const sortedStatuses = [...response].sort((a, b) => a.priority - b.priority);
+      const response = await getAllStatuses();
+      if (response.error || !response.data) throw new Error(response.error || 'No data returned');
+      const sortedStatuses = [...response.data].sort((a, b) => a.priority - b.priority);
       setStatuses(sortedStatuses);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -312,7 +324,7 @@ export function StatusSettings() {
       }
 
       // Create new status with next priority, overriding the form's priority
-      await statusService.create({
+      await createStatus({
         ...data,
         priority: highestPriority + 1
       });
@@ -324,7 +336,6 @@ export function StatusSettings() {
       fetchStatuses();
       setIsFormOpen(false);
     } catch (error: unknown) {
-      console.error('Status creation error:', error);
       if (error instanceof Error) {
         toast.error(t('saveError'), {
           description: error.message,
@@ -341,7 +352,7 @@ export function StatusSettings() {
 
   const handleDelete = async (id: string) => {
     try {
-      await statusService.delete(id);
+      await deleteStatus(id);
 
       toast.success(t('deleteSuccess'), {
         description: t('statusDeleteSuccess'),
@@ -363,24 +374,22 @@ export function StatusSettings() {
     }
   };
 
-  const handleEdit = async (status: StatusOptionsResponse) => {
+  const handleEdit = async (status: StatusResponse) => {
     setEditingId(status.id);
   };
 
-  const handleSave = async (status: StatusOptionsResponse, data: StatusFormData) => {
+  const handleSave = async (status: StatusResponse, data: StatusFormData) => {
     try {
-      console.log('data', data);
       const hasDuplicatePriority = statuses.some(s => 
         s.priority === data.priority && s.id !== status.id
       );
-      console.log('hasDuplicatePriority', hasDuplicatePriority);
       if (hasDuplicatePriority) {
         throw new Error(t('duplicatePriorityError')); 
       }
 
-      const response = await statusService.update(status.id, data);
+      const response = await updateStatus(status.id, data);
       
-      if (!response.ok) throw new Error(t('statusUpdateError'));
+      if (response.error) throw new Error(response.error);
       
       setEditingId(null);
       fetchStatuses();
@@ -420,14 +429,14 @@ export function StatusSettings() {
 
       // Update the backend one by one in sequence
       for (const status of updatedStatuses) {
-        const response = await statusService.update(status.id, {
+        const response = await updateStatus(status.id, {
           name: status.name,
           color: status.color,
           priority: status.priority
         });
         
-        if (!response.ok) {
-          throw new Error(t('statusUpdateError'));
+        if (response.error) {
+          throw new Error(response.error);
         }
       }
 
@@ -435,7 +444,6 @@ export function StatusSettings() {
         description: t('statusOrderUpdateSuccess'),
       });
     } catch (error) {
-      console.error('Error updating priorities:', error);
       toast.error(t('saveError'), {
         description: error instanceof Error ? error.message : t('statusOrderUpdateError'),
       });
@@ -444,6 +452,36 @@ export function StatusSettings() {
       await fetchStatuses();
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSettingsClick = async (status: StatusResponse) => {
+    setIsSettingsOpen(status.id);
+  };
+
+  const handleMappingChange = async (mappings: Record<string, string>) => {
+    try {
+      const status = statuses.find(s => s.id === isSettingsOpen);
+      if (!status) return;
+
+      const response = await updateStatus(status.id, {
+        ...status,
+        epicentrCode: mappings.epicentr,
+        rozetkaCode: mappings.rozetka,
+        promuaCode: mappings.promua
+      });
+
+      if (response.error) throw new Error(response.error);
+
+      toast.success(t('saveSuccess'), {
+        description: t('statusUpdateSuccess'),
+      });
+
+      fetchStatuses();
+    } catch (error) {
+      toast.error(t('saveError'), {
+        description: error instanceof Error ? error.message : t('statusUpdateError'),
+      });
     }
   };
 
@@ -531,6 +569,7 @@ export function StatusSettings() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onSave={handleSave}
+                    onSettings={handleSettingsClick}
                   />
                 ))}
               </div>
@@ -538,6 +577,48 @@ export function StatusSettings() {
           </DndContext>
         </CardContent>
       </Card>
+
+      {isSettingsOpen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+          onClick={() => setIsSettingsOpen(null)}
+        >
+          <div 
+            className="fixed left-[50%] top-[50%] z-50 w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background shadow-lg duration-200 sm:rounded-lg max-h-[90vh] overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 pb-2 border-b">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold">Status Mapping Settings</h2>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+                  <div 
+                    className="w-3 h-3 rounded-full ring-1 ring-border" 
+                    style={{ 
+                      backgroundColor: statuses.find(s => s.id === isSettingsOpen)?.color 
+                    }} 
+                  />
+                  <span className="text-sm font-medium">
+                    {statuses.find(s => s.id === isSettingsOpen)?.name}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSettingsOpen(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-6 pt-4 overflow-y-auto max-h-[calc(90vh-4rem)]">
+              <StatusMapping 
+                currentStatus={statuses.find(s => s.id === isSettingsOpen) as StatusResponse}
+                onChange={handleMappingChange}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

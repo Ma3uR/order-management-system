@@ -1,11 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
-import { OrdersResponse, CurrencyOptionsResponse } from '@/app/types/pocketbase-types'
+import { OrdersResponse, CurrencyResponse } from '@/app/types/pocketbase-types'
 import { UtilityService } from '@/app/services/utilityService'
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts'
 import { ArrowUpIcon } from "lucide-react"
 
 interface OrderStatsProps {
-  orders: (OrdersResponse & { expand?: { currency?: CurrencyOptionsResponse } })[]
+  orders: (OrdersResponse & { expand?: { currency?: CurrencyResponse } })[]
   translations: {
     totalAmount: string
     totalOrders: string

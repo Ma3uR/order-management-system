@@ -1,8 +1,18 @@
-import PocketBase, { AdminAuthResponse, ClientResponseError } from 'pocketbase';
+import PocketBase, { AdminAuthResponse } from 'pocketbase';
 import { OrdersResponse, OrdersRecord } from '../types/pocketbase-types';
+import * as dotenv from 'dotenv';
+dotenv.config();
+// Ensure the URL is properly formatted with protocol
+const getPocketBaseUrl = () => {
+    const url = process.env.NEXT_PUBLIC_POCKETBASE_URL;
+    if (!url?.startsWith('http://') && !url?.startsWith('https://')) {
+        return `http://${url}`;
+    }
+    return url;
+};
 
 // Create a single PocketBase instance
-const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+const pb = new PocketBase(getPocketBaseUrl());
 
 // Add authentication state tracking
 let authPromise: Promise<AdminAuthResponse> | null = null;
@@ -36,31 +46,18 @@ export function isAdminAuthenticated() {
 // Wrapper function for authenticated collection calls
 export async function authenticatedCall<T>(callback: () => Promise<T>): Promise<T> {
   try {
+    console.log('Attempting authentication with URL:', pb.baseUrl);
     await authenticateAdmin();
     return await callback();
   } catch (error) {
-    // Ignore auto-cancelled requests
-    if (error instanceof Error && error.message.includes('autocancelled')) {
-      return Promise.reject(new Error('Request cancelled'));
-    }
-
-    // Log detailed error information
-    if (error instanceof Error && 'response' in error) {
-      const clientError = error as ClientResponseError;
-      console.error('Detailed error:', {
-        message: clientError.message,
-        response: clientError.response,
-        data: clientError.data
+    if (error instanceof Error) {
+      console.error('Authentication error details:', {
+        message: error.message,
+        url: pb.baseUrl,
+        stack: error.stack,
+        cause: error.cause
       });
     }
-    
-    // If we get a 401 or 403, try to re-authenticate once
-    if (error instanceof Error && 'status' in error && (error.status === 401 || error.status === 403)) {
-      pb.authStore.clear();
-      await authenticateAdmin();
-      return await callback();
-    }
-    
     throw error;
   }
 }

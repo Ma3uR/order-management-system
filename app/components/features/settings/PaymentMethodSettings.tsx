@@ -7,12 +7,13 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2, Pencil, ChevronDown, ChevronUp } from "lucide-react";
-import type { PaymentOptionsResponse } from "@/app/types/pocketbase-types";
-import { paymentService } from "@/app/services/api";
 import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { motion, AnimatePresence } from 'framer-motion';
+import { deletePaymentMethod, getAllPaymentMethods, updatePaymentMethod } from "@/app/[locale]/settings/actions/payment-methods";
+import { PaymentMethodsResponse } from "@/app/types/pocketbase-types";
+import { createPaymentMethod } from "@/app/[locale]/settings/actions/payment-methods";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -39,12 +40,13 @@ const staggerContainer = {
 export function PaymentMethodSettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(false);
-  const [methods, setMethods] = useState<PaymentOptionsResponse[]>([]);
+  const [methods, setMethods] = useState<PaymentMethodsResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const defaultValues: PaymentMethodFormData = {
     name: "",
+    rozetkaId: 0
   };
 
   const fields = [
@@ -53,15 +55,19 @@ export function PaymentMethodSettings() {
       label: t('paymentMethodName'), 
       placeholder: t('paymentMethodNamePlaceholder') 
     },
-
+    {
+      name: "rozetkaId" as const,
+      label: t('rozetkaId'),
+      placeholder: t('rozetkaIdPlaceholder')
+    }
   ];
 
   useEffect(() => {
     const fetchMethods = async () => {
       try {
         setIsLoading(true);
-        const data = await paymentService.fetchAll();
-        setMethods(data);
+        const paymentMethods = await getAllPaymentMethods();
+        setMethods(paymentMethods.data || []);
       } catch (error) {
         console.error('Error fetching payment methods:', error);
         toast.error(t('error'), {
@@ -78,12 +84,12 @@ export function PaymentMethodSettings() {
   const onSubmit = async (data: PaymentMethodFormData) => {
     try {
       setIsLoading(true);
-      await paymentService.create(data);
-      toast.success(t('saveSuccess'), {
+      await createPaymentMethod(data);
+      toast.success(t('saveSuccess'), { 
         description: t('paymentMethodSaveSuccess'),
       });
-      const updatedMethods = await paymentService.fetchAll();
-      setMethods(updatedMethods);
+      const updatedMethods = await getAllPaymentMethods();
+      setMethods(updatedMethods.data || []);
       setIsFormOpen(false);
     } catch (error) {
       console.error('Error creating payment method:', error);
@@ -95,7 +101,7 @@ export function PaymentMethodSettings() {
     }
   };
 
-  const handleEdit = (method: PaymentOptionsResponse) => {
+  const handleEdit = (method: PaymentMethodsResponse) => {
     setEditingId(method.id);
   };
 
@@ -103,12 +109,12 @@ export function PaymentMethodSettings() {
     try {
       if (!data.name) return;
       
-      await paymentService.update(id, data);
+      await updatePaymentMethod({ name: data.name, id: id, rozetkaId: data.rozetkaId || 0 });
       toast.success(t('saveSuccess'), {
         description: t('paymentMethodUpdateSuccess'),
       });
-      const updatedMethods = await paymentService.fetchAll();
-      setMethods(updatedMethods);
+      const updatedMethods = await getAllPaymentMethods();
+      setMethods(updatedMethods.data || []);
       setEditingId(null);
     } catch (error) {
       console.error('Error updating payment method:', error);
@@ -120,17 +126,19 @@ export function PaymentMethodSettings() {
 
   const handleDelete = async (id: string) => {
     try {
-      await paymentService.delete(id);
+      await deletePaymentMethod({ id: id });
       toast.success(t('deleteSuccess'), {
         description: t('paymentMethodDeleteSuccess'),
       });
-      const updatedMethods = await paymentService.fetchAll();
-      setMethods(updatedMethods);
-    } catch (error) {
-      console.error('Error deleting payment method:', error);
-      toast.error(t('deleteError'), {
-        description: t('paymentMethodDeleteError'),
-      });
+      const updatedMethods = await getAllPaymentMethods();
+      setMethods(updatedMethods.data || []);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error deleting payment method:', error);
+        toast.error(t('deleteError'), {
+          description: t('paymentMethodDeleteError'),
+        });
+      }
     }
   };
 
@@ -215,7 +223,10 @@ export function PaymentMethodSettings() {
                                 e.target.value = method.name;
                                 return;
                               }
-                              handleSave(method.id, { name: e.target.value.trim() });
+                              handleSave(method.id, { 
+                                name: e.target.value.trim(),
+                                rozetkaId: method.rozetkaId || 0
+                              });
                             }}
                           />
                         ) : (

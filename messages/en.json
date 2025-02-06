@@ -278,5 +278,10 @@
       "november": "November",
       "december": "December"
     }
+  },
+  "Sync": {
+    "epicentrSyncComplete": "Epicentr sync completed: {synced} orders synced, {failed} failed",
+    "rozetkaSyncComplete": "Rozetka sync completed: {synced} orders synced, {failed} failed",
+    "promSyncComplete": "Prom sync completed: {synced} orders synced, {failed} failed"
   }
 }

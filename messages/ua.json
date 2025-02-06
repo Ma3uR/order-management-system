@@ -291,5 +291,10 @@
       "november": "Листопад",
       "december": "Грудень"
     }
+  },
+  "Sync": {
+    "epicentrSyncComplete": "Синхронізацію Epicentr завершено: {synced} замовлень синхронізовано, {failed} помилок",
+    "rozetkaSyncComplete": "Синхронізацію Rozetka завершено: {synced} замовлень синхронізовано, {failed} помилок",
+    "promSyncComplete": "Синхронізацію Prom завершено: {synced} замовлень синхронізовано, {failed} помилок"
   }
 }

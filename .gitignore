@@ -8,9 +8,10 @@ node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
-
+delivery-method-not-found.log
 # testing
 /coverage
+orders-validation-errors.log
 
 # next.js
 /.next/

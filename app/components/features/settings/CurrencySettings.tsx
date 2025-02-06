@@ -7,14 +7,14 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { Trash2 } from "lucide-react";
-import type { CurrencyOptionsResponse } from "@/app/types/pocketbase-types";
-import { currencyService } from "@/app/services/api";
+import type { CurrencyResponse } from "@/app/types/pocketbase-types";
 import { toast } from 'sonner';
+import { createCurrency, deleteCurrency, getDefaultCurrency } from "@/app/[locale]/settings/actions/currencies";
 
 export function CurrencySettings() {
   const t = useTranslations('Settings');
   const [isLoading, setIsLoading] = useState(true);
-  const [currencies, setCurrencies] = useState<CurrencyOptionsResponse[]>([]);
+  const [currencies, setCurrencies] = useState<CurrencyResponse[]>([]);
 
   const defaultValues: CurrencyFormData = {
     code: "",
@@ -32,8 +32,9 @@ export function CurrencySettings() {
   const fetchCurrencies = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await currencyService.fetchAll();
-      setCurrencies(data);
+      const currency = await getDefaultCurrency();
+      if (currency.error || !currency.data) throw new Error(currency.error || 'No data returned');
+      setCurrencies(Array.isArray(currency.data) ? currency.data : [currency.data]);
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(t('fetchError'), {
@@ -56,9 +57,8 @@ export function CurrencySettings() {
   const onSubmit = async (data: CurrencyFormData) => {
     setIsLoading(true);
     try {
-      const response = await currencyService.create(data);
-      
-      if (!response.ok) throw new Error('Failed to save currency');
+      const currency = await createCurrency(data);
+      if (currency.error) throw new Error(currency.error);
       
       toast.success(t('saveSuccess'), {
         description: t('currencySaveSuccess'),
@@ -83,9 +83,8 @@ export function CurrencySettings() {
   const handleDelete = async (id: string) => {
     setIsLoading(true);
     try {
-      const response = await currencyService.delete(id);
-
-      if (!response.ok) throw new Error('Failed to delete currency');
+      const currency = await deleteCurrency(id);
+      if (currency.error) throw new Error(currency.error);
 
       toast.success(t('deleteSuccess'), {
         description: t('currencyDeleteSuccess'),

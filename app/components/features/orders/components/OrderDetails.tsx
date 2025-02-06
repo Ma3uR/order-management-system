@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/shared/ui/dialog";
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select";
@@ -16,12 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Alert, AlertDescription } from "@/app/components/shared/ui/alert";
 import pb from '@/app/lib/pocketbase';
 import { Toaster, toast } from 'sonner';
-
-type Status = {
-  id: string;
-  name: string;
-  color: string;
-};
+import { Dialog, DialogTitle, DialogHeader, DialogContent } from '@/app/components/shared/ui/dialog';
 
 interface OrderDetailsProps {
   isOpen: boolean;
@@ -71,6 +65,7 @@ export function OrderDetails({
   const { deliveryMethods, paymentMethods, sources, statuses, isLoading } = useEntities();
   const [isBlacklisted] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const userActionRef = useRef<string | null>(null);
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderSchema),
@@ -87,17 +82,16 @@ export function OrderDetails({
       products: [],
       numberOfItems: 0,
       amount: 0,
-      created: new Date().toISOString(),
     },
   });
 
   useEffect(() => {
     if (order) {
-      const orderProducts = (order.products as Array<{ name: string; quantity: number; price: number }>).map(p => ({
-        title: p.name,
-        quantity: p.quantity,
-        price: p.price
-      }));
+      const orderProducts = (order.products as Array<{ title?: string; name?: string; quantity: number; price: number }>).map(p => ({
+        title: p.title || p.name || '',
+        quantity: Math.max(1, p.quantity || 0),
+        price: Math.max(0, p.price || 0)
+      })).filter(p => p.title && p.title.length > 0);
 
       form.reset({
         orderNumber: order.orderNumber,
@@ -112,7 +106,6 @@ export function OrderDetails({
         products: orderProducts,
         numberOfItems: order.numberOfItems,
         amount: order.amount,
-        created: order.created
       });
     }
   }, [order, form]);
@@ -125,15 +118,20 @@ export function OrderDetails({
 
     const setupSubscription = async () => {
       try {
-        unsubscribe = await pb.collection('orders').subscribe(order.id, (e) => {
-          if (e.action === 'update' && !isUpdating) {
+        unsubscribe = await pb.collection('orders').subscribe<OrdersResponse>(order.id, (e) => {
+          if (e.action === 'update') {
+            // Skip if this is our own update
+            if (userActionRef.current === order.id) {
+              return;
+            }
+
             // Update the form with new data
-            const updatedOrder = e.record as OrdersResponse;
-            const orderProducts = (updatedOrder.products as Array<{ name: string; quantity: number; price: number }>).map(p => ({
-              title: p.name,
-              quantity: p.quantity,
-              price: p.price
-            }));
+            const updatedOrder = e.record;
+            const orderProducts = (updatedOrder.products as Array<{ title?: string; name?: string; quantity: number; price: number }>).map(p => ({
+              title: p.title || p.name || '',
+              quantity: Math.max(1, p.quantity || 0),
+              price: Math.max(0, p.price || 0)
+            })).filter(p => p.title && p.title.length > 0);
 
             form.reset({
               orderNumber: updatedOrder.orderNumber,
@@ -148,67 +146,74 @@ export function OrderDetails({
               products: orderProducts,
               numberOfItems: updatedOrder.numberOfItems,
               amount: updatedOrder.amount,
-              created: updatedOrder.created
             });
 
-            toast("Order Updated", {
+            toast.info("Order Updated", {
               description: "The order has been updated by another user.",
             });
           }
+        }, {
+          expand: 'currency,status,source'
         });
+        
         console.log('Subscribed to order updates:', order.id);
       } catch (error) {
         console.error('Error subscribing to order updates:', error);
       }
     };
 
+    // Setup subscription immediately
     setupSubscription();
 
+    // Cleanup subscription when component unmounts or order/isOpen changes
     return () => {
       if (unsubscribe) {
         unsubscribe();
         console.log('Unsubscribed from order updates:', order.id);
       }
     };
-  }, [order, form, isOpen, isUpdating]);
+  }, [order, isOpen, form]); // Added order to dependencies
 
   const onSubmit = async (data: OrderFormData) => {
+    console.log('Form submitted with data:', data);  // Debug log
     if (!order) return;
 
     try {
       setIsUpdating(true);
+      userActionRef.current = order.id;
+      console.log('Attempting to update order:', order.id);  // Debug log
+
       const updateData: Partial<OrdersResponse> = {
-        orderNumber: data.orderNumber,
+        orderNumber: data.orderNumber.trim(),
         source: data.source,
         status: data.status,
         deliveryMethod: data.deliveryMethod,
-        deliveryPostNumber: data.deliveryPostNumber,
-        phoneNumber: data.phoneNumber,
-        fullName: data.fullName,
+        deliveryPostNumber: data.deliveryPostNumber?.trim(),
+        phoneNumber: data.phoneNumber.trim(),
+        fullName: data.fullName.trim(),
         paymentMethod: data.paymentMethod,
-        notes: data.notes,
+        notes: data.notes?.trim(),
         products: data.products.map(p => ({
-          name: p.title,
+          name: p.title.trim(),
           quantity: p.quantity,
           price: p.price
         })),
-        numberOfItems: data.numberOfItems,
-        amount: data.amount
+        numberOfItems: data.products.reduce((sum, p) => sum + p.quantity, 0),
+        amount: data.products.reduce((sum, p) => sum + (p.quantity * p.price), 0),
+        currency: order.currency
       };
 
+      console.log('Update payload:', updateData);  // Debug log
       await onUpdate(order.id, updateData);
       onClose();
-      
-      toast.success("Success", {
-        description: "Order updated successfully",
-      });
     } catch (error) {
       console.error('Error updating order:', error);
       toast.error("Error", {
-        description: "Failed to update order. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to update order. Please try again.",
       });
     } finally {
       setIsUpdating(false);
+      userActionRef.current = null;
     }
   };
 
@@ -229,42 +234,108 @@ export function OrderDetails({
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto pr-2">
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="orderNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{translations.orderNumber}</FormLabel>
-                        <FormControl>
-                          <Input {...field} readOnly />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              console.log('Form submit event triggered');
+              const formData = form.getValues();
+              console.log('Form values:', formData);
+              await onSubmit(formData);
+            }} className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-y-auto pr-2">
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="orderNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{translations.orderNumber}</FormLabel>
+                          <FormControl>
+                            <Input {...field} readOnly />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="source"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{translations.source}</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={translations.selectSource} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {sources.map(source => (
+                                <SelectItem key={source.id} value={source.id}>
+                                  {source.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{translations.status}</FormLabel>
+                          <FormControl>
+                            <StatusSelect
+                              status={field.value ? { 
+                                id: field.value,
+                                name: statuses.find(s => s.id === field.value)?.name || '',
+                                color: statuses.find(s => s.id === field.value)?.color || '#000000'
+                              } : undefined}
+                              statuses={statuses}
+                              onStatusChange={(statusId) => {
+                                field.onChange(statusId);
+                                if (!order) return Promise.resolve();
+                                return onStatusChange(order.id, statusId);
+                              }}
+                              translateStatus={translateStatus}
+                              getContrastColor={UtilityService.getContrastColor}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
-                    name="source"
+                    name="deliveryMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{translations.source}</FormLabel>
+                        <FormLabel>{translations.deliveryMethod}</FormLabel>
                         <Select
                           value={field.value}
                           onValueChange={field.onChange}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder={translations.selectSource} />
+                              <SelectValue placeholder={translations.selectDeliveryMethod} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {sources.map(source => (
-                              <SelectItem key={source.id} value={source.id}>
-                                {source.name}
+                            {deliveryMethods.map(method => (
+                              <SelectItem key={method.id} value={method.id}>
+                                {method.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -273,30 +344,68 @@ export function OrderDetails({
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="deliveryPostNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{translations.deliveryPostNumber}</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{translations.phoneNumber}</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={form.control}
-                    name="status"
+                    name="fullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{translations.status}</FormLabel>
+                        <FormLabel>{translations.fullName}</FormLabel>
                         <FormControl>
-                          <StatusSelect
-                            status={field.value ? { 
-                              id: field.value,
-                              name: statuses.find(s => s.id === field.value)?.name || '',
-                              color: statuses.find(s => s.id === field.value)?.color || '#000000'
-                            } : undefined}
-                            statuses={statuses as Status[]}
-                            onStatusChange={(statusId) => {
-                              field.onChange(statusId);
-                              if (!order) return Promise.resolve();
-                              return onStatusChange(order.id, statusId);
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="products"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.products}</FormLabel>
+                        <FormControl>
+                          <OrderProducts
+                            products={field.value}
+                            onChange={(products) => {
+                              field.onChange(products);
+                              const totalItems = products.reduce((sum: number, p) => sum + (p.quantity || 0), 0);
+                              const totalAmount = products.reduce((sum: number, p) => sum + ((p.quantity || 0) * (p.price || 0)), 0);
+                              form.setValue('numberOfItems', totalItems);
+                              form.setValue('amount', totalAmount);
                             }}
-                            translateStatus={translateStatus}
-                            getContrastColor={UtilityService.getContrastColor}
+                            translations={translations}
                           />
                         </FormControl>
                         <FormMessage />
@@ -304,183 +413,82 @@ export function OrderDetails({
                     )}
                   />
 
+                  {isBlacklisted && (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        {translations.blacklistedCustomerWarning}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <FormField
                     control={form.control}
-                    name="created"
+                    name="paymentMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{translations.createdAt}</FormLabel>
+                        <FormLabel>{translations.paymentMethod}</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={isBlacklisted}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={translations.selectPaymentMethod} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {paymentMethods
+                              .filter(method => !isBlacklisted || method.name.toLowerCase().includes('prepayment'))
+                              .map(method => (
+                                <SelectItem key={method.id} value={method.id}>
+                                  {method.name}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.notes}</FormLabel>
                         <FormControl>
-                          <Input
-                            value={new Date(field.value).toLocaleString()}
-                            readOnly
+                          <Textarea
+                            {...field}
+                            placeholder={translations.notesPlaceholder}
+                            className="min-h-[100px]"
                           />
                         </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="deliveryMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translations.deliveryMethod}</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={translations.selectDeliveryMethod} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {deliveryMethods.map(method => (
-                            <SelectItem key={method.id} value={method.id}>
-                              {method.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="deliveryPostNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{translations.deliveryPostNumber}</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phoneNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{translations.phoneNumber}</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translations.fullName}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="products"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translations.products}</FormLabel>
-                      <FormControl>
-                        <OrderProducts
-                          products={field.value}
-                          onChange={(products) => {
-                            field.onChange(products);
-                            const totalItems = products.reduce((sum: number, p) => sum + (p.quantity || 0), 0);
-                            const totalAmount = products.reduce((sum: number, p) => sum + ((p.quantity || 0) * (p.price || 0)), 0);
-                            form.setValue('numberOfItems', totalItems);
-                            form.setValue('amount', totalAmount);
-                          }}
-                          translations={translations}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {isBlacklisted && (
-                  <Alert variant="destructive">
-                    <AlertDescription>
-                      {translations.blacklistedCustomerWarning}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translations.paymentMethod}</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={isBlacklisted}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={translations.selectPaymentMethod} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {paymentMethods
-                            .filter(method => !isBlacklisted || method.name.toLowerCase().includes('prepayment'))
-                            .map(method => (
-                              <SelectItem key={method.id} value={method.id}>
-                                {method.name}
-                              </SelectItem>
-                            ))
-                          }
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translations.notes}</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder={translations.notesPlaceholder}
-                          className="min-h-[100px]"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
-              <DialogFooter>
-                <Button type="submit" className="w-full">
-                  {translations.updateOrder}
+              <div className="flex justify-end gap-2 py-4 px-2 border-t border-border bg-background mt-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isUpdating}
+                >
+                  Cancel
                 </Button>
-              </DialogFooter>
+                <Button
+                  type="submit"
+                  disabled={isUpdating || !form.formState.isDirty}
+                >
+                  {isUpdating ? "Updating..." : translations.updateOrder}
+                </Button>
+              </div>
             </form>
           </Form>
         </DialogContent>

@@ -1,4 +1,4 @@
-import { StatusOptionsResponse } from '@/app/types/pocketbase-types';
+import { StatusResponse } from '@/app/types/pocketbase-types';
 import { Label } from "@/app/components/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select";
 import { Button } from "@/app/components/shared/ui/button";
@@ -20,7 +20,7 @@ export interface FilterOptions {
 interface OrderFiltersProps {
   filters: FilterOptions
   onFiltersChange: (filters: FilterOptions) => void
-  statuses: StatusOptionsResponse[]
+  statuses: StatusResponse[]
   maxAmount: number
   translations: {
     filters: string
