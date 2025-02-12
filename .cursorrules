@@ -1,0 +1,143 @@
+{
+  "ignore": [
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    ".env",
+    ".env.local",
+    ".env.typegen",
+    "*.log"
+  ],
+  "formatOnSave": true,
+  "defaultLinter": "eslint",
+  "defaultFormatter": "prettier",
+  "search": {
+    "excludePatterns": [
+      "node_modules/**",
+      ".next/**",
+      "dist/**",
+      "build/**",
+      ".env*",
+      "*.log"
+    ]
+  },
+  "editor": {
+    "tabSize": 2,
+    "insertSpaces": true,
+    "detectIndentation": true,
+    "trimTrailingWhitespace": true,
+    "insertFinalNewline": true
+  },
+  "typescript": {
+    "checkJs": true,
+    "enablePromptUseWorkspaceTsdk": true
+  },
+  "projectStructure": {
+    "core": {
+      "actions": "app/actions/*",
+      "components": "app/components/features/*",
+      "validations": "app/lib/validations/*",
+      "types": "app/types/*",
+      "database": "app/lib/pocketbase.ts"
+    },
+    "features": {
+      "orders": {
+        "management": "app/components/features/orders/OrdersManagement.tsx",
+        "actions": "app/[locale]/orders/actions/*",
+        "sync": "app/[locale]/orders/actions/sync.ts"
+      },
+      "settings": {
+        "components": "app/components/features/settings/*",
+        "actions": "app/[locale]/settings/actions/*"
+      },
+      "blacklist": {
+        "actions": "app/[locale]/blacklist/actions/*"
+      }
+    }
+  },
+  "logicDescription": {
+    "mainFeatures": {
+      "orderManagement": "Handles order processing from multiple marketplaces (Rozetka, Epicentr, Prom.ua)",
+      "statusMapping": "Maps marketplace-specific statuses to internal system statuses",
+      "orderSync": "Synchronizes orders across different platforms and updates their statuses",
+      "blacklist": "Manages blocked items and customers",
+      "settings": "Manages settings for the application (statuses, payment methods, delivery methods etc.)",
+      "orderMerging": {
+        "description": "Automatically detects and merges duplicate orders from the same customer across marketplaces",
+        "workflow": [
+          "1. Detect unprocessed orders with matching customer data (name/phone)",
+          "2. Notify user about potential merge",
+          "3. Merge common fields automatically",
+          "4. Request user resolution for conflicting fields",
+          "5. Combine product arrays",
+          "6. Create marketplace ID collection",
+          "7. Sync status changes across all merged marketplace orders"
+        ]
+      },
+      "deliveryIntegration": {
+        "description": "Manages delivery tracking and customer notifications for postal services",
+        "services": {
+          "novaPoshta": "Integration for generating TTN and tracking",
+          "ukrPoshta": "Integration for generating TTN and tracking",
+          "notifications": "Auto-messaging system for unclaimed packages"
+        }
+      },
+      "billing": {
+        "description": "Integration with Kasa.vchasno for bill generation and management",
+        "features": [
+          "Generate bills for order(s)",
+          "Open a working shift",
+          "Closing a working shift"
+        ]
+      },
+      "aiAssistant": {
+        "description": "AI-powered order management assistant",
+        "capabilities": [
+          "Basic order queries and search",
+          "Reports generation"
+        ]
+      },
+      "productManagement": {
+        "description": "Enhanced product tracking with production costs",
+        "features": [
+          "Track production costs per product",
+          "Calculate profit margins"
+        ]
+      }
+    },
+    "integrations": {
+      "rozetka": "Integration with Rozetka marketplace API",
+      "epicentr": "Integration with Epicentr marketplace API",
+      "promUa": "Integration with Prom.ua marketplace API",
+      "novaPoshta": "Integration with NovaPoshta API for delivery tracking and TTN generation",
+      "ukrPoshta": "Integration with UkrPoshta API for delivery tracking and TTN generation",
+      "kasaVchasno": "Integration with Kasa.vchasno API for bill generation",
+      "messagingApi": "Integration with messaging services for customer notifications",
+      "pocketbase": "Integration with PocketBase database for data storage and retrieval"
+    },
+    "dataFlow": {
+      "orderProcessing": "1. Fetch orders from marketplaces -> 2. Map statuses -> 3. Store in PocketBase -> 4. Sync status updates",
+      "statusUpdates": "1. Receive status change -> 2. Map to marketplace status -> 3. Update marketplace -> 4. Update local database",
+      "orderMerging": "1. Detect duplicates -> 2. User confirmation -> 3. Merge data -> 4. Update all marketplace orders",
+      "deliveryTracking": "1. Generate TTN -> 2. Monitor status -> 3. Send notifications -> 4. Update order status",
+      "billing": "1. Open shift -> 2. Generate bill -> 3. Close shift"
+    },
+    "dataStructureChanges": {
+      "products": {
+        "newFields": {
+          "productionCost": "Tracks the cost of producing/acquiring the product",
+          "profitMargin": "Calculated field based on price and production cost"
+        }
+      },
+      "orders": {
+        "newFields": {
+          "mergedOrders": "Array of related order IDs for merged orders",
+          "originalMarketplaceIds": "Collection of marketplace IDs for merged orders",
+          "ttnNumbers": "Delivery tracking numbers for different postal services",
+          "billReference": "Reference to Kasa.vchasno bill"
+        }
+      }
+    }
+  }
+} 
