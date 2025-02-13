@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { OrdersRecord } from "@/app/types/pocketbase-types";
+import { OrdersRecord, OrdersMergeStatusOptions, OrdersMergeSourceOptions } from "@/app/types/pocketbase-types";
 
 const productSchema = z.object({
   title: z.string().min(1, "Product name is required"),
@@ -11,17 +11,21 @@ export const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
   marketplaceId: z.string().optional(),
   source: z.string().min(1, "Source is required"),
-  status: z.string().min(1, "Status is required"),
-  deliveryMethod: z.string().min(1, "Delivery method is required"),
+  deliveryMethod: z.string().min(1, "Delivery method is required"), 
   deliveryPostNumber: z.string().optional(),
   phoneNumber: z.string().min(1, "Phone number is required"),
   fullName: z.string().min(1, "Full name is required"),
-  paymentMethod: z.string().min(1, "Payment method is required"),
-  notes: z.string().optional(),
-  products: z.array(productSchema).min(1, "At least one product is required"),
+  products: z.array(productSchema).min(1, "At least one product is required").nullable(),
   numberOfItems: z.number().min(1, "Number of items must be at least 1"),
   amount: z.number().min(0, "Amount must be non-negative"),
-  currency: z.string().min(1, "Currency is required"),  
+  status: z.string().min(1, "Status is required"),
+  currency: z.string().min(1, "Currency is required"),
+  paymentMethod: z.string().min(1, "Payment method is required"),
+  notes: z.string().optional(),
+  mergeStatus: z.nativeEnum(OrdersMergeStatusOptions),
+  mergedWithOrderId: z.string().optional(),
+  originalOrders: z.array(z.any()).nullable().optional(),
+  mergeSource: z.nativeEnum(OrdersMergeSourceOptions).optional()
 }) satisfies z.ZodType<OrdersRecord>;
 
 export type OrderFormData = z.infer<typeof orderSchema>;

@@ -68,7 +68,19 @@ export type DeliveryOptionsRecord = {
 	isDefault?: boolean
 }
 
-export type OrdersRecord<Tproducts = unknown> = {
+export enum OrdersMergeStatusOptions {
+	"none" = "none",
+	"pending" = "pending",
+	"merged" = "merged",
+	"rejected" = "rejected",
+}
+
+export enum OrdersMergeSourceOptions {
+	"phone" = "phone",
+	"name" = "name",
+}
+
+export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown> = {
 	orderNumber: string
 	marketplaceId?: string
 	source: string
@@ -83,6 +95,10 @@ export type OrdersRecord<Tproducts = unknown> = {
 	currency: RecordIdString
 	paymentMethod: RecordIdString
 	notes?: string
+	mergeStatus: OrdersMergeStatusOptions
+	mergedWithOrderId?: string
+	originalOrders?: null | ToriginalOrders
+	mergeSource?: OrdersMergeSourceOptions
 }
 
 export type PaymentOptionsRecord = {
