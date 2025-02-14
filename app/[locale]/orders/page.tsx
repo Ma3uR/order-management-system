@@ -3,6 +3,15 @@ import { OrdersManagement } from '@/app/components/features/orders/OrdersManagem
 import { fetchOrders } from '@/app/lib/pocketbase';
 import { ErrorBoundaryClient } from '@/app/components/layouts/providers/ErrorBoundary';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
+import { getOrdersFromSourceText, getOrdersCombinedText } from './actions/translations';
+
+// Add type definition before the component
+type ProductItem = {
+  title?: string;
+  name?: string;
+  quantity: number;
+  price: number;
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -81,31 +90,69 @@ export default async function OrdersPage() {
     price: t('price'),
     product: t('product'),
     totalItems: t('totalItems'),
+    mergeStatus: t('mergeStatus'),
+    selectMergeStatus: t('selectMergeStatus'),
+    mergeNotification: {
+      title: t('mergeNotification.title'),
+      description: t('mergeNotification.description'),
+      phoneMatch: t('mergeNotification.phoneMatch'),
+      nameMatch: t('mergeNotification.nameMatch'),
+      confirmButton: t('mergeNotification.confirmButton'),
+      rejectButton: t('mergeNotification.rejectButton')
+    },
+    mergeConfirmation: t('mergeConfirmation'),
+    mergeDescription: t('mergeDescription'),
+    mergeReview: t('mergeReview'),
+    keepSeparate: t('keepSeparate'),
+    mergeSuccess: t('mergeSuccess'),
+    mergeError: t('mergeError'),
+    mergedOrderSummary: t('mergedOrderSummary'),
+    ordersFromSource: getOrdersFromSourceText,
+    ordersCombined: getOrdersCombinedText,
+    originalOrders: t('originalOrders'),
+    mergeRejected: t('mergeRejected'),
+    mergeRejectionError: t('mergeRejectionError'),
+    cancel: t('cancel'),
+    confirm: t('confirm'),
   };
 
   return (
     <ErrorBoundaryClient>
       <OrdersManagement 
         translations={translations} 
-        initialOrders={orders.map(order => ({
-          ...order,
-          orderNumber: order.orderNumber || '',
-          source: order.source || '',
-          deliveryMethod: order.deliveryMethod || '',
-          deliveryPostNumber: order.deliveryPostNumber || '',
-          phoneNumber: order.phoneNumber || '',
-          fullName: order.fullName || '',
-          products: typeof order.products === 'string' ? JSON.parse(order.products) : order.products || [],
-          numberOfItems: order.numberOfItems || 0,
-          paymentMethod: order.paymentMethod || '',
-          amount: order.amount || 0,
-          status: order.status || '',
-          currency: order.currency || '',
-          createdAt: order.created || new Date().toISOString(),
-          updatedAt: order.updated || new Date().toISOString(),
-          productsText: typeof order.products === 'string' ? order.products : JSON.stringify(order.products || [], null, 2),
-          notes: order.notes || ''
-        }) as unknown as OrdersResponse)} 
+        initialOrders={orders.map(order => {
+          // Parse products if they're a string
+          const products = typeof order.products === 'string' 
+            ? JSON.parse(order.products)
+            : (Array.isArray(order.products) ? order.products : []);
+
+          // Ensure each product has required fields
+          const validProducts = products.map((product: ProductItem) => ({
+            title: product.title || product.name || 'Untitled Product',
+            quantity: Math.max(1, product.quantity || 1),
+            price: Math.max(0, product.price || 0)
+          }));
+
+          return {
+            ...order,
+            orderNumber: order.orderNumber || '',
+            source: order.source || '',
+            deliveryMethod: order.deliveryMethod || '',
+            deliveryPostNumber: order.deliveryPostNumber || '',
+            phoneNumber: order.phoneNumber || '',
+            fullName: order.fullName || '',
+            products: validProducts,
+            numberOfItems: order.numberOfItems || validProducts.reduce((sum: number, p: { quantity: number }) => sum + p.quantity, 0),
+            paymentMethod: order.paymentMethod || '',
+            amount: order.amount || validProducts.reduce((sum: number, p: { price: number; quantity: number }) => sum + (p.price * p.quantity), 0),
+            status: order.status || '',
+            currency: order.currency || '',
+            created: order.created || new Date().toISOString(),
+            updated: order.updated || new Date().toISOString(),
+            notes: order.notes || '',
+            mergeStatus: order.mergeStatus || 'none'
+          } as unknown as OrdersResponse;
+        })} 
       />
     </ErrorBoundaryClient>
   );

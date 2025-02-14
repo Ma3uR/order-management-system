@@ -90,7 +90,31 @@
     "price": "Price",
     "product": "Product",
     "totalItems": "Total items",
-    "totalAmount": "Total amount"
+    "totalAmount": "Total amount",
+    "mergeStatus": "Merge Status",
+    "selectMergeStatus": "Select Merge Status",
+    "mergeNotification": {
+      "title": "Potential Duplicate Orders Found",
+      "description": "We've detected orders that may be duplicates based on customer information",
+      "phoneMatch": "Phone number matches",
+      "nameMatch": "Customer name matches",
+      "confirmButton": "Review & Merge",
+      "rejectButton": "Keep Separate"
+    },
+    "mergeConfirmation": "Confirm Order Merge",
+    "mergeDescription": "Review the orders below before confirming the merge. All orders will be combined into a single order.",
+    "mergeReview": "Review & Merge",
+    "keepSeparate": "Keep Separate",
+    "mergeSuccess": "Orders merged successfully",
+    "mergeError": "Failed to merge orders",
+    "mergedOrderSummary": "Merged Order Summary",
+    "ordersFromSource": "Order #{number} from {source}",
+    "ordersCombined": "{count} Orders Combined",
+    "originalOrders": "Original Orders",
+    "mergeRejected": "Orders will be kept separate",
+    "mergeRejectionError": "Failed to update orders",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   },
   "Blacklist": {
     "title": "Blacklist Management",

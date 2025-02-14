@@ -76,6 +76,7 @@ export enum OrdersMergeStatusOptions {
 }
 
 export enum OrdersMergeSourceOptions {
+	"none" = "none",
 	"phone" = "phone",
 	"name" = "name",
 }

@@ -57,6 +57,21 @@
     }
   },
   "logicDescription": {
+    "internationalization": {
+      "description": "Next.js application localization using next-intl",
+      "features": {
+        "translationFiles": "messages/{locale}.json structure",
+        "componentUsage": "useTranslations hook with namespace support",
+        "supportedLanguages": ["en", "ua"],
+        "autoImport": "Components automatically get access to translations"
+      },
+      "translationStructure": {
+        "namespaces": ["Orders", "Settings", "Blacklist", "Dashboard"],
+        "nesting": "Dot notation for nested translations (e.g: 'Orders.mergeNotification.title')",
+        "plurals": "Automatic pluralization handling through count parameter",
+        "variables": "Dynamic value insertion using {variable} syntax"
+      }
+    },
     "mainFeatures": {
       "orderManagement": "Handles order processing from multiple marketplaces (Rozetka, Epicentr, Prom.ua)",
       "statusMapping": "Maps marketplace-specific statuses to internal system statuses",

@@ -482,10 +482,16 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
     status: defaultStatus,
     currency: defaultCurrency.items[0].id,
     notes: epicentrOrder.comment || '',
-    deliveryPostNumber: deliveryAddress.data?.officeAddress || 'Уточнюйте на сайті епіцентра'
+    deliveryPostNumber: deliveryAddress.data?.officeAddress || 'Уточнюйте на сайті епіцентра',
+    mergeSource: 'none',
+    mergeStatus: 'none'
   };
 
-  const validationResult = orderSchema.safeParse(orderData);
+  const validationResult = orderSchema.safeParse({
+    ...orderData,
+    mergeSource: orderData.mergeSource || 'none',
+    mergeStatus: orderData.mergeStatus || 'none'
+  });
   if (!validationResult.success) {
     appendFileSync(
       'orders-validation-errors.log',

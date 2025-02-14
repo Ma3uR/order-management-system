@@ -8,13 +8,28 @@ import { DeliveryOptionsResponse, PaymentMethodsResponse, CurrencyResponse, Stat
 import { Collections } from "@/app/types/pocketbase-types";
 import { syncOrders } from "./sync";
 
+// Create a type for product items
+interface ProductItem {
+  title?: string;
+  // Add other product fields as needed
+  [key: string]: unknown;
+}
+
 export const getOrders = async () => {
     try {
         const orders = await authenticatedCall(() => pb.collection('orders').getFullList({
             sort: '-created',
             expand: 'deliveryMethod,paymentMethod,status,currency'
         }));
-        const validatedOrders = orders.map(order => validatePocketbaseResponse(order, orderSchema));
+        const validatedOrders = orders.map(order => validatePocketbaseResponse({
+            ...order,
+            mergeSource: order.mergeSource === '' ? undefined : order.mergeSource,
+            mergeStatus: order.mergeStatus === '' ? undefined : order.mergeStatus,
+            products: order.products?.map((p: ProductItem) => ({
+                ...p,
+                title: p.title || 'Untitled Product'
+            }))
+        }, orderSchema));
         return { error: undefined, data: validatedOrders };
     } catch (error: unknown) {
         if (error instanceof Error) {   
@@ -29,7 +44,15 @@ export const getOrders = async () => {
 export const getOrder = async (id: string)=>{
     try {
         const order = await authenticatedCall(() => pb.collection('orders').getOne(id));
-        const validatedOrder = validatePocketbaseResponse(order, orderSchema);
+        const validatedOrder = validatePocketbaseResponse({
+            ...order,
+            mergeSource: order.mergeSource === '' ? undefined : order.mergeSource,
+            mergeStatus: order.mergeStatus === '' ? undefined : order.mergeStatus,
+            products: order.products?.map((p: ProductItem) => ({
+                ...p,
+                title: p.title || 'Untitled Product'
+            }))
+        }, orderSchema);
         return { error: undefined, data: validatedOrder };
     } catch (error: unknown) {
         if (error instanceof Error) {
