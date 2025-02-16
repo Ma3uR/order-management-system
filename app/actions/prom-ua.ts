@@ -448,7 +448,6 @@ async function processOrder(promOrder: PromOrderResponse) {
     mergeSource: 'none',
     mergeStatus: 'none',
     archived: false,
-    marketplaceIds: promOrder.id.toString()
   };
 
   const safeData = {

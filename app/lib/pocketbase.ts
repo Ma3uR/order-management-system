@@ -89,7 +89,7 @@ export async function fetchOrders(): Promise<OrdersResponse[]> {
             }))
           : [],
         // Use the validated mergeSource
-        mergeSource: validMergeSource,
+        mergeSource: validMergeSource || OrdersMergeSourceOptions.none,
         // Ensure mergeStatus has a valid value
         mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none
       };
