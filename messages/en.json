@@ -114,7 +114,8 @@
     "mergeRejected": "Orders will be kept separate",
     "mergeRejectionError": "Failed to update orders",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "allSources": "All Sources"
   },
   "Blacklist": {
     "title": "Blacklist Management",

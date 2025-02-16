@@ -498,8 +498,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           order.fullName.toLowerCase().includes(filterText.toLowerCase()) ||
           (order.products && JSON.stringify(order.products).toLowerCase().includes(filterText.toLowerCase()))
         const matchesArchived = order.archived === filters.archived;
+        const matchesSource = !filters.source || order.source === filters.source;
         
-        return matchesStatus && matchesMergeStatus && matchesText && matchesArchived
+        return matchesStatus && matchesMergeStatus && matchesText && matchesArchived && matchesSource
       })
       .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()) // Sort by creation date, newest first
   }, [orders, filters, filterText])
@@ -811,7 +812,20 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       archived: false
                     })}
                     statuses={statuses}
-                    translations={translations}
+                    sources={sources}
+                    translations={{
+                      filters: translations.filters,
+                      status: translations.status,
+                      selectStatus: translations.selectStatus,
+                      all: translations.all,
+                      amountRange: translations.amountRange,
+                      resetFilters: translations.resetFilters,
+                      dateRange: translations.dateRange,
+                      selectDateRange: translations.selectDateRange,
+                      mergeStatus: translations.mergeStatus,
+                      selectMergeStatus: translations.selectMergeStatus,
+                      selectSource: translations.selectSource
+                    }}
                     onToggleArchived={handleToggleArchived}
                   />
                 </ScrollArea>

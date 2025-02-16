@@ -22,6 +22,7 @@ export interface FilterOptions {
     max: number
   }
   archived?: boolean;
+  source?: string;
 }
 
 interface OrderFiltersProps {
@@ -39,9 +40,11 @@ interface OrderFiltersProps {
     selectDateRange: string
     mergeStatus: string
     selectMergeStatus: string
+    selectSource: string
   }
   statuses: Array<{ id: string; name: string }>
   onToggleArchived: () => void
+  sources: SourcesResponse[]
 }
 
 export function OrderFilters({
@@ -51,6 +54,7 @@ export function OrderFilters({
   translations,
   statuses,
   onToggleArchived,
+  sources,
 }: OrderFiltersProps) {
   const handleAmountRangeChange = (value: number[]) => {
     onFilterChange({
@@ -179,6 +183,25 @@ export function OrderFilters({
             </Popover>
           </div>
         </div>
+
+        <Select
+          value={filters.source || ""}
+          onValueChange={(value) =>
+            onFilterChange({ ...filters, source: value })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={translations.selectSource} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">{translations.all}</SelectItem>
+            {sources.map((source) => (
+              <SelectItem key={source.id} value={source.id}>
+                {source.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <Button variant="outline" onClick={onReset}>
           {translations.resetFilters}
