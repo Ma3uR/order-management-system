@@ -37,7 +37,7 @@ Automated order merging system that detects potential duplicate orders based on 
 | Priority | Field          | Matching Logic                |
 |----------|----------------|--------------------------------|
 | 1        | Phone Number   | Exact match (normalized)       |
-| 2        | Full Name      | Levenshtein distance < 2       |
+| 2        | Full Name      | Exact match       |
 
 ## Conflict Resolution Options
 1. **Automatic**
@@ -56,7 +56,7 @@ Automated order merging system that detects potential duplicate orders based on 
    - Targets: Unprocessed orders with lowest priority status
    - Matching Priorities:
      1. Phone Numbers: Exact match after normalization
-     2. Customer Names: Similar names (Levenshtein distance < 2)
+     2. Customer Names: Exact match
 
 2. **User Interaction**
    - Notification shows match type (phone/name) and order count
@@ -89,3 +89,5 @@ Automated order merging system that detects potential duplicate orders based on 
 - Customer information integrity
 
 The system prioritizes preventing accidental merges while ensuring accurate order consolidation when needed.
+
+![Order Merging Flow](./order-merging-flow.png)
