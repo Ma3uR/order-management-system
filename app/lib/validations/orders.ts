@@ -26,7 +26,8 @@ export const orderSchema = z.object({
   mergedWithOrderId: z.string().optional(),
   originalOrders: z.array(z.any()).nullable().optional(),
   mergeSource: z.nativeEnum(OrdersMergeSourceOptions),
-  archived: z.boolean().optional()
+  archived: z.boolean().optional(),
+  productionCost: z.number().min(0, "Production cost must be non-negative").optional(),
 }) satisfies z.ZodType<OrdersRecord>;
 
 export type OrderFormData = z.infer<typeof orderSchema>;

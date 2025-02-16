@@ -43,6 +43,7 @@ interface OrderCreateProps {
     price: string;
     totalItems: string;
     totalAmount: string;
+    productionCost: string;
   };
   deliveryMethods: DeliveryOptionsResponse[];
   paymentMethods: PaymentMethodsResponse[];
@@ -72,6 +73,7 @@ export function OrderCreate({
     paymentMethod: '',
     currency: defaultCurrencyId,
     notes: '',
+    productionCost: 0,
   });
 
   const [productInputs, setProductInputs] = useState<ProductInput[]>([
@@ -93,14 +95,18 @@ export function OrderCreate({
         paymentMethod: '',
         currency: defaultCurrencyId,
         notes: '',
+        productionCost: 0,
       });
       setProductInputs([{ title: '', quantity: 1, price: 0 }]);
       setIsBlacklisted(false);
     }
   }, [isOpen, defaultCurrencyId, clearValidationErrors]);
 
-  const handleInputChange = (name: string, value: string) => {
-    setOrderData(prev => ({ ...prev, [name]: value }));
+  const handleInputChange = (name: string, value: string | number) => {
+    setOrderData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -254,6 +260,22 @@ export function OrderCreate({
               error={validationErrors.products}
               translations={translations}
             />
+
+            <div className="space-y-2">
+              <Label>{translations.productionCost}</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                name="productionCost"
+                value={orderData.productionCost || ''}
+                onChange={(e) => handleInputChange('productionCost', Number(e.target.value))}
+                className={validationErrors.productionCost ? "border-destructive" : ""}
+              />
+              {validationErrors.productionCost && (
+                <p className="text-sm text-destructive">{validationErrors.productionCost}</p>
+              )}
+            </div>
 
             {isBlacklisted && (
               <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/50 p-4 border-l-4 border-yellow-400 dark:border-yellow-600">

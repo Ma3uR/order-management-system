@@ -101,6 +101,7 @@ export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown> = {
 	originalOrders?: null | ToriginalOrders
 	mergeSource: OrdersMergeSourceOptions
 	archived?: boolean
+	productionCost?: number
 }
 
 export type PaymentOptionsRecord = {

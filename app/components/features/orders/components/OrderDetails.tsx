@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { OrdersResponse } from '@/app/types/pocketbase-types';
+import { OrdersMergeSourceOptions, OrdersMergeStatusOptions, OrdersResponse } from '@/app/types/pocketbase-types';
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select";
@@ -49,6 +49,7 @@ interface OrderDetailsProps {
     status: string;
     createdAt: string;
     updateOrder: string;
+    productionCost: string;
   };
   translateStatus: (status: string) => string;
 }
@@ -82,6 +83,7 @@ export function OrderDetails({
       products: [],
       numberOfItems: 0,
       amount: 0,
+      productionCost: 0,
     },
   });
 
@@ -106,6 +108,9 @@ export function OrderDetails({
         products: orderProducts,
         numberOfItems: order.numberOfItems,
         amount: order.amount,
+        productionCost: order.productionCost || 0,
+        mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none,
+        mergeSource: order.mergeSource || OrdersMergeSourceOptions.none,
       });
     }
   }, [order, form]);
@@ -146,6 +151,9 @@ export function OrderDetails({
               products: orderProducts,
               numberOfItems: updatedOrder.numberOfItems,
               amount: updatedOrder.amount,
+              productionCost: updatedOrder.productionCost || 0,
+              mergeStatus: updatedOrder.mergeStatus || OrdersMergeStatusOptions.none,
+              mergeSource: updatedOrder.mergeSource || OrdersMergeSourceOptions.none,
             });
 
             toast.info("Order Updated", {
@@ -175,45 +183,31 @@ export function OrderDetails({
   }, [order, isOpen, form]); // Added order to dependencies
 
   const onSubmit = async (data: OrderFormData) => {
-    console.log('Form submitted with data:', data);  // Debug log
     if (!order) return;
 
     try {
-      setIsUpdating(true);
-      userActionRef.current = order.id;
-      console.log('Attempting to update order:', order.id);  // Debug log
+        setIsUpdating(true);
+        userActionRef.current = order.id;
 
-      const updateData: Partial<OrdersResponse> = {
-        orderNumber: data.orderNumber.trim(),
-        source: data.source,
-        status: data.status,
-        deliveryMethod: data.deliveryMethod,
-        deliveryPostNumber: data.deliveryPostNumber?.trim(),
-        phoneNumber: data.phoneNumber.trim(),
-        fullName: data.fullName.trim(),
-        paymentMethod: data.paymentMethod,
-        notes: data.notes?.trim(),
-        products: (data.products ?? []).map(p => ({
-          name: p.title.trim(),
-          quantity: p.quantity,
-          price: p.price
-        })),
-        numberOfItems: (data.products ?? []).reduce((sum, p) => sum + p.quantity, 0),
-        amount: (data.products ?? []).reduce((sum, p) => sum + (p.quantity * p.price), 0),
-        currency: order.currency
-      };
-
-      console.log('Update payload:', updateData);  // Debug log
-      await onUpdate(order.id, updateData);
-      onClose();
+        
+        const updateData = {
+            ...data,
+            productionCost: Number(data.productionCost),
+            // Ensure we include all required fields
+            currency: order.currency,
+            mergeStatus: order.mergeStatus,
+            mergeSource: order.mergeSource
+        };
+        
+        await onUpdate(order.id, updateData);
+        onClose();
     } catch (error) {
-      console.error('Error updating order:', error);
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Failed to update order. Please try again.",
-      });
+        toast.error("Update failed", {
+            description: error instanceof Error ? error.message : "Please try again"
+        });
     } finally {
-      setIsUpdating(false);
-      userActionRef.current = null;
+        setIsUpdating(false);
+        userActionRef.current = null;
     }
   };
 
@@ -406,6 +400,32 @@ export function OrderDetails({
                               form.setValue('amount', totalAmount);
                             }}
                             translations={translations}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="productionCost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{translations.productionCost}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            {...field}
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = e.target.value ? Number(e.target.value) : 0;
+                              console.log('Input change value:', value);
+                              field.onChange(value);
+                            }}
+                            className={form.formState.errors.productionCost ? "border-destructive" : ""}
                           />
                         </FormControl>
                         <FormMessage />

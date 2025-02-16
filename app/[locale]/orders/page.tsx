@@ -114,6 +114,7 @@ export default async function OrdersPage() {
     mergeRejectionError: t('mergeRejectionError'),
     cancel: t('cancel'),
     confirm: t('confirm'),
+    productionCost: t('productionCost'),
   };
 
   return (

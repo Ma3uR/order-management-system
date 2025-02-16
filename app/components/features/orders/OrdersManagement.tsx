@@ -378,7 +378,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         numberOfItems: validProducts.reduce((sum, p) => sum + p.quantity, 0),
         amount: validProducts.reduce((sum, p) => sum + (p.quantity * p.price), 0),
         originalOrders: Array.isArray(order.originalOrders) ? order.originalOrders : null,
-        mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none
+        mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none,
+        productionCost: order.productionCost || 0
       };
 
       const result = await updateOrder(orderId, updatePayload);
@@ -889,7 +890,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 deliveryPostNumber: orderData.deliveryPostNumber,
                 mergeStatus: OrdersMergeStatusOptions.none,
                 originalOrders: null,
-                mergeSource: OrdersMergeSourceOptions.phone
+                mergeSource: OrdersMergeSourceOptions.phone,
+                productionCost: orderData.productionCost || selectedOrder.productionCost
               };
 
               const result = await updateOrder(orderId, updatePayload);
