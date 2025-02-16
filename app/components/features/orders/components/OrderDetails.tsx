@@ -193,13 +193,13 @@ export function OrderDetails({
         fullName: data.fullName.trim(),
         paymentMethod: data.paymentMethod,
         notes: data.notes?.trim(),
-        products: data.products.map(p => ({
+        products: (data.products ?? []).map(p => ({
           name: p.title.trim(),
           quantity: p.quantity,
           price: p.price
         })),
-        numberOfItems: data.products.reduce((sum, p) => sum + p.quantity, 0),
-        amount: data.products.reduce((sum, p) => sum + (p.quantity * p.price), 0),
+        numberOfItems: (data.products ?? []).reduce((sum, p) => sum + p.quantity, 0),
+        amount: (data.products ?? []).reduce((sum, p) => sum + (p.quantity * p.price), 0),
         currency: order.currency
       };
 

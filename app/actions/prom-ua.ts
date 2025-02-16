@@ -262,7 +262,7 @@ class PromUaAPI {
         sort: '-created'
       });
     });
-    return orders.items[0]?.marketplaceId;
+    return orders.items[0]?.marketplaceIds;
   }
 
   async getOrderStatuses() {
@@ -429,7 +429,7 @@ async function processOrder(promOrder: PromOrderResponse) {
   const orderData = {
     source: 'gfzk8nxfokgu9ku',
     orderNumber: promOrder.id.toString(),
-    marketplaceId: promOrder.id.toString(),
+    marketplaceIds: promOrder.id.toString(),
     phoneNumber: promOrder.phone,
     fullName,
     products: promOrder.products.map(item => ({
@@ -444,10 +444,18 @@ async function processOrder(promOrder: PromOrderResponse) {
     status: defaultStatus,
     currency: defaultCurrency.items[0].id,
     notes: promOrder.client_notes || '',
-    deliveryPostNumber: deliveryPostNumber
+    deliveryPostNumber: deliveryPostNumber,
+    mergeSource: 'none',
+    mergeStatus: 'none',
+    archived: false,
   };
 
-  const validationResult = orderSchema.safeParse(orderData);
+  const safeData = {
+    ...orderData,
+    mergeSource: orderData.mergeSource === '' ? 'none' : orderData.mergeSource,
+    mergeStatus: orderData.mergeStatus === '' ? 'none' : orderData.mergeStatus
+  };
+  const validationResult = orderSchema.safeParse(safeData);
   if (!validationResult.success) {
     appendFileSync(
       'orders-validation-errors.log',

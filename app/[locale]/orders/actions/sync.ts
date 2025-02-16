@@ -89,7 +89,8 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
 
   const orderData = {
     source: '4tvf116a5aitwmb',
-    orderNumber: rozetkaOrder.id,
+    orderNumber: rozetkaOrder.id.toString(),
+    marketplaceId: rozetkaOrder.id.toString(),
     phoneNumber: rozetkaOrder.user_phone,
     fullName: rozetkaOrder.user_title?.full_name || 'Unknown',
     products: (rozetkaOrder.items_photos || []).map(item => ({
@@ -104,10 +105,16 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     status: defaultStatus,
     currency: defaultCurrency.items[0].id,
     notes: rozetkaOrder.comment || '',
-    deliveryPostNumber: deliveryPostNumber
+    deliveryPostNumber: deliveryPostNumber,
+    mergeSource: 'none',
+    mergeStatus: 'none'
   };
 
-  const validationResult = orderSchema.safeParse(orderData);
+  const validationResult = orderSchema.safeParse({
+    ...orderData,
+    mergeSource: orderData.mergeSource || 'none',
+    mergeStatus: orderData.mergeStatus || 'none'
+  });
   if (!validationResult.success) {
     appendFileSync(
       'orders-validation-errors.log',
