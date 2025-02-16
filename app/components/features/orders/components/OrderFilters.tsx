@@ -21,6 +21,7 @@ export interface FilterOptions {
     min: number
     max: number
   }
+  archived?: boolean;
 }
 
 interface OrderFiltersProps {
@@ -40,6 +41,7 @@ interface OrderFiltersProps {
     selectMergeStatus: string
   }
   statuses: Array<{ id: string; name: string }>
+  onToggleArchived: () => void
 }
 
 export function OrderFilters({
@@ -48,6 +50,7 @@ export function OrderFilters({
   onReset,
   translations,
   statuses,
+  onToggleArchived,
 }: OrderFiltersProps) {
   const handleAmountRangeChange = (value: number[]) => {
     onFilterChange({
@@ -179,6 +182,14 @@ export function OrderFilters({
 
         <Button variant="outline" onClick={onReset}>
           {translations.resetFilters}
+        </Button>
+
+        <Button 
+          variant="outline" 
+          onClick={onToggleArchived}
+          className="w-full"
+        >
+          {filters.archived ? "Show Active Orders" : "Show Archived Orders"}
         </Button>
       </div>
     </div>

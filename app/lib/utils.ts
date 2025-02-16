@@ -9,3 +9,10 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+export const showConfirmDialog = (message: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const confirmed = window.confirm(message);
+    resolve(confirmed);
+  });
+};

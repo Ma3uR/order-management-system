@@ -13,8 +13,11 @@ interface OrderStatsProps {
 }
 
 export function OrderStats({ orders, translations }: OrderStatsProps) {
-  const totalAmount = orders.reduce((sum, order) => sum + Number(order.amount), 0)
-  const totalOrders = orders.length
+  // Filter out archived orders first
+  const activeOrders = orders.filter(order => !order.archived);
+  
+  const totalAmount = activeOrders.reduce((sum, order) => sum + Number(order.amount), 0)
+  const totalOrders = activeOrders.length
 
   // Generate data for the last 7 days
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -29,7 +32,7 @@ export function OrderStats({ orders, translations }: OrderStatsProps) {
     const dayEnd = new Date(date)
     dayEnd.setHours(23, 59, 59, 999)
 
-    const dayAmount = orders
+    const dayAmount = activeOrders
       .filter(order => {
         const orderDate = new Date(order.created)
         return orderDate >= dayStart && orderDate <= dayEnd
@@ -50,7 +53,7 @@ export function OrderStats({ orders, translations }: OrderStatsProps) {
 
     return {
       date: date.toISOString().split('T')[0],
-      count: orders.filter(order => {
+      count: activeOrders.filter(order => {
         const orderDate = new Date(order.created)
         return orderDate >= dayStart && orderDate <= dayEnd
       }).length

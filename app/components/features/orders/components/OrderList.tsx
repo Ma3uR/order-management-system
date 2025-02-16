@@ -8,6 +8,8 @@ interface OrderListProps {
   onViewDetails: (order: OrdersResponse) => void;
   onDeleteOrder: (orderId: string) => Promise<void>;
   onStatusChange: (orderId: string, statusId: string) => Promise<void>;
+  onRestoreOrder: (orderId: string) => Promise<void>;
+  showRestore?: boolean;
   translations: {
     orderNumber: string;
     fullName: string;
@@ -28,6 +30,8 @@ export function OrderList({
   onViewDetails,
   onDeleteOrder,
   onStatusChange,
+  onRestoreOrder,
+  showRestore,
   translations,
   statuses,
   translateStatus
@@ -102,20 +106,47 @@ export function OrderList({
                 </td>
                 <td className="p-4 align-middle">
                   <div className="flex items-center gap-2">
+                    {showRestore ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRestoreOrder(order.id);
+                          }}
+                        >
+                          Restore
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(order.id);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(order.id);
+                        }}
+                      >
+                        Archive
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onViewDetails(order)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewDetails(order);
+                      }}
                     >
                       {translations.details}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(order.id)}
-                    >
-                      {translations.delete}
                     </Button>
                   </div>
                 </td>

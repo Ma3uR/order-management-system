@@ -83,7 +83,7 @@ export enum OrdersMergeSourceOptions {
 
 export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown> = {
 	orderNumber: string
-	marketplaceId?: string
+	marketplaceIds?: string
 	source: string
 	deliveryMethod: RecordIdString
 	deliveryPostNumber?: string
@@ -99,7 +99,8 @@ export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown> = {
 	mergeStatus: OrdersMergeStatusOptions
 	mergedWithOrderId?: string
 	originalOrders?: null | ToriginalOrders
-	mergeSource?: OrdersMergeSourceOptions
+	mergeSource: OrdersMergeSourceOptions
+	archived?: boolean
 }
 
 export type PaymentOptionsRecord = {

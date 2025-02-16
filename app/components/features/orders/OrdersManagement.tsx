@@ -16,7 +16,7 @@ import { Input } from "@/app/components/shared/ui/input"
 import { Button } from "@/app/components/shared/ui/button"
 import { Separator } from "@/app/components/shared/ui/separator"
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
-import { cn } from "@/app/lib/utils"
+import { cn, showConfirmDialog } from "@/app/lib/utils"
 import { toast, Toaster } from 'sonner'
 import { 
   OrdersResponse, 
@@ -29,13 +29,14 @@ import {
   OrdersMergeSourceOptions
 } from '@/app/types/pocketbase-types'
 import { getSettings } from '@/app/[locale]/orders/actions/orders'
-import { getOrders, updateOrder, deleteOrder, createOrder } from '@/app/[locale]/orders/actions/orders'
+import { getOrders, updateOrder, createOrder } from '@/app/[locale]/orders/actions/orders'
 import { OrderFormData } from '@/app/lib/validations/orders'
 import { setOrderStatus as setEpicentrStatus } from '@/app/actions/epicentr'
 import { setOrderStatus as setPromuaStatus } from '@/app/actions/prom-ua'
 import { setOrderStatus as setRozetkaStatus } from '@/app/actions/rozetka'
 import { MergeNotification } from "./components/MergeNotification"
 import { MergeConfirmationDialog } from "./components/MergeConfirmationDialog"
+
 // import { MergedOrderView } from "./components/MergedOrderView"
 
 interface OrdersManagementProps {
@@ -153,7 +154,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     status: '',
     mergeStatus: undefined,
     dateRange: { from: null, to: null },
-    amountRange: { min: 0, max: 0 }
+    amountRange: { min: 0, max: 0 },
+    archived: false
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -161,7 +163,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [potentialMerges, setPotentialMerges] = useState<OrdersResponse[]>([])
   const [showMergeDialog, setShowMergeDialog] = useState(false)
   const [ordersToMerge, setOrdersToMerge] = useState<OrdersResponse[]>([])
-
   // Keep track of whether the current user initiated the change
   const userActionRef = useRef<string | null>(null);
 
@@ -213,9 +214,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             order.status === lowestPriorityStatus.id
           );
           
-          const merges = findPotentialMerges(unprocessedOrders as OrdersResponse[])
+          const { merges } = findPotentialMerges(unprocessedOrders as OrdersResponse[]);
           if (merges.length > 0) {
-            setPotentialMerges(merges)
+            setPotentialMerges(merges);
           }
         }
       } catch (error) {
@@ -249,18 +250,49 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
   // Modify the delete handler to use server action
   const handleDeleteOrder = async (orderId: string) => {
-    try {
-      userActionRef.current = orderId;
-      const result = await deleteOrder(orderId);
-      if (result.error) {
-        throw new Error(result.error);
+    if (await showConfirmDialog(translations.deleteConfirmation)) {
+      try {
+        const orderToArchive = orders.find(o => o.id === orderId)!;
+        await updateOrder(orderId, {
+          ...orderToArchive,
+          products: (orderToArchive.products || []) as Array<{ title: string; quantity: number; price: number }>,
+          originalOrders: null,
+          archived: true
+        });
+        setOrders(prev => prev.filter(order => order.id !== orderId));
+        toast.success("Order archived successfully");
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          toast.error(error.message);
+        } else {
+          toast.error("Failed to process order");
+        }
       }
-      setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
-      toast.success("Order deleted successfully");
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      toast.error("Failed to delete order. Please try again.");
-      userActionRef.current = null;
+    }
+  };
+
+  // Add restore handler
+  const handleRestoreOrder = async (orderId: string) => {
+    if (await showConfirmDialog("Are you sure you want to restore this order?")) {
+      try {
+        const orderToRestore = orders.find(o => o.id === orderId)!;
+        await updateOrder(orderId, {
+          ...orderToRestore,
+          products: (orderToRestore.products || []) as Array<{ title: string; quantity: number; price: number }>,
+          originalOrders: null,
+          archived: false
+        });
+        setOrders(prev => prev.map(order => 
+          order.id === orderId ? { ...order, archived: false } : order
+        ));
+        toast.success("Order restored successfully");
+      } catch (error: unknown ) {
+        if (error instanceof Error) {
+          toast.error(error.message);
+        } else {
+          toast.error("Failed to restore order");
+        }
+      }
     }
   };
 
@@ -465,8 +497,9 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           order.orderNumber.toLowerCase().includes(filterText.toLowerCase()) ||
           order.fullName.toLowerCase().includes(filterText.toLowerCase()) ||
           (order.products && JSON.stringify(order.products).toLowerCase().includes(filterText.toLowerCase()))
+        const matchesArchived = order.archived === filters.archived;
         
-        return matchesStatus && matchesMergeStatus && matchesText
+        return matchesStatus && matchesMergeStatus && matchesText && matchesArchived
       })
       .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()) // Sort by creation date, newest first
   }, [orders, filters, filterText])
@@ -478,7 +511,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const currentOrders = filteredOrders.slice(startIndex, endIndex)
 
   // Add merge handling functions
-  const findPotentialMerges = (orders: OrdersResponse[]): OrdersResponse[] => {
+  const findPotentialMerges = (orders: OrdersResponse[]) => {
     console.log('Starting findPotentialMerges with orders:', orders.map(o => ({
       id: o.id,
       orderNumber: o.orderNumber,
@@ -530,7 +563,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       phoneMatches.forEach((order: OrdersResponse) => {
         order.mergeSource = OrdersMergeSourceOptions.phone;
       });
-      return phoneMatches;
+      return { merges: phoneMatches, conflicts: {} };
     }
 
     // Then check names if no phone matches found
@@ -545,11 +578,11 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       nameMatches.forEach((order: OrdersResponse) => {
         order.mergeSource = OrdersMergeSourceOptions.name;
       });
-      return nameMatches;
+      return { merges: nameMatches, conflicts: {} };
     }
 
     console.log('No matches found');
-    return [];
+    return { merges: [], conflicts: {} };
   }
 
   const handleMergeConfirm = (orders: OrdersResponse[]) => {
@@ -575,12 +608,18 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
     }
   }
 
-  const handleMergeComplete = async (orders: OrdersResponse[]) => {
+  const handleMergeComplete = async (orders: OrdersResponse[], resolvedConflicts: Record<string, string>) => {
     try {
-      const primaryOrder = orders[0]
+      const primaryOrder = orders[0];
+      // Destructure to remove ID from copied data
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id: _id, ...primaryOrderData } = primaryOrder;
+      
       const mergedOrder = {
-        ...primaryOrder,
-        mergeStatus: OrdersMergeStatusOptions.merged,
+        ...primaryOrderData,  // Now contains all fields except ID
+        ...resolvedConflicts,
+        marketplaceIds: orders.map(o => o.marketplaceIds).filter(Boolean).join(','),
+        mergeStatus: OrdersMergeStatusOptions.none,
         originalOrders: orders.map(o => o.id),
         numberOfItems: orders.reduce((sum, o) => sum + o.numberOfItems, 0),
         amount: orders.reduce((sum, o) => sum + o.amount, 0),
@@ -588,28 +627,34 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           [...all, ...((o.products || []) as Array<{ title: string; quantity: number; price: number }>)], 
           []
         )
-      }
+      };
 
-      const newOrder = await createOrder(mergedOrder)
+      const newOrder = await createOrder(mergedOrder);
 
+      // Update original orders with archive flag
       await Promise.all(orders.map(order => 
         updateOrder(order.id, {
           ...order,
-          products: (order.products || []) as Array<{ title: string; quantity: number; price: number }>,
-          originalOrders: (order.originalOrders || []) as string[],
+          products: (order.products as Array<{ title: string; quantity: number; price: number }>) || [],
+          originalOrders: null,
+          archived: true,
           mergeStatus: OrdersMergeStatusOptions.merged,
           mergedWithOrderId: newOrder.data?.id || ''
         })
-      ))
+      ));
 
-      setShowMergeDialog(false)
-      setPotentialMerges([])
-      toast.success(translations.mergeSuccess)
+      setShowMergeDialog(false);
+      setPotentialMerges([]);
+      toast.success(translations.mergeSuccess);
     } catch (error) {
-      console.error('Error completing merge:', error)
-      toast.error(translations.mergeError)
+      console.error('Error completing merge:', error);
+      toast.error(translations.mergeError);
     }
-  }
+  };
+
+  const handleToggleArchived = () => {
+    setFilters(prev => ({ ...prev, archived: !prev.archived }));
+  };
 
   if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error: {error}</div>
@@ -634,7 +679,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         isOpen={showMergeDialog}
         orders={ordersToMerge}
         onClose={() => setShowMergeDialog(false)}
-        onConfirm={handleMergeComplete}
+        onConfirm={(orders, resolvedConflicts) => handleMergeComplete(orders, resolvedConflicts)}
         translations={{
           ordersFromSource: translations.ordersFromSource,
           mergeConfirmation: translations.mergeConfirmation,
@@ -675,6 +720,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   setIsDetailsModalOpen(true);
                 }}
                 onDeleteOrder={handleDeleteOrder}
+                onRestoreOrder={handleRestoreOrder}
+                showRestore={filters.archived}
                 onStatusChange={handleStatusChange}
                 translations={translations}
                 statuses={statuses}
@@ -760,10 +807,12 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                       status: '',
                       mergeStatus: undefined,
                       dateRange: { from: null, to: null },
-                      amountRange: { min: 0, max: 0 }
+                      amountRange: { min: 0, max: 0 },
+                      archived: false
                     })}
                     statuses={statuses}
                     translations={translations}
+                    onToggleArchived={handleToggleArchived}
                   />
                 </ScrollArea>
               </div>
@@ -915,17 +964,11 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             const ordersToCheck = updatedOrders.filter(order => {
               const matchesStatus = order.status === lowestPriorityStatus.id;
               const isUnprocessed = order.mergeStatus === OrdersMergeStatusOptions.none || !order.mergeStatus;
-              console.log('Checking order for merge eligibility:', {
-                orderNumber: order.orderNumber,
-                status: order.status,
-                mergeStatus: order.mergeStatus,
-                matchesStatus,
-                isUnprocessed
-              });
+              
               return matchesStatus && isUnprocessed;
             });
             
-            const merges = findPotentialMerges(ordersToCheck as OrdersResponse[]);
+            const { merges } = findPotentialMerges(ordersToCheck as OrdersResponse[]);
             if (merges.length > 0) {
               console.log('Setting potential merges:', merges.map(o => ({
                 orderNumber: o.orderNumber,

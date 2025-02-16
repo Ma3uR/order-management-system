@@ -9,7 +9,7 @@ const productSchema = z.object({
 
 export const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
-  marketplaceId: z.string().optional(),
+  marketplaceIds: z.string().optional(),
   source: z.string().min(1, "Source is required"),
   deliveryMethod: z.string().min(1, "Delivery method is required"), 
   deliveryPostNumber: z.string().optional(),
@@ -25,7 +25,8 @@ export const orderSchema = z.object({
   mergeStatus: z.nativeEnum(OrdersMergeStatusOptions),
   mergedWithOrderId: z.string().optional(),
   originalOrders: z.array(z.any()).nullable().optional(),
-  mergeSource: z.nativeEnum(OrdersMergeSourceOptions)
+  mergeSource: z.nativeEnum(OrdersMergeSourceOptions),
+  archived: z.boolean().optional()
 }) satisfies z.ZodType<OrdersRecord>;
 
 export type OrderFormData = z.infer<typeof orderSchema>;

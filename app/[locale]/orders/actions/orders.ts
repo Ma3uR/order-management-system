@@ -112,7 +112,9 @@ export const deleteOrder = async (id: string)=>{
 
 export const checkDuplicateOrder = async (orderNumber: string)=>{
     try {
-        const existingOrders = await pb.collection('orders').getList(1, 1, { filter: `orderNumber = "${orderNumber}"` });
+        const existingOrders = await pb.collection('orders').getList(1, 1, { 
+            filter: `orderNumber = "${orderNumber}" && archived != true` 
+        });
         return { error: undefined, data: existingOrders.totalItems > 0 };
     } catch (error: unknown) {
         if (error instanceof Error) {
