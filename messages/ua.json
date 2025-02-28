@@ -47,7 +47,7 @@
     "editOrder": "Редагувати замовлення",
     "selectStatus": "Вибрати статус",
     "updateOrder": "Оновити замовлення",
-    "productionCost": "Витрати на виробництво",
+    "productionCost": "Собівартість",
     "statuses": {
       "beingProcessed": "Обробляється менеджером",
       "shipped": "Відправлено",
@@ -92,7 +92,6 @@
     "product": "Товар",
     "totalItems": "Всього товарів",
     "totalAmount": "Загальна сума",
-    "productionCost": "Витрати на виробництво",
     "mergeStatus": "Статус об'єднання",
     "selectMergeStatus": "Виберіть статус об'єднання",
     "mergeNotification": {
