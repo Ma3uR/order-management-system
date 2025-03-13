@@ -75,6 +75,7 @@ interface OrdersManagementProps {
     paymentMethod: string
     editOrder: string
     updateOrder: string
+    productionCost: string
     statuses: {
       beingProcessed: string
       shipped: string
