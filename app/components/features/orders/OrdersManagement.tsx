@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
-import { PlusCircle, Search, ChevronRight, ChevronLeft } from 'lucide-react'
+import { PlusCircle, Search, ChevronRight, ChevronLeft, FilterIcon } from 'lucide-react'
 import pb from '@/app/lib/pocketbase'
 import type { RecordSubscription } from 'pocketbase'
 import { MarketplaceSync } from '@/app/components/features/sync/MarketplaceSync'
@@ -36,6 +36,12 @@ import { setOrderStatus as setPromuaStatus } from '@/app/actions/prom-ua'
 import { setOrderStatus as setRozetkaStatus } from '@/app/actions/rozetka'
 import { MergeNotification } from "./components/MergeNotification"
 import { MergeConfirmationDialog } from "./components/MergeConfirmationDialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/shared/ui/dialog"
 
 // import { MergedOrderView } from "./components/MergedOrderView"
 
@@ -111,6 +117,8 @@ interface OrdersManagementProps {
     totalItems: string
     mergeStatus: string
     selectMergeStatus: string
+    active?: string
+    archived?: string
     mergeNotification: {
       title: string
       description: string
@@ -133,6 +141,7 @@ interface OrdersManagementProps {
     mergeRejectionError: string
     cancel: string
     confirm: string
+    apply?: string
   }
   initialOrders: OrdersResponse[]
   itemsPerPage?: number
@@ -166,6 +175,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [ordersToMerge, setOrdersToMerge] = useState<OrdersResponse[]>([])
   // Keep track of whether the current user initiated the change
   const userActionRef = useRef<string | null>(null);
+  // Add mobile filter dialog state
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Initial data fetching
   useEffect(() => {
@@ -665,7 +676,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-8">
       {/* Add MergeNotification */}
       {potentialMerges.length > 0 && (
         <MergeNotification
@@ -693,27 +704,116 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         }}
       />
 
-      <div className="flex gap-6 p-1">
+      {/* Mobile Filters Dialog */}
+      <Dialog 
+        open={showMobileFilters} 
+        onOpenChange={setShowMobileFilters} 
+      >
+        <DialogContent 
+          className="fixed inset-x-0 bottom-0 top-auto rounded-t-lg rounded-b-none max-h-[90vh] sm:max-w-[425px] sm:rounded-lg sm:bottom-auto sm:top-auto sm:inset-x-auto overflow-hidden border border-border"
+        >
+          <DialogHeader className="pb-2 border-b">
+            <DialogTitle>{translations.filters}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="p-4 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+            <OrderFilters
+              filters={filters}
+              onFilterChange={setFilters}
+              onReset={() => setFilters({
+                status: '',
+                mergeStatus: undefined,
+                dateRange: { from: null, to: null },
+                amountRange: { min: 0, max: 0 },
+                archived: false
+              })}
+              statuses={statuses}
+              sources={sources}
+              translations={{
+                filters: translations.filters,
+                status: translations.status,
+                selectStatus: translations.selectStatus,
+                all: translations.all,
+                amountRange: translations.amountRange,
+                resetFilters: translations.resetFilters,
+                dateRange: translations.dateRange,
+                selectDateRange: translations.selectDateRange,
+                mergeStatus: translations.mergeStatus,
+                selectMergeStatus: translations.selectMergeStatus,
+                selectSource: translations.selectSource
+              }}
+              onToggleArchived={handleToggleArchived}
+              isMobile={true}
+            />
+          </ScrollArea>
+          <div className="flex justify-end gap-2 pt-4 border-t mt-2 px-4 pb-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowMobileFilters(false)}>
+              {translations.cancel || 'Cancel'}
+            </Button>
+            <Button
+              size="sm" 
+              onClick={() => setShowMobileFilters(false)}>
+              {translations.apply || 'Apply'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 p-0 md:p-1">
         <Toaster richColors />
-        {/* Main Orders List Card - 75% width */}
+        {/* Main Orders List Card - Full width on mobile, 75% on desktop */}
         <Card className={cn(
-          "transition-all duration-300 ease-in-out",
-          isCollapsed ? "flex-1" : "flex-[3]",
+          "transition-all duration-300 ease-in-out w-full",
+          !isCollapsed && "md:flex-[3]",
         )}>
-          <CardHeader>
-            <CardTitle>{translations.title}</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={translations.filterOrdersPlaceholder}
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                className="pl-8"
-              />
+          <CardHeader className="px-3 py-3 md:p-6">
+            <CardTitle className="text-lg md:text-xl mb-2 md:mb-4">{translations.title}</CardTitle>
+            
+            {/* Mobile Actions - shown only on mobile */}
+            <div className="flex gap-2 mb-3 md:hidden">
+              <Button 
+                className="flex-1"
+                size="sm"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {translations.createNewOrder}
+              </Button>
+              
+              <Button
+                className="flex-1"
+                size="sm"
+                variant="outline"
+                onClick={() => setFilters(prev => ({ ...prev, archived: !prev.archived }))}
+              >
+                {filters.archived ? translations.active || 'Active' : translations.archived || 'Archived'}
+              </Button>
+            </div>
+            
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={translations.filterOrdersPlaceholder}
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  className="pl-8 text-sm h-9"
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-9 w-9 md:hidden"
+                onClick={() => setShowMobileFilters(true)}
+              >
+                <FilterIcon className="h-4 w-4" />
+              </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[calc(100vh-12rem)]">
+          <CardContent className="px-2 sm:px-4 md:px-6 pb-4">
+            <ScrollArea className="h-[calc(100vh-16rem)]">
               <OrderList
                 orders={currentOrders}
                 onViewDetails={(order) => {
@@ -746,8 +846,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           </CardContent>
         </Card>
 
-        {/* Sidebar Card - 25% width */}
-        <div className="relative flex">
+        {/* Sidebar Card - Hidden on mobile, 25% width on desktop */}
+        <div className="relative hidden md:flex">
           <div
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(

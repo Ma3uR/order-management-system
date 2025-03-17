@@ -60,23 +60,32 @@ export function OrderStats({ orders, translations }: OrderStatsProps) {
     }
   })
 
+  // Mobile-friendly formatter for dates
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    // On very small screens, just show day number
+    return window.innerWidth < 360 ? 
+      date.getDate().toString() : 
+      date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  };
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 md:px-6 md:pt-6">
+            <CardTitle className="text-xs md:text-sm font-medium">
               {translations.totalAmount}
             </CardTitle>
-            <ArrowUpIcon className="h-4 w-4 text-muted-foreground" />
+            <ArrowUpIcon className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
+            <div className="text-xl md:text-2xl font-bold">
               {UtilityService.formatCurrency(totalAmount)}
             </div>
-            <div className="h-[80px] mt-4">
+            <div className="h-[60px] md:h-[80px] mt-3 md:mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={amountData}>
+                <LineChart data={amountData} margin={{ left: 0, right: 0 }}>
                   <XAxis 
                     dataKey="date" 
                     hide 
@@ -114,20 +123,20 @@ export function OrderStats({ orders, translations }: OrderStatsProps) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 md:px-6 md:pt-6">
+            <CardTitle className="text-xs md:text-sm font-medium">
               {translations.totalOrders}
             </CardTitle>
-            <ArrowUpIcon className="h-4 w-4 text-muted-foreground" />
+            <ArrowUpIcon className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
+            <div className="text-xl md:text-2xl font-bold">
               {totalOrders}
             </div>
-            <div className="h-[80px] mt-4">
+            <div className="h-[60px] md:h-[80px] mt-3 md:mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={ordersData}>
+                <LineChart data={ordersData} margin={{ left: 0, right: 0 }}>
                   <XAxis 
                     dataKey="date" 
                     hide 

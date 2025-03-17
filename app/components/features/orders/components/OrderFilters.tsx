@@ -45,6 +45,7 @@ interface OrderFiltersProps {
   statuses: Array<{ id: string; name: string }>
   onToggleArchived: () => void
   sources: SourcesResponse[]
+  isMobile?: boolean
 }
 
 export function OrderFilters({
@@ -55,6 +56,7 @@ export function OrderFilters({
   statuses,
   onToggleArchived,
   sources,
+  isMobile = false,
 }: OrderFiltersProps) {
   const handleAmountRangeChange = (value: number[]) => {
     onFilterChange({
@@ -75,9 +77,17 @@ export function OrderFilters({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">{translations.filters}</h3>
+      <h3 className={cn(
+        "font-medium",
+        isMobile ? "text-base" : "text-lg"
+      )}>
+        {translations.filters}
+      </h3>
       <div className="grid gap-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className={cn(
+          "grid gap-4",
+          isMobile ? "grid-cols-1" : "grid-cols-2"
+        )}>
           <Select
             value={filters.status || ""}
             onValueChange={(value) =>
@@ -177,7 +187,7 @@ export function OrderFilters({
                       range?.to || null
                     );
                   }}
-                  numberOfMonths={2}
+                  numberOfMonths={isMobile ? 1 : 2}
                 />
               </PopoverContent>
             </Popover>
@@ -203,17 +213,21 @@ export function OrderFilters({
           </SelectContent>
         </Select>
 
-        <Button variant="outline" onClick={onReset}>
-          {translations.resetFilters}
-        </Button>
+        <div className={cn(
+          "grid gap-2",
+          isMobile ? "grid-cols-2" : "grid-cols-1"
+        )}>
+          <Button variant="outline" onClick={onReset}>
+            {translations.resetFilters}
+          </Button>
 
-        <Button 
-          variant="outline" 
-          onClick={onToggleArchived}
-          className="w-full"
-        >
-          {filters.archived ? "Show Active Orders" : "Show Archived Orders"}
-        </Button>
+          <Button 
+            variant="outline" 
+            onClick={onToggleArchived}
+          >
+            {filters.archived ? "Show Active Orders" : "Show Archived Orders"}
+          </Button>
+        </div>
       </div>
     </div>
   );
