@@ -31,6 +31,8 @@ interface SettingsFormProps<T extends FieldValues> {
     render?: (props: { field: ControllerRenderProps<T, Path<T>> }) => React.ReactNode;
   }>;
   className?: string;
+  submitText?: string;
+  onCancel?: () => void;
 }
 
 export function ColorPicker({ 
@@ -94,9 +96,11 @@ export function SettingsForm<T extends FieldValues>({
   form: externalForm,
   defaultValues, 
   onSubmit, 
-  isLoading, 
+  isLoading = false,
   fields,
-  className 
+  className,
+  submitText,
+  onCancel
 }: SettingsFormProps<T>) {
   const t = useTranslations('Settings');
   
@@ -126,8 +130,8 @@ export function SettingsForm<T extends FieldValues>({
     <Card className="bg-card border-none shadow-md">
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className={cn("space-y-6", className)}>
-            <div className="grid gap-6 sm:grid-cols-2">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className={cn("space-y-4", className)}>
+            <div className="grid gap-4 md:grid-cols-2">
               {fields.map((field) => (
                 <FormField
                   key={String(field.name)}
@@ -157,20 +161,33 @@ export function SettingsForm<T extends FieldValues>({
                           />
                         )}
                       </FormControl>
-                      <FormMessage className="text-sm text-destructive" />
+                      <FormMessage className="text-xs text-destructive" />
                     </FormItem>
                   )}
                 />
               ))}
             </div>
 
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {isLoading ? t('saving') : t('save')}
-            </Button>
+            <div className="flex flex-wrap gap-2 mt-4 justify-end">
+              {onCancel && (
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={onCancel}
+                  className="flex-1 sm:flex-none"
+                >
+                  {t('cancel')}
+                </Button>
+              )}
+              
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="flex-1 sm:flex-none"
+              >
+                {isLoading ? t('saving') : (submitText || t('save'))}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

@@ -42,9 +42,9 @@ export function BlacklistForm({ onSubmit, isLoading }: BlacklistFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          className="grid grid-cols-1 gap-2 sm:gap-4"
           initial="initial"
           animate="animate"
           variants={{
@@ -60,12 +60,12 @@ export function BlacklistForm({ onSubmit, isLoading }: BlacklistFormProps) {
               control={form.control}
               name="fullName"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('fullNamePlaceholder')}</FormLabel>
+                <FormItem className="space-y-1 sm:space-y-2">
+                  <FormLabel className="text-xs sm:text-sm">{t('fullNamePlaceholder')}</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} className="h-8 sm:h-9 text-xs sm:text-sm" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-[10px] sm:text-xs" />
                 </FormItem>
               )}
             />
@@ -76,12 +76,12 @@ export function BlacklistForm({ onSubmit, isLoading }: BlacklistFormProps) {
               control={form.control}
               name="phoneNumber"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('phoneNumberPlaceholder')}</FormLabel>
+                <FormItem className="space-y-1 sm:space-y-2">
+                  <FormLabel className="text-xs sm:text-sm">{t('phoneNumberPlaceholder')}</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} className="h-8 sm:h-9 text-xs sm:text-sm" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-[10px] sm:text-xs" />
                 </FormItem>
               )}
             />
@@ -92,12 +92,12 @@ export function BlacklistForm({ onSubmit, isLoading }: BlacklistFormProps) {
               control={form.control}
               name="city"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('cityPlaceholder')}</FormLabel>
+                <FormItem className="space-y-1 sm:space-y-2">
+                  <FormLabel className="text-xs sm:text-sm">{t('cityPlaceholder')}</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} className="h-8 sm:h-9 text-xs sm:text-sm" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-[10px] sm:text-xs" />
                 </FormItem>
               )}
             />
@@ -108,16 +108,17 @@ export function BlacklistForm({ onSubmit, isLoading }: BlacklistFormProps) {
               control={form.control}
               name="totalOrderSum"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('totalOrderSumPlaceholder')}</FormLabel>
+                <FormItem className="space-y-1 sm:space-y-2">
+                  <FormLabel className="text-xs sm:text-sm">{t('totalOrderSumPlaceholder')}</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
                       {...field} 
                       onChange={e => field.onChange(Number(e.target.value))}
+                      className="h-8 sm:h-9 text-xs sm:text-sm"
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-[10px] sm:text-xs" />
                 </FormItem>
               )}
             />
@@ -133,12 +134,12 @@ export function BlacklistForm({ onSubmit, isLoading }: BlacklistFormProps) {
             control={form.control}
             name="notes"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('notesPlaceholder')}</FormLabel>
+              <FormItem className="space-y-1 sm:space-y-2">
+                <FormLabel className="text-xs sm:text-sm">{t('notesPlaceholder')}</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} className="h-8 sm:h-9 text-xs sm:text-sm" />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-[10px] sm:text-xs" />
               </FormItem>
             )}
           />
@@ -149,7 +150,11 @@ export function BlacklistForm({ onSubmit, isLoading }: BlacklistFormProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Button type="submit" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="h-8 sm:h-9 text-xs sm:text-sm"
+          >
             {isLoading ? t('adding') : t('addToBlacklist')}
           </Button>
         </motion.div>

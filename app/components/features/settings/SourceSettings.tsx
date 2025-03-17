@@ -44,6 +44,8 @@ export function SourceSettings() {
   const [sources, setSources] = useState<SourcesResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editedName, setEditedName] = useState<string | undefined>(undefined);
+  const [editedUrl, setEditedUrl] = useState<string | undefined>(undefined);
 
   const fields = [
     { 
@@ -83,8 +85,9 @@ export function SourceSettings() {
 
   const handleEdit = (source: SourcesResponse) => {
     setEditingId(source.id);
+    setEditedName(source.name);
+    setEditedUrl(source.url);
   };
-
 
   const handleSave = async (id: string, data: { name: string; url?: string | undefined; }) => {
     try {
@@ -132,127 +135,186 @@ export function SourceSettings() {
   }
 
   return (
-    <motion.div 
-      className="space-y-6"
-      initial="initial"
-      animate="animate"
-      variants={staggerContainer}
-    >
-      <motion.div variants={fadeIn}>
-        <Card className="border bg-card">
-          <CardContent className="pt-6">
-            <Collapsible
-              open={isFormOpen}
-              onOpenChange={setIsFormOpen}
-              className="space-y-1"
-            >
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 p-2 rounded-md">
-                  <h3 className="text-base font-medium">{t('addSource')}</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-9 p-0"
-                  >
-                    {isFormOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                    <span className="sr-only">Toggle form</span>
-                  </Button>
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2">
-                <SettingsForm
-                  title=""
-                  schema={sourceSchema}
-                  defaultValues={{}}
-                  onSubmit={async (data) => {
-                    try {
-                      setIsLoading(true);
-                      const result = await createSource(data);
-                      if (result.error) {
-                        throw new Error(result.error);
-                      }
-                      toast.success(t('createSuccess'), {
-                        description: t('sourceCreateSuccess'),
-                      });
-                      const updatedSources = await getAllSources();
-                      if (updatedSources.error) {
-                        throw new Error(updatedSources.error);
-                      }
-                      setSources(updatedSources.data || []);
-                      setIsFormOpen(false);
-                      setIsLoading(false);
-                    } catch (error) {
-                      console.error('Error creating source:', error);
-                      setIsLoading(false);
-                    }
-                  }}
-                  isLoading={isLoading}
-                  fields={fields}
-                  className="pt-2"
-                />
-              </CollapsibleContent>
-            </Collapsible>
+    <div className="w-full space-y-4 overflow-hidden">
+      <motion.div 
+        className="space-y-4"
+        initial="initial"
+        animate="animate"
+        variants={staggerContainer}
+      >
+        <motion.div
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+          variants={fadeIn}
+        >
+          <h3 className="text-lg font-semibold leading-none">{t('sources')}</h3>
+          <Button
+            onClick={() => setIsFormOpen(!isFormOpen)}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            {isFormOpen ? t('cancel') : t('addSource')}
+            {isFormOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </motion.div>
 
-            <div className="mt-6">
-              <AnimatePresence mode="popLayout">
-                <motion.div 
-                  className="space-y-2"
+        <AnimatePresence>
+          {isFormOpen && (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <SettingsForm
+                title=""
+                schema={sourceSchema}
+                defaultValues={{}}
+                onSubmit={async (data) => {
+                  try {
+                    setIsLoading(true);
+                    const result = await createSource(data);
+                    if (result.error) {
+                      throw new Error(result.error);
+                    }
+                    toast.success(t('createSuccess'), {
+                      description: t('sourceCreateSuccess'),
+                    });
+                    const updatedSources = await getAllSources();
+                    if (updatedSources.error) {
+                      throw new Error(updatedSources.error);
+                    }
+                    setSources(updatedSources.data || []);
+                    setIsFormOpen(false);
+                    setIsLoading(false);
+                  } catch (error) {
+                    console.error('Error creating source:', error);
+                    setIsLoading(false);
+                  }
+                }}
+                isLoading={isLoading}
+                fields={fields}
+                className="p-0"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          variants={fadeIn}
+          className="w-full overflow-hidden"
+        >
+          <Card className="border shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {!sources.length && !isLoading && (
+                  <div className="p-4 text-center text-muted-foreground">
+                    {t('noSourcesFound')}
+                  </div>
+                )}
+                
+                <motion.div
                   variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                  className="divide-y"
                 >
-                  {sources.map((source) => (
+                  {sources.map(source => (
                     <motion.div
                       key={source.id}
                       variants={listItem}
                       layout
-                      className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50"
+                      className="p-4"
                     >
-                      <div className="flex-1 min-w-0">
-                        {editingId === source.id ? (
-                          <Input
-                            defaultValue={source.name}
-                            className="max-w-[200px]"
-                            onBlur={(e) => {
-                              if (!e.target.value.trim()) {
-                                e.target.value = source.name || '';
-                                return;
-                              }
-                              handleSave(source.id, { name: e.target.value.trim() });
-                            }}
-                          />
-                        ) : (
-                          <span className="font-medium">{source.name}</span>
-                        )}
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-muted"
-                          onClick={() => handleEdit(source)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => handleDelete(source.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {editingId === source.id ? (
+                        <div className="space-y-4">
+                          <div className="flex flex-col gap-3">
+                            <div>
+                              <label className="text-sm font-medium">{t('sourceName')}</label>
+                              <Input
+                                type="text"
+                                defaultValue={source.name}
+                                className="mt-1 w-full"
+                                onChange={(e) => setEditedName(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">{t('sourceUrl')}</label>
+                              <Input
+                                type="text"
+                                defaultValue={source.url || ''}
+                                className="mt-1 w-full"
+                                onChange={(e) => setEditedUrl(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2 justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 sm:flex-none"
+                              onClick={() => setEditingId(null)}
+                            >
+                              {t('cancel')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="flex-1 sm:flex-none"
+                              onClick={() => handleSave(source.id, {
+                                name: editedName || source.name,
+                                url: editedUrl
+                              })}
+                            >
+                              {t('save')}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <h4 className="font-medium">{source.name}</h4>
+                            {source.url && (
+                              <p className="text-sm text-muted-foreground break-all">
+                                {source.url}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 self-end sm:self-center">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(source)}
+                              className="h-8 w-8"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon" 
+                              onClick={() => handleDelete(source.id)}
+                              className="h-8 w-8 text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </motion.div>
-              </AnimatePresence>
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 }

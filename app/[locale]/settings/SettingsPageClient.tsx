@@ -97,7 +97,7 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
   return (
     <>
       <motion.div 
-        className="container mx-auto p-6 space-y-6"
+        className="w-full space-y-6"
         initial="initial"
         animate="animate"
         variants={staggerContainer}
@@ -112,10 +112,10 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
           </p>
         </motion.div>
         
-        <motion.div variants={fadeIn}>
-          <Card className="border shadow-sm bg-card">
+        <motion.div variants={fadeIn} className="w-full">
+          <Card className="border shadow-sm bg-card w-full">
             <Tabs defaultValue="status" className="w-full">
-              <TabsList className="flex h-10 items-center justify-start px-4 border-b">
+              <TabsList className="flex h-10 items-center justify-start px-2 border-b overflow-x-auto w-full">
                 {["status", "payment", "delivery", "source"].map((tab, index) => (
                   <motion.div
                     key={tab}
@@ -125,7 +125,7 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
                   >
                     <TabsTrigger 
                       value={tab} 
-                      className="px-4 py-2 -mb-px text-sm font-medium"
+                      className="px-2 py-2 -mb-px text-xs sm:text-sm font-medium whitespace-nowrap"
                     >
                       {t(tab)}
                     </TabsTrigger>
@@ -134,60 +134,65 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
               </TabsList>
 
               <motion.div 
-                className="p-6"
+                className="p-2 sm:p-3"
                 variants={fadeIn}
                 transition={{ duration: 0.3 }}
               >
-                <TabsContent value="currency" className="mt-0 border-0 p-0">
+                <TabsContent value="currency" className="mt-0 border-0 p-0 w-full">
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
+                    className="w-full"
                   >
                     <CurrencySettings />
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent value="status" className="mt-0 border-0 p-0">
+                <TabsContent value="status" className="mt-0 border-0 p-0 w-full">
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
+                    className="w-full"
                   >
                     <StatusSettings />
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent value="payment" className="mt-0 border-0 p-0">
+                <TabsContent value="payment" className="mt-0 border-0 p-0 w-full">
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
+                    className="w-full"
                   >
                     <PaymentMethodSettings />
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent value="delivery" className="mt-0 border-0 p-0">
+                <TabsContent value="delivery" className="mt-0 border-0 p-0 w-full">
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
+                    className="w-full"
                   >
                     <DeliveryMethodSettings />
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent value="source" className="mt-0 border-0 p-0">
+                <TabsContent value="source" className="mt-0 border-0 p-0 w-full">
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
+                    className="w-full"
                   >
                     <SourceSettings />
                   </motion.div>
@@ -197,34 +202,34 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
           </Card>
         </motion.div>
 
-        <motion.div variants={slideIn}>
+        <motion.div variants={slideIn} className="w-full">
           <Collapsible
             open={!isCollapsed}
             onOpenChange={() => setIsCollapsed(!isCollapsed)}
             className="w-full"
           >
-            <Card className="border shadow-sm">
+            <Card className="border shadow-sm w-full">
               <CollapsibleTrigger className="w-full">
-                <CardHeader className="pb-3 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 pb-2">
-                      <h3 className="text-lg font-medium">Rozetka Connection Status</h3>
+                <CardHeader className="pb-2 hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 pb-2 sm:pb-0">
+                      <h3 className="text-base sm:text-lg font-medium">Rozetka Connection Status</h3>
                       <Badge 
                         variant={isConnected ? "success" : "destructive"}
-                        className="px-3"
+                        className="px-2"
                       >
-                        <CircleIcon className="w-3 h-3 mr-1 fill-current" />
+                        <CircleIcon className="w-2.5 h-2.5 mr-1 fill-current" />
                         {isConnected ? "Connected" : "Disconnected"}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-between sm:justify-end gap-2">
                       {isCollapsed && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
                           Last sync: {isLoading ? "Loading..." : lastSync || "Never"}
                         </p>
                       )}
                       <ChevronDown className={cn(
-                        "h-4 w-4 transition-transform",
+                        "h-4 w-4 transition-transform flex-shrink-0",
                         !isCollapsed && "transform rotate-180"
                       )} />
                     </div>
@@ -232,10 +237,10 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
                 </CardHeader>
               </CollapsibleTrigger>
 
-              <CollapsibleContent>
-                <CardContent>
+              <CollapsibleContent className="overflow-hidden">
+                <CardContent className="px-4 py-3 md:p-6">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">
                           Last Synchronization
@@ -253,7 +258,7 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 w-full sm:w-auto"
                         disabled={isSyncing}
                         onClick={async () => {
                           setIsSyncing(true);
@@ -288,7 +293,7 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
                       <p className="text-sm font-medium text-muted-foreground">
                         API Status
                       </p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="px-2">
                             Rate Limit: 100/100

@@ -93,12 +93,12 @@ export function StatusMapping({ currentStatus, onChange }: StatusMappingProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-full relative w-full bg-muted p-1.5 flex items-center">
+    <div className="space-y-2 w-full">
+      <div className="relative overflow-hidden rounded-full bg-muted p-1 flex items-center">
         {marketplaces.map((marketplace, index) => (
           <button
             key={marketplace.name}
-            className="font-semibold rounded-full w-full p-2 text-foreground z-20 transition-all"
+            className="text-xs font-semibold rounded-full w-full p-1 text-foreground z-20 transition-all whitespace-nowrap"
             onClick={() => setActiveMarketplace(index)}
             style={{
               color: activeMarketplace === index ? 'white' : 'inherit',
@@ -109,7 +109,7 @@ export function StatusMapping({ currentStatus, onChange }: StatusMappingProps) {
           </button>
         ))}
         <div
-          className="p-1.5 absolute inset-0 w-1/3 z-10"
+          className="absolute inset-0 w-1/3 z-10 p-1"
           style={{
             transform: `translateX(${activeMarketplace * 100}%)`,
             transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -126,21 +126,21 @@ export function StatusMapping({ currentStatus, onChange }: StatusMappingProps) {
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
         <Input
           placeholder="Search statuses..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
+          className="pl-7 h-7 text-xs"
         />
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="font-medium">{marketplaces[activeMarketplace].name} Statuses</h3>
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          <h3 className="text-xs font-medium truncate">{marketplaces[activeMarketplace].name}</h3>
           {mappings[marketplaces[activeMarketplace].key] && (
-            <div className="text-sm text-muted-foreground">
-              (Currently mapped: {
+            <div className="text-xs text-muted-foreground truncate">
+              (Mapped: {
                 marketplaceStatuses.find(s => s.code === mappings[marketplaces[activeMarketplace].key])?.name || 'Unknown'
               })
             </div>
@@ -148,11 +148,11 @@ export function StatusMapping({ currentStatus, onChange }: StatusMappingProps) {
         </div>
       </div>
 
-      <div className="space-y-2 min-h-[300px]">
+      <div className="space-y-1 min-h-[220px] max-h-[350px] overflow-y-auto">
         {isLoading ? (
-          <div className="text-center py-4">Loading statuses...</div>
+          <div className="text-center py-2 text-xs">Loading...</div>
         ) : filteredStatuses.length === 0 ? (
-          <div className="text-center py-4">
+          <div className="text-center py-2 text-xs">
             {marketplaceStatuses.length === 0 ? 'No statuses available' : 'No matching statuses found'}
           </div>
         ) : (
@@ -164,20 +164,20 @@ export function StatusMapping({ currentStatus, onChange }: StatusMappingProps) {
                 key={status.code}
                 onClick={() => handleStatusSelect(status.code)}
                 className={cn(
-                  "flex items-center justify-between w-full p-4 rounded-lg transition-colors",
+                  "flex items-center justify-between w-full p-1.5 rounded-md transition-colors overflow-hidden",
                   "hover:bg-muted/80",
                   isSelected && "bg-muted"
                 )}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 min-w-0 overflow-hidden">
                   <div 
-                    className="w-3 h-3 rounded-full" 
+                    className="w-2 h-2 rounded-full flex-shrink-0" 
                     style={{ backgroundColor: marketplaces[activeMarketplace].color }}
                   />
-                  <span className="font-medium">{status.name}</span>
+                  <span className="text-xs font-medium truncate">{status.name}</span>
                 </div>
                 {isSelected && (
-                  <Check className="h-4 w-4 text-primary" />
+                  <Check className="h-3 w-3 text-primary flex-shrink-0 ml-1" />
                 )}
               </button>
             );

@@ -129,6 +129,7 @@ function ColorPicker({
 }
 
 function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettings }: SortableItemProps) {
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const {
     attributes,
     listeners,
@@ -144,89 +145,94 @@ function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettin
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const isEditing = editingId === status.id;
+
+  if (isEditing) {
+    return (
+      <div ref={setNodeRef} style={style} className="p-2 bg-muted/20">
+        <SettingsForm
+          schema={statusSchema}
+          onSubmit={(data) => onSave(status, data)}
+          defaultValues={{
+            name: status.name,
+            color: status.color,
+            priority: status.priority,
+          }}
+          fields={formFields}
+          className="space-y-2"
+          submitText={t('saveSuccess')}
+          onCancel={() => onEdit(null as any)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       style={style}
-      className="flex items-center justify-between p-4 bg-background border rounded-lg shadow-sm hover:shadow-md transition-shadow"
+      className={cn(
+        "flex flex-col sm:flex-row items-start sm:items-center p-2 gap-2 overflow-hidden",
+        isDragging && "bg-accent/50"
+      )}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
-      <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="cursor-grab active:cursor-grabbing p-0 h-8 w-8 hover:bg-muted"
+      <div className="flex items-center gap-1 w-full sm:w-auto overflow-hidden">
+        <div
+          className="cursor-grab touch-none flex-shrink-0"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </Button>
-        {editingId === status.id ? (
-          <>
-            <ColorPicker
-              color={status.color}
-              onChange={(color) => onSave(status, {...status, color})}
-            />
-            <Input
-              defaultValue={status.name}
-              className="w-32 bg-background"
-              onBlur={(e) => {
-                if (!e.target.value.trim()) {
-                  e.target.value = status.name;
-                  return;
-                }
-                onSave(status, {
-                  ...status,
-                  name: e.target.value.trim()
-                });
-              }}
-            />
-            <Input
-              type="number"
-              defaultValue={status.priority}
-              className="w-20 bg-background"
-              onBlur={(e) => onSave(status, {...status, priority: parseInt(e.target.value)})}
-            />
-          </>
-        ) : (
-          <>
-            <div 
-              className="w-4 h-4 rounded-full ring-1 ring-border" 
-              style={{ backgroundColor: status.color }}
-            />
-            <span className="font-medium text-foreground">{status.name}</span>
-            <span className="text-sm text-muted-foreground">
-              {t('priority')}: {status.priority}
-            </span>
-          </>
-        )}
+        </div>
+        
+        <div className="flex items-center gap-1 overflow-hidden">
+          <div
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+            style={{ backgroundColor: status.color }}
+          />
+          <span className="text-sm font-medium truncate">{status.name}</span>
+        </div>
       </div>
-      <div className="flex space-x-2">
+      
+      <div className="ml-auto flex items-center justify-end gap-1 mt-2 sm:mt-0 flex-shrink-0">
+        <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap mr-1">
+          {t('priority')}: {status.priority}
+        </div>
+        
         <Button
           variant="ghost"
-          size="sm"
-          className="hover:bg-muted"
+          size="icon"
           onClick={() => onEdit(status)}
+          className="h-7 w-7 flex-shrink-0"
         >
-          <Pencil className="h-4 w-4" />
+          <Pencil className="h-3.5 w-3.5" />
+          <span className="sr-only">Edit</span>
         </Button>
+        
         <Button
           variant="ghost"
-          size="sm"
-          className="hover:bg-muted"
+          size="icon"
           onClick={() => onSettings(status)}
+          className="h-7 w-7 flex-shrink-0"
         >
-          <Settings className="h-4 w-4" />
+          <Settings className="h-3.5 w-3.5" />
+          <span className="sr-only">Settings</span>
         </Button>
+        
         <Button
           variant="ghost"
-          size="sm"
-          className="hover:bg-destructive/10 hover:text-destructive"
+          size="icon"
           onClick={() => onDelete(status.id)}
+          className="h-7 w-7 flex-shrink-0 text-destructive"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3.5 w-3.5" />
+          <span className="sr-only">Delete</span>
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -246,6 +252,7 @@ export function StatusSettings() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<string | null>(null);
+  const [addingNew, setAddingNew] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -486,97 +493,63 @@ export function StatusSettings() {
   };
 
   return (
-    <div className="space-y-8">
-    
-      <Card className="border-none shadow-md">
-        <CardContent className="p-6">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <Collapsible
-            open={isFormOpen}
-            onOpenChange={setIsFormOpen}
-            className="space-y-1 pb-8"
-          >
-            <CollapsibleTrigger asChild>
-              <motion.div 
-                className="flex items-center justify-between cursor-pointer hover:bg-accent/50 p-2 rounded-md"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+    <div className="space-y-4 w-full">
+      <div className="flex flex-col gap-3 w-full">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base sm:text-lg font-semibold leading-none">{t('statuses')}</h3>
+          <Button onClick={() => setAddingNew(true)} size="sm" disabled={addingNew} className="h-8 text-xs sm:text-sm px-2 sm:px-3">
+            {t('addStatus')}
+          </Button>
+        </div>
+        
+        <Card className="w-full">
+          <CardContent className="p-0">
+            <div className="mt-2 text-xs sm:text-sm text-muted-foreground px-2 py-2 border-b">
+              {t('dragToReorder')}
+            </div>
+            
+            <div className="relative w-full">
+              {/* Status list content */}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                <h3 className="text-base font-medium">{t('addStatus')}</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-9 p-0"
-                >
-                  <motion.div
-                    initial={false}
-                    animate={{ rotate: isFormOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {isFormOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
+                <SortableContext items={statuses.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                  <div className="divide-y w-full">
+                    {addingNew && (
+                      <div className="p-2 bg-muted/20">
+                        <SettingsForm
+                          schema={statusSchema}
+                          onSubmit={onSubmit}
+                          defaultValues={{ name: '', color: '#000000', priority: statuses.length + 1 }}
+                          fields={fields}
+                          className="space-y-2"
+                          submitText={t('addStatus')}
+                          onCancel={() => setAddingNew(false)}
+                        />
+                      </div>
                     )}
-                  </motion.div>
-                  <span className="sr-only">Toggle form</span>
-                </Button>
-              </motion.div>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-2">
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <SettingsForm
-                  title=""
-                  schema={statusSchema}
-                  defaultValues={defaultValues}
-                  onSubmit={onSubmit}
-                  isLoading={isLoading}
-                  fields={fields}
-                  className="pt-2"
-                />
-              </motion.div>
-            </CollapsibleContent>
-          </Collapsible>
-        </motion.div>
-
-          <h3 className="text-xl font-semibold mb-4">{t('statuses')}</h3>
-          <p className="text-sm text-muted-foreground mb-6">{t('dragToReorder')}</p>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={statuses}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-3">
-                {statuses.map((status) => (
-                  <SortableItem
-                    key={status.id}
-                    status={status}
-                    editingId={editingId}
-                    t={t}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onSave={handleSave}
-                    onSettings={handleSettingsClick}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </CardContent>
-      </Card>
+                    
+                    {statuses.map((status) => (
+                      <SortableItem
+                        key={status.id}
+                        status={status}
+                        editingId={editingId}
+                        t={t}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onSave={handleSave}
+                        onSettings={handleSettingsClick}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {isSettingsOpen && (
         <div 
@@ -584,33 +557,34 @@ export function StatusSettings() {
           onClick={() => setIsSettingsOpen(null)}
         >
           <div 
-            className="fixed left-[50%] top-[50%] z-50 w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background shadow-lg duration-200 sm:rounded-lg max-h-[90vh] overflow-hidden"
+            className="fixed left-[50%] top-[50%] z-50 w-[85%] max-w-xs sm:max-w-md md:max-w-lg translate-x-[-50%] translate-y-[-50%] gap-2 border bg-background shadow-lg duration-200 sm:rounded-lg max-h-[90vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-6 pb-2 border-b">
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold">Status Mapping Settings</h2>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+            <div className="flex items-center justify-between p-2 border-b">
+              <div className="flex flex-col md:flex-row md:items-center gap-1">
+                <h2 className="text-base font-semibold truncate">Status Mapping</h2>
+                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-muted rounded-md">
                   <div 
-                    className="w-3 h-3 rounded-full ring-1 ring-border" 
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
                     style={{ 
                       backgroundColor: statuses.find(s => s.id === isSettingsOpen)?.color 
                     }} 
                   />
-                  <span className="text-sm font-medium">
+                  <span className="text-xs font-medium truncate">
                     {statuses.find(s => s.id === isSettingsOpen)?.name}
                   </span>
                 </div>
               </div>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => setIsSettingsOpen(null)}
+                className="h-7 w-7 flex-shrink-0"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
-            <div className="p-6 pt-4 overflow-y-auto max-h-[calc(90vh-4rem)]">
+            <div className="p-2 overflow-y-auto">
               <StatusMapping 
                 currentStatus={statuses.find(s => s.id === isSettingsOpen) as StatusResponse}
                 onChange={handleMappingChange}

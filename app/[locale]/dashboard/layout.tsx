@@ -65,33 +65,35 @@ function DashboardLayoutContent({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 bg-background">
-          <div className="flex flex-1 items-center gap-2 px-3">
+      <SidebarInset className="h-screen flex flex-col">
+        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-1 bg-background overflow-hidden z-10">
+          <div className="flex flex-1 items-center gap-1 px-2 overflow-hidden">
             <div className="md:hidden">
               <SidebarTrigger location="header" />
             </div>
 
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Separator orientation="vertical" className="mr-1 h-4" />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="line-clamp-1">
+                  <BreadcrumbPage className="line-clamp-1 text-sm">
                     {t('dashboard')}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="flex items-center gap-2 px-3">
+          <div className="flex items-center gap-1 px-2">
             <LanguageSwitcher />
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 p-4">
+        <main className="flex-1 px-2 py-2 sm:px-3 sm:py-3 md:p-4 overflow-y-auto">
           {children}
         </main>
-        <Footer />
+        <div className="shrink-0">
+          <Footer />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -200,51 +200,51 @@ export default function BlacklistManagement() {
     >
       <motion.div variants={fadeIn}>
         <Card className="border bg-card">
-          <CardHeader>
-            <CardTitle className="text-base">{t('search')}</CardTitle>
+          <CardHeader className="px-3 py-3 sm:px-4 sm:py-4">
+            <CardTitle className="text-sm sm:text-base">{t('search')}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-6 px-3 py-3 sm:px-4 sm:py-4">
+            <div className="space-y-2 sm:space-y-4">
               <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('searchPlaceholder')}
-                  className="pl-8 w-full"
+                  className="pl-7 sm:pl-8 w-full text-xs sm:text-sm h-8 sm:h-9"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                 />
                 {isSearching && (
                   <div className="absolute right-2 top-2.5">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2 sm:space-y-4">
               <Collapsible
                 open={isFormOpen}
                 onOpenChange={setIsFormOpen}
                 className="space-y-2"
               >
                 <CollapsibleTrigger asChild>
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 p-2 rounded-md">
-                    <h3 className="text-base font-medium">{t('addNewItem')}</h3>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 p-1.5 sm:p-2 rounded-md">
+                    <h3 className="text-sm sm:text-base font-medium">{t('addNewItem')}</h3>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-9 p-0"
+                      className="w-7 sm:w-9 p-0 h-7 sm:h-9"
                     >
                       {isFormOpen ? (
-                        <ChevronUp className="h-4 w-4" />
+                        <ChevronUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       ) : (
-                        <ChevronDown className="h-4 w-4" />
+                        <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       )}
                       <span className="sr-only">Toggle form</span>
                     </Button>
                   </div>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4">
+                <CollapsibleContent className="space-y-3 sm:space-y-4">
                   <div className="rounded-md">
                     <BlacklistForm onSubmit={handleAddItem} isLoading={isLoading} />
                   </div>
@@ -257,30 +257,30 @@ export default function BlacklistManagement() {
 
       <motion.div variants={fadeIn}>
         <Card className="border bg-card">
-          <CardHeader>
-            <CardTitle className="text-base">{t('blacklistItems')}</CardTitle>
+          <CardHeader className="px-3 py-3 sm:px-4 sm:py-4">
+            <CardTitle className="text-sm sm:text-base">{t('blacklistItems')}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <ScrollArea className="h-[calc(100vh-24rem)]">
-              <div className="p-4">
+            <ScrollArea className="h-[calc(100vh-22rem)] sm:h-[calc(100vh-24rem)]">
+              <div className="p-2 sm:p-4">
                 <AnimatePresence mode="popLayout">
                   {error ? (
                     <motion.div 
-                      className="flex items-center justify-center p-4 text-destructive"
+                      className="flex items-center justify-center p-2 sm:p-4 text-destructive text-xs sm:text-sm"
                       variants={fadeIn}
                     >
                       <p>{error}</p>
                     </motion.div>
                   ) : items.length === 0 ? (
                     <motion.div 
-                      className="flex items-center justify-center p-4 text-muted-foreground"
+                      className="flex items-center justify-center p-2 sm:p-4 text-muted-foreground text-xs sm:text-sm"
                       variants={fadeIn}
                     >
                       <p>{t('noItems')}</p>
                     </motion.div>
                   ) : (
                     <motion.div 
-                      className="space-y-2"
+                      className="space-y-1.5 sm:space-y-2"
                       variants={staggerContainer}
                     >
                       {items.map((item) => (
@@ -288,28 +288,30 @@ export default function BlacklistManagement() {
                           key={item.id}
                           variants={listItem}
                           layout
-                          className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50"
+                          className="flex items-center justify-between p-2 sm:p-4 rounded-lg border hover:bg-accent/50"
                         >
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium">{item.fullName}</p>
-                              <p className="text-xs text-muted-foreground">{new Date(item.created).toLocaleDateString()}</p>
+                          <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1 overflow-hidden">
+                            <div className="flex items-center justify-between flex-wrap gap-1">
+                              <p className="text-xs sm:text-sm font-medium truncate">{item.fullName}</p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground">{new Date(item.created).toLocaleDateString()}</p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                              <p className="flex items-center gap-2">
-                                <span className="font-medium">Phone:</span> {item.phoneNumber}
+                            <div className="grid grid-cols-1 gap-1 sm:gap-2 text-[10px] sm:text-sm text-muted-foreground">
+                              <p className="flex items-center gap-1 sm:gap-2 overflow-hidden">
+                                <span className="font-medium shrink-0">Phone:</span> 
+                                <span className="truncate">{item.phoneNumber}</span>
                               </p>
-                              <p className="flex items-center gap-2">
-                                <span className="font-medium">City:</span> {item.city}
+                              <p className="flex items-center gap-1 sm:gap-2 overflow-hidden">
+                                <span className="font-medium shrink-0">City:</span> 
+                                <span className="truncate">{item.city}</span>
                               </p>
                               {item.totalOrderSum && (
-                                <p className="flex items-center gap-2 col-span-2">
-                                  <span className="font-medium">Total Orders:</span> {item.totalOrderSum}
+                                <p className="flex items-center gap-1 sm:gap-2">
+                                  <span className="font-medium shrink-0">Total Orders:</span> {item.totalOrderSum}
                                 </p>
                               )}
                             </div>
                             {item.notes && (
-                              <p className="text-sm text-muted-foreground mt-2">
+                              <p className="text-[10px] sm:text-sm text-muted-foreground mt-1 sm:mt-2 line-clamp-2 sm:line-clamp-none">
                                 <span className="font-medium">Notes:</span> {item.notes}
                               </p>
                             )}
@@ -318,9 +320,9 @@ export default function BlacklistManagement() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveItem(item.id)}
-                            className="ml-4 h-8 w-8 shrink-0"
+                            className="ml-2 sm:ml-4 h-6 w-6 sm:h-8 sm:w-8 shrink-0"
                           >
-                            <Trash className="h-4 w-4" />
+                            <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </motion.div>
                       ))}
@@ -336,19 +338,20 @@ export default function BlacklistManagement() {
       {items.length > 0 && (
         <motion.div variants={fadeIn}>
           <Card className="border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 text-sm text-muted-foreground">
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex-1 text-[10px] sm:text-sm text-muted-foreground">
                   {t('showing')} {((pagination.page - 1) * pagination.perPage) + 1}-
                   {Math.min(pagination.page * pagination.perPage, pagination.totalItems)} {t('of')}{' '}
                   {pagination.totalItems} {t('entries')}
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-0.5 sm:gap-2 flex-wrap justify-end">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageChange(1)}
                     disabled={pagination.page === 1}
+                    className="h-6 sm:h-8 text-[10px] sm:text-xs px-1 sm:px-2"
                   >
                     {t('firstPage')}
                   </Button>
@@ -357,10 +360,11 @@ export default function BlacklistManagement() {
                     size="sm"
                     onClick={() => handlePageChange(pagination.page - 1)}
                     disabled={pagination.page === 1}
+                    className="h-6 sm:h-8 text-[10px] sm:text-xs px-1 sm:px-2"
                   >
                     {t('previousPage')}
                   </Button>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 sm:gap-1">
                     {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                       let pageNum;
                       if (pagination.totalPages <= 5) {
@@ -380,7 +384,7 @@ export default function BlacklistManagement() {
                           variant={pagination.page === pageNum ? "default" : "ghost"}
                           size="sm"
                           onClick={() => handlePageChange(pageNum)}
-                          className="w-8"
+                          className="w-6 h-6 sm:w-8 sm:h-8 text-[10px] sm:text-xs p-0"
                         >
                           {pageNum}
                         </Button>
@@ -392,6 +396,7 @@ export default function BlacklistManagement() {
                     size="sm"
                     onClick={() => handlePageChange(pagination.page + 1)}
                     disabled={pagination.page === pagination.totalPages}
+                    className="h-6 sm:h-8 text-[10px] sm:text-xs px-1 sm:px-2"
                   >
                     {t('nextPage')}
                   </Button>
@@ -400,6 +405,7 @@ export default function BlacklistManagement() {
                     size="sm"
                     onClick={() => handlePageChange(pagination.totalPages)}
                     disabled={pagination.page === pagination.totalPages}
+                    className="h-6 sm:h-8 text-[10px] sm:text-xs px-1 sm:px-2"
                   >
                     {t('lastPage')}
                   </Button>

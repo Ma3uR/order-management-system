@@ -20,38 +20,39 @@ export function Footer() {
           transition={{ duration: 0.5 }}
           className="w-full border-t bg-white dark:bg-slate-950"
         >
-          <div className="container flex flex-col items-center justify-center gap-4 py-4 md:h-20 md:flex-row md:py-0">
+          <div className="container flex flex-col items-center justify-center gap-1 py-2 md:gap-4 md:h-20 md:flex-row md:py-0">
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
+              className="flex items-center gap-1 text-xs md:text-sm text-muted-foreground"
             >
-              <span>Created by</span>
+              <span className="hidden sm:inline">Created by</span>
               <a 
                 href="mailto:andriimazurenko99@gmail.com"
                 className="flex items-center gap-1 font-medium text-foreground hover:text-primary transition-colors"
               >
-                @Andrii Mazurenko
-                <Mail className="h-3 w-3" />
+                @Andrii
+                <Mail className="h-2.5 w-2.5 md:h-3 md:w-3" />
               </a>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 1.0, duration: 0.8 }}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
+              className="flex items-center gap-1 text-xs md:text-sm text-muted-foreground"
             >
-              <span>for Balemala team</span>
+              <span className="hidden sm:inline">for</span>
+              <span className="font-medium">Balemala</span>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.4, duration: 1.0 }}
-              className="flex items-center gap-2 text-sm"
+              className="flex items-center gap-1 text-xs md:text-sm"
             >
-              <span>Built with</span>
-              <svg viewBox="0 0 207 124" version="1.1" fill="#000000" className="h-[20px] sm:h-[30px] dark:fill-white">
+              <span className="hidden sm:inline">Built with</span>
+              <svg viewBox="0 0 207 124" version="1.1" fill="#000000" className="h-[16px] sm:h-[20px] md:h-[30px] dark:fill-white">
                 <g id="Page-1" stroke="none" strokeWidth="1">
                   <g transform="translate(-247.000000, -138.000000)">
                     <g id="next-black" transform="translate(247.000000, 138.000000)">
