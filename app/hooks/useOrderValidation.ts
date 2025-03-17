@@ -11,6 +11,7 @@ interface ValidationErrors {
   paymentMethod?: string;
   fullName?: string;
   submit?: string;
+  productionCost?: string;
 }
 
 interface ProductInput {
@@ -58,6 +59,11 @@ export function useOrderValidation() {
 
     if (!orderData.paymentMethod) {
       errors.paymentMethod = 'Payment method is required';
+      isValid = false;
+    }
+
+    if (!orderData.productionCost || orderData.productionCost < 0) {
+      errors.productionCost = 'Production cost must be non-negative';
       isValid = false;
     }
 

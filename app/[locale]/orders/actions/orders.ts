@@ -80,7 +80,7 @@ export const createOrder = async (data: OrderFormData)=>{
     }
 }
 
-export const updateOrder = async (id: string, data: OrderFormData)=>{
+export const updateOrder = async (id: string, data: OrderFormData) => {
     try {
         orderSchema.parse(data);
         const order = await authenticatedCall(() => pb.collection('orders').update<OrdersResponse>(id, data));

@@ -448,6 +448,7 @@ async function processOrder(promOrder: PromOrderResponse) {
     mergeSource: 'none',
     mergeStatus: 'none',
     archived: false,
+    productionCost: 0,
   };
 
   const safeData = {

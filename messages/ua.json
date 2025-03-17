@@ -47,6 +47,7 @@
     "editOrder": "Редагувати замовлення",
     "selectStatus": "Вибрати статус",
     "updateOrder": "Оновити замовлення",
+    "productionCost": "Собівартість",
     "statuses": {
       "beingProcessed": "Обробляється менеджером",
       "shipped": "Відправлено",

@@ -75,6 +75,7 @@ interface OrdersManagementProps {
     paymentMethod: string
     editOrder: string
     updateOrder: string
+    productionCost: string
     statuses: {
       beingProcessed: string
       shipped: string
@@ -326,8 +327,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           break;
       }
 
-      console.log('marketplaceCode', marketplaceCode);
-      console.log('marketplaceUpdateFn', marketplaceUpdateFn);
       // If we have a marketplace code and update function, update the marketplace first
       if (marketplaceCode && marketplaceUpdateFn) {
         const marketplaceResult = await marketplaceUpdateFn();
@@ -378,7 +377,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         numberOfItems: validProducts.reduce((sum, p) => sum + p.quantity, 0),
         amount: validProducts.reduce((sum, p) => sum + (p.quantity * p.price), 0),
         originalOrders: Array.isArray(order.originalOrders) ? order.originalOrders : null,
-        mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none
+        mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none,
+        productionCost: order.productionCost || 0
       };
 
       const result = await updateOrder(orderId, updatePayload);
@@ -889,7 +889,8 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 deliveryPostNumber: orderData.deliveryPostNumber,
                 mergeStatus: OrdersMergeStatusOptions.none,
                 originalOrders: null,
-                mergeSource: OrdersMergeSourceOptions.phone
+                mergeSource: OrdersMergeSourceOptions.phone,
+                productionCost: orderData.productionCost || selectedOrder.productionCost
               };
 
               const result = await updateOrder(orderId, updatePayload);
@@ -945,12 +946,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               mergeSource: OrdersMergeSourceOptions.phone
             };
 
-            console.log('Creating order with data:', {
-              phoneNumber: formData.phoneNumber,
-              status: formData.status,
-              mergeStatus: formData.mergeStatus
-            });
-
             const result = await createOrder(formData);
             if (result.error) {
               toast.error("Failed to create order. Please try again.");
@@ -967,12 +962,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             const lowestPriorityStatus = statuses.reduce((lowest, current) => 
               (!current.priority || !lowest.priority || current.priority < lowest.priority) ? current : lowest
             );
-            
-            console.log('Checking for merges after order creation:', {
-              lowestPriorityStatus,
-              newOrderStatus: result.data?.status,
-              newOrderPhone: result.data?.phoneNumber
-            });
 
             // Check for potential merges among unprocessed orders with the same status
             const ordersToCheck = updatedOrders.filter(order => {
@@ -984,11 +973,6 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
             
             const { merges } = findPotentialMerges(ordersToCheck as OrdersResponse[]);
             if (merges.length > 0) {
-              console.log('Setting potential merges:', merges.map(o => ({
-                orderNumber: o.orderNumber,
-                phoneNumber: o.phoneNumber,
-                status: o.status
-              })));
               setPotentialMerges(merges);
             }
 

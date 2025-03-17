@@ -107,7 +107,8 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     notes: rozetkaOrder.comment || '',
     deliveryPostNumber: deliveryPostNumber,
     mergeSource: 'none',
-    mergeStatus: 'none'
+    mergeStatus: 'none',
+    productionCost: 0,
   };
 
   const validationResult = orderSchema.safeParse({

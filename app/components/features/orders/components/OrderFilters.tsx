@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/shared
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/app/lib/utils";
-import { OrdersMergeStatusOptions } from "@/app/types/pocketbase-types";
+import { OrdersMergeStatusOptions, SourcesResponse } from "@/app/types/pocketbase-types";
 
 export interface FilterOptions {
   status?: string

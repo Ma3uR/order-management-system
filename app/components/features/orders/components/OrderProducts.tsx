@@ -21,6 +21,7 @@ interface OrderProductsProps {
     price: string;
     totalItems: string;
     totalAmount: string;
+    productionCost: string;
   };
   readOnly?: boolean;
 }

@@ -10,6 +10,7 @@ interface ValidationErrors {
   products?: string;
   paymentMethod?: string;
   fullName?: string;
+  productionCost?: string;
   submit?: string;
 }
 

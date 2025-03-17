@@ -274,27 +274,27 @@ const SidebarTrigger = React.forwardRef<
 >(({ onClick, location = 'sidebar', ...props }, ref) => {
   const { toggleSidebar, isMobile } = useSidebar()
 
-  // Only show in header for mobile, and in sidebar for desktop
-  if ((location === 'header' && !isMobile) || (location === 'sidebar' && isMobile)) {
-    return null
+  // Show in header for mobile, and in sidebar for desktop
+  if ((location === 'header' && isMobile) || (location === 'sidebar' && !isMobile)) {
+    return (
+      <Button
+        ref={ref}
+        data-sidebar="trigger"
+        variant="ghost"
+        size="sm"
+        onClick={(event) => {
+          onClick?.(event)
+          toggleSidebar()
+        }}
+        {...props}
+      >
+        <PanelLeft className="h-5 w-5" />
+        <span className="sr-only">Toggle Sidebar</span>
+      </Button>
+    )
   }
-
-  return (
-    <Button
-      ref={ref}
-      data-sidebar="trigger"
-      variant="ghost"
-      size="sm"
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
-      {...props}
-    >
-      <PanelLeft className="h-5 w-5" />
-      <span className="sr-only">Toggle Sidebar</span>
-    </Button>
-  )
+  
+  return null
 })
 SidebarTrigger.displayName = "SidebarTrigger"
 

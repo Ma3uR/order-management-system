@@ -484,7 +484,8 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
     notes: epicentrOrder.comment || '',
     deliveryPostNumber: deliveryAddress.data?.officeAddress || 'Уточнюйте на сайті епіцентра',
     mergeSource: 'none',
-    mergeStatus: 'none'
+    mergeStatus: 'none',
+    productionCost: 0,
   };
 
   const validationResult = orderSchema.safeParse({
