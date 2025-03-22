@@ -9,7 +9,6 @@ import { Button } from "@/app/components/shared/ui/button";
 import { Trash2, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import type { SourcesResponse } from "@/app/types/pocketbase-types";
 import { toast } from 'sonner';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
 import { Input } from "@/app/components/shared/ui/input";
 import { motion, AnimatePresence } from 'framer-motion';
 import { createSource, deleteSource } from "@/app/[locale]/settings/actions/sources";
@@ -44,7 +43,7 @@ export function SourceSettings() {
   const [sources, setSources] = useState<SourcesResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editedName, setEditedName] = useState<string | undefined>(undefined);
+  const [editedName, setEditedName] = useState<string>("");
   const [editedUrl, setEditedUrl] = useState<string | undefined>(undefined);
 
   const fields = [
@@ -85,18 +84,26 @@ export function SourceSettings() {
 
   const handleEdit = (source: SourcesResponse) => {
     setEditingId(source.id);
-    setEditedName(source.name);
+    setEditedName(source.name || "");
     setEditedUrl(source.url);
   };
 
-  const handleSave = async (id: string, data: { name: string; url?: string | undefined; }) => {
+  const handleSave = async (id: string) => {
     try {
-      await updateSource(id, data);
+      // Find the source being edited
+      const source = sources.find(src => src.id === id);
+      if (!source) return;
+      
+      await updateSource(id, {
+        name: editedName,
+        url: editedUrl || ""
+      });
       toast.success(t('updateSuccess'), {
         description: t('sourceUpdateSuccess'),
       });
       const updatedSources = await getAllSources();
       setSources(updatedSources.data || []);
+      setEditingId(null); // Exit edit mode after saving
     } catch (error) {
       console.error('Error updating source:', error);
       toast.error(t('updateError'), {
@@ -266,10 +273,7 @@ export function SourceSettings() {
                             <Button
                               size="sm"
                               className="flex-1 sm:flex-none"
-                              onClick={() => handleSave(source.id, {
-                                name: editedName || source.name,
-                                url: editedUrl
-                              })}
+                              onClick={() => handleSave(source.id)}
                             >
                               {t('save')}
                             </Button>

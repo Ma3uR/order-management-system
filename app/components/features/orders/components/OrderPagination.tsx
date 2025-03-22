@@ -35,7 +35,7 @@ export function OrderPagination({
     } else {
       // Show a window around the current page
       let start = Math.max(currentPage - 2, 1);
-      let end = Math.min(start + 4, totalPages);
+      const end = Math.min(start + 4, totalPages);
       
       // Adjust if we're near the end
       if (end === totalPages) {

@@ -7,9 +7,7 @@ import { statusSchema, type StatusFormData } from "@/app/lib/validations/setting
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2, Pencil, GripVertical, ChevronDown, ChevronUp, Settings, X } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/shared/ui/collapsible";
-import { Input } from "@/app/components/shared/ui/input";
+import { Trash2, Pencil, GripVertical, Settings, X } from "lucide-react";
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -60,13 +58,15 @@ type TranslationKeys = {
   unexpectedError: string;
   addStatus: string;
   statuses: string;
+  editStatus: string;
+  newStatus: string;
 };
 
 interface SortableItemProps {
   status: StatusResponse;
   editingId: string | null;
   t: (key: keyof TranslationKeys) => string;
-  onEdit: (status: StatusResponse) => void;
+  onEdit: (status: StatusResponse | null) => void;
   onDelete: (id: string) => void;
   onSave: (status: StatusResponse, data: StatusFormData) => void;
   onSettings: (status: StatusResponse) => void;
@@ -129,7 +129,6 @@ function ColorPicker({
 }
 
 function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettings }: SortableItemProps) {
-  const [isCollapsed, setIsCollapsed] = useState(true);
   const {
     attributes,
     listeners,
@@ -147,21 +146,54 @@ function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettin
 
   const isEditing = editingId === status.id;
 
+  // Get fields from parent component
+  const fields: FormField[] = [
+    { 
+      name: "name" as const, 
+      label: t('statusName'), 
+      className: "w-full"
+    },
+    { 
+      name: "color" as const, 
+      label: t('statusColor'), 
+      type: "color",
+      className: "w-full",
+      render: ({ field }: { field: ControllerRenderProps<StatusFormData, keyof StatusFormData> }) => (
+        <div className="flex flex-col gap-2">
+          <ColorPicker
+            color={typeof field.value === 'string' ? field.value : field.value?.toString() || '#000000'}
+            onChange={field.onChange}
+          />
+        </div>
+      )
+    },
+    { 
+      name: "priority" as const,
+      label: t('statusPriority'),
+      type: "number",
+      className: "w-full"
+    }
+  ];
+
   if (isEditing) {
     return (
       <div ref={setNodeRef} style={style} className="p-2 bg-muted/20">
         <SettingsForm
+          title={t('editStatus')}
           schema={statusSchema}
-          onSubmit={(data) => onSave(status, data)}
+          onSubmit={async (data) => {
+            await onSave(status, data);
+          }}
           defaultValues={{
             name: status.name,
             color: status.color,
             priority: status.priority,
           }}
-          fields={formFields}
+          fields={fields}
           className="space-y-2"
           submitText={t('saveSuccess')}
-          onCancel={() => onEdit(null as any)}
+          onCancel={() => onEdit(null)}
+          isLoading={false}
         />
       </div>
     );
@@ -250,7 +282,6 @@ export function StatusSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [statuses, setStatuses] = useState<StatusResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<string | null>(null);
   const [addingNew, setAddingNew] = useState(false);
 
@@ -261,17 +292,10 @@ export function StatusSettings() {
     })
   );
 
-  const defaultValues: StatusFormData = {
-    name: "",
-    color: "#000000",
-    priority: 1
-  };
-
   const fields: FormField[] = [
     { 
       name: "name" as const, 
       label: t('statusName'), 
-      placeholder: t('statusNamePlaceholder'),
       className: "w-full"
     },
     { 
@@ -341,7 +365,6 @@ export function StatusSettings() {
       });
       
       fetchStatuses();
-      setIsFormOpen(false);
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(t('saveError'), {
@@ -381,8 +404,12 @@ export function StatusSettings() {
     }
   };
 
-  const handleEdit = async (status: StatusResponse) => {
-    setEditingId(status.id);
+  const handleEdit = async (status: StatusResponse | null) => {
+    if (status) {
+      setEditingId(status.id);
+    } else {
+      setEditingId(null);
+    }
   };
 
   const handleSave = async (status: StatusResponse, data: StatusFormData) => {
@@ -520,6 +547,7 @@ export function StatusSettings() {
                     {addingNew && (
                       <div className="p-2 bg-muted/20">
                         <SettingsForm
+                          title={t('newStatus')}
                           schema={statusSchema}
                           onSubmit={onSubmit}
                           defaultValues={{ name: '', color: '#000000', priority: statuses.length + 1 }}
@@ -527,6 +555,7 @@ export function StatusSettings() {
                           className="space-y-2"
                           submitText={t('addStatus')}
                           onCancel={() => setAddingNew(false)}
+                          isLoading={isLoading}
                         />
                       </div>
                     )}

@@ -60,15 +60,6 @@ export function OrderStats({ orders, translations }: OrderStatsProps) {
     }
   })
 
-  // Mobile-friendly formatter for dates
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    // On very small screens, just show day number
-    return window.innerWidth < 360 ? 
-      date.getDate().toString() : 
-      date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-  };
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
