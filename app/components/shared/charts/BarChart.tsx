@@ -82,7 +82,7 @@ export function BarChart({ data, labels, className }: BarChartProps) {
           display: false,
         },
         grid: {
-          color: isDark ? '#374151' : '#E5E7EB',
+          color: isDark ? '#374151' : '#1e1e1e',
           drawBorder: false,
         },
         ticks: {

@@ -4,6 +4,16 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/shared/ui/avatar"
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/app/components/shared/ui/dropdown-menu"
+import { LogOut, User } from "lucide-react"
+import { signOut, useSession } from "next-auth/react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -383,13 +393,59 @@ const SidebarFooter = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
+  const { data: session } = useSession()
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
+  
   return (
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2 mt-auto", className)}
       {...props}
-    />
+    >
+      {session?.user && (
+        <>
+          <SidebarSeparator className="mt-0 mb-2" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className={cn(
+                "flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted/50",
+                isCollapsed && "justify-center"
+              )}>
+                <Avatar className={cn(
+                  "transition-all", 
+                  isCollapsed ? "h-9 w-9" : "h-8 w-8"
+                )}>
+                  <AvatarImage src={session.user.image || ""} alt={session.user.name || ""} />
+                  <AvatarFallback>
+                    {session.user.name ? session.user.name.charAt(0).toUpperCase() : "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className={cn(
+                  "flex-1 overflow-hidden transition-all",
+                  isCollapsed && "hidden"
+                )}>
+                  <p className="text-sm font-medium truncate">{session.user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                </div>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem className="cursor-pointer" onClick={() => window.location.href = "/profile"}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => signOut()}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      )}
+    </div>
   )
 })
 SidebarFooter.displayName = "SidebarFooter"
@@ -402,7 +458,7 @@ const SidebarSeparator = React.forwardRef<
     <Separator
       ref={ref}
       data-sidebar="separator"
-      className={cn("mx-2 w-auto bg-sidebar-border", className)}
+      className={cn("mx-2 w-auto bg-border dark:bg-muted/30", className)}
       {...props}
     />
   )

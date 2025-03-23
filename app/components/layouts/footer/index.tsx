@@ -18,9 +18,9 @@ export function Footer() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="w-full border-t bg-white dark:bg-slate-950"
+          className="w-full border-t bg-white dark:bg-sidebar"
         >
-          <div className="container flex flex-col items-center justify-center gap-1 py-2 md:gap-4 md:h-20 md:flex-row md:py-0">
+          <div className="container flex flex-col items-center justify-center gap-1 py-2 md:gap-4 md:h-14 md:flex-row md:py-0">
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}

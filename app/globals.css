@@ -103,6 +103,15 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  /* Override default border color */
+  *, ::before, ::after {
+    border-color: #e5e7eb;
+  }
+
+  .dark *, .dark ::before, .dark ::after {
+    border-color: #1e1e1e;
+  }
 }
  
 @layer base {

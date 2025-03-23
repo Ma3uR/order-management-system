@@ -4,7 +4,8 @@ import {
   Sidebar, 
   SidebarHeader, 
   SidebarContent,
-  SidebarTrigger
+  SidebarTrigger,
+  SidebarFooter
 } from '@/app/components/shared/ui/sidebar';
 import {
   LayoutDashboard,
@@ -65,6 +66,7 @@ export function AppSidebar() {
           ))}
         </nav>
       </SidebarContent>
+      <SidebarFooter />
     </Sidebar>
   );
 } 

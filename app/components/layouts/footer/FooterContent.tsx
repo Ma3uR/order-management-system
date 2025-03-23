@@ -33,7 +33,8 @@ export function FooterContent() {
       initial={{ opacity: 0, y: 20 }}
       animate={controls.footer}
       transition={{ duration: 1.2 }}
-      className="w-full border-t bg-white dark:bg-slate-950"
+      className="w-full border-t bg-white"
+      style={{ borderColor: 'hsl(var(--sidebar-background))' }}
     >
       <div className="container flex flex-col items-center justify-center gap-4 py-4 md:h-20 md:flex-row md:py-0">
         <motion.div 
