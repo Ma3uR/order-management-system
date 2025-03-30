@@ -157,10 +157,15 @@
   },
   "AiChat": {
     "title": "AI Assistant",
-    "comingSoon": "Coming Soon",
-    "placeholder": "Chat will be available soon...",
+    "thinking": "Thinking...",
     "send": "Send",
-    "initialMessage": "Hi! I'm an AI assistant, but I'm not working yet! I'll be here soon to help you with any questions."
+    "inputPlaceholder": "Type your message...",
+    "initialMessage": "Hi! I'm your AI assistant for the order management system. I can help with order queries, reports, and other questions. How can I assist you today?",
+    "pageDescription": "Chat with our AI assistant for help with orders, reports, and system questions.",
+    "placeholder": "Type your message...",
+    "stop": "Stop",
+    "errorTitle": "Error",
+    "retry": "Retry"
   },
   "Settings": {
     "settings": "Settings",

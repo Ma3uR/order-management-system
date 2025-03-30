@@ -1,31 +1,33 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/shared/ui/avatar";
-import { Send, Bot, User } from "lucide-react";
+import { Send, Bot, User, StopCircle, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-interface Message {
-  role: 'assistant' | 'user';
-  content: string;
-}
+import { useChat } from '@ai-sdk/react';
 
 export function AiChatBox() {
   const t = useTranslations('AiChat');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: t('initialMessage')
-    }
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload } = useChat({
+    api: '/api/chat',
+    initialMessages: [
+      {
+        id: 'initial-message',
+        role: 'assistant',
+        content: t('initialMessage')
+      }
+    ],
+    onError: (error) => {
+      console.error('Chat error in onError handler:', error);
+    }
+  });
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -33,23 +35,19 @@ export function AiChatBox() {
     }
   }, [messages]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = input.trim();
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: t('comingSoon')
-      }]);
-      setIsLoading(false);
-    }, 1000);
-  };
+  useEffect(() => {
+    if (error) {
+      console.error('AI Chat error:', error);
+      // Try to get more details if available
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        });
+      }
+    }
+  }, [error]);
 
   const messageVariants = {
     initial: { 
@@ -80,13 +78,40 @@ export function AiChatBox() {
     <Card className="h-[500px] flex flex-col bg-white/50 dark:bg-black/90 backdrop-blur-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-medium">{t('title')}</CardTitle>
+        {(status === 'submitted' || status === 'streaming') && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => stop()}
+            className="flex items-center gap-1"
+          >
+            <StopCircle className="h-4 w-4 mr-1" />
+            {t('stop') || "Stop"}
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
         <ScrollArea className="flex-1 px-4 mb-4" ref={scrollAreaRef}>
+          {error && (
+            <div className="p-3 mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <h4 className="text-sm font-medium text-red-800 dark:text-red-400">{t('errorTitle') || "Error"}</h4>
+              <p className="text-sm text-red-700 dark:text-red-300">{error.message}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => reload()}
+                className="mt-2 flex items-center gap-1"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                {t('retry') || "Retry"}
+              </Button>
+            </div>
+          )}
+          
           <AnimatePresence initial={false}>
-            {messages.map((message, index) => (
+            {messages.map((message) => (
               <motion.div
-                key={index}
+                key={message.id}
                 variants={messageVariants}
                 initial="initial"
                 animate="animate"
@@ -133,21 +158,27 @@ export function AiChatBox() {
               </motion.div>
             ))}
           </AnimatePresence>
+          
+          {status === 'submitted' && (
+            <div className="flex justify-center my-2">
+              <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
+          )}
         </ScrollArea>
 
         <div className="border-t">
           <form onSubmit={handleSubmit} className="flex items-center gap-2 p-4">
             <Input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               placeholder={t('placeholder')}
-              disabled={isLoading}
+              disabled={status !== 'ready' || error !== undefined}
               className="flex-1"
             />
             <Button 
               type="submit" 
               size="icon"
-              disabled={isLoading || !input.trim()}
+              disabled={!input.trim() || status !== 'ready' || error !== undefined}
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -156,4 +187,4 @@ export function AiChatBox() {
       </CardContent>
     </Card>
   );
-} 
+}
