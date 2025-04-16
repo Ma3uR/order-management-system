@@ -29,6 +29,37 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const t = useTranslations('Auth');
+  const isLoading = status === 'loading';
+
+  useEffect(() => {
+    // If session loaded and user is not authenticated, redirect to login
+    if (!isLoading && !session) {
+      console.log('No authenticated session found, redirecting to login');
+      router.push('/login');
+    }
+  }, [session, isLoading, router]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-16 w-16 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+          <p className="text-lg font-medium text-gray-600 dark:text-gray-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, show nothing (will redirect)
+  if (!session) {
+    return null;
+  }
+
+  // If authenticated, render children
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <SessionProvider>

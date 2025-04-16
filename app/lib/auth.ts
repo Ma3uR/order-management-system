@@ -30,13 +30,20 @@ export const auth: AuthOptions = {
     })
   ],
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/login',
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      if (url.startsWith("/")) {
+        if (url === '/auth/signin') {
+          return `${baseUrl}/dashboard`;
+        }
+        return `${baseUrl}${url}`;
+      }
+      else if (new URL(url).origin === baseUrl) {
+        return url;
+      }
+      return `${baseUrl}/dashboard`;
     },
     async session({ session }) {
       return session;

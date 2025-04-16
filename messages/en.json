@@ -165,7 +165,10 @@
     "placeholder": "Type your message...",
     "stop": "Stop",
     "errorTitle": "Error",
-    "retry": "Retry"
+    "retry": "Retry",
+    "navButton": "Chat with AI",
+    "refresh": "Refresh chat",
+    "clearChat": "Clear chat history"
   },
   "Settings": {
     "settings": "Settings",
@@ -279,16 +282,22 @@
     "deliveryMethodUpdateSuccess": "Delivery method successfully updated"
   },
   "Auth": {
-    "signInTitle": "Sign in",
-    "signInDescription": "Enter your credentials to sign in to your account",
+    "welcome": "Welcome Back",
+    "loginSubtitle": "Sign in to your account to continue",
     "emailLabel": "Email",
     "emailPlaceholder": "Enter your email",
     "passwordLabel": "Password",
-    "passwordPlaceholder": "Enter your password",
-    "signInButton": "Sign in",
-    "signingIn": "Signing in...",
-    "invalidCredentials": "Invalid email or password",
-    "signInError": "An error occurred during sign in"
+    "passwordPlaceholder": "••••••••",
+    "login": "Sign In",
+    "loggingIn": "Signing in...",
+    "forgotPassword": "Forgot Password?",
+    "loginError": "Invalid email or password",
+    "authRequired": "Authentication required",
+    "loginToAccess": "Please login to access this page",
+    "orderManagement": "Order Management",
+    "automateWorkflows": "Automate Workflows",
+    "streamlineOrders": "Streamline Orders",
+    "boostEfficiency": "Boost Efficiency"
   },
   "Navigation": {
     "backToDashboard": "Back to Dashboard"

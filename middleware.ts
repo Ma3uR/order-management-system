@@ -15,6 +15,12 @@ const nextIntlMiddleware = createMiddleware({
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
+  // Redirect from old auth page to new login page
+  if (pathname.includes('/auth/signin')) {
+    const url = new URL(pathname.replace('/auth/signin', '/login'), request.url);
+    return NextResponse.redirect(url);
+  }
+
   // Check if path starts with a locale
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
