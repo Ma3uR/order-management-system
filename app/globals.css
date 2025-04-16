@@ -59,6 +59,18 @@
     --sidebar-border: 220 13% 91%;
  
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Login page specific variables - light theme */
+    --login-bg-gradient-start: 210 30% 90%;
+    --login-bg-gradient-middle: 220 25% 80%;
+    --login-bg-gradient-end: 230 20% 70%;
+    --login-overlay-bg: 0 0% 100% / 0.2;
+    --login-highlight: 210 100% 50% / 0.15;
+    --login-text: 220 10% 30%;
+    --login-input-bg: 0 0% 100% / 0.8;
+    --login-input-border: 220 10% 70% / 0.5;
+    --login-card-border: 220 25% 70% / 0.2;
+    --login-blur-amount: 60px;
   }
  
   .dark {
@@ -102,6 +114,18 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Login page specific variables - dark theme */
+    --login-bg-gradient-start: 225 30% 10%;
+    --login-bg-gradient-middle: 235 25% 15%;
+    --login-bg-gradient-end: 245 20% 20%;
+    --login-overlay-bg: 240 30% 5% / 0.3;
+    --login-highlight: 220 100% 50% / 0.15;
+    --login-text: 220 10% 90%;
+    --login-input-bg: 240 20% 10% / 0.5;
+    --login-input-border: 240 20% 30% / 0.3;
+    --login-card-border: 240 25% 30% / 0.2;
+    --login-blur-amount: 120px;
   }
 
   /* Override default border color */
@@ -121,4 +145,80 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Loader animation for SplineScene */
+.loader {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #FFF;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Login page background styles */
+.login-bg {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(125deg, 
+    hsl(var(--login-bg-gradient-start)), 
+    hsl(var(--login-bg-gradient-middle)), 
+    hsl(var(--login-bg-gradient-end))
+  );
+  z-index: -10;
+}
+
+.login-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 70% 50%, 
+    hsl(var(--login-highlight)) 0%, 
+    transparent 75%
+  );
+  z-index: -5;
+}
+
+.login-bg-overlay {
+  position: fixed;
+  inset: 0;
+  backdrop-filter: blur(var(--login-blur-amount));
+  background-color: hsl(var(--login-overlay-bg));
+  z-index: -1;
+}
+
+/* Fix theme toggle on login page */
+.theme-toggle-wrapper [data-theme="dark"] .dark\:rotate-0 {
+  --tw-rotate: 0deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.theme-toggle-wrapper [data-theme="dark"] .dark\:scale-100 {
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.theme-toggle-wrapper [data-theme="dark"] .dark\:-rotate-90 {
+  --tw-rotate: -90deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.theme-toggle-wrapper [data-theme="dark"] .dark\:scale-0 {
+  --tw-scale-x: 0;
+  --tw-scale-y: 0;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }

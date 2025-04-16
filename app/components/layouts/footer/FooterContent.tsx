@@ -58,7 +58,7 @@ export function FooterContent() {
           transition={{ duration: 0.8 }}
           className="flex items-center gap-2 text-sm text-muted-foreground"
         >
-          <span>for Balemala team</span>
+          <span>with Balemala team</span>
         </motion.div>
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}

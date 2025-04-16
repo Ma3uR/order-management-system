@@ -11,7 +11,8 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Ban,
-  Settings
+  Settings,
+  Bot
 } from 'lucide-react';
 
 export function AppSidebar() {
@@ -32,6 +33,11 @@ export function AppSidebar() {
       title: t('blacklist'),
       href: '/blacklist',
       icon: Ban
+    },
+    {
+      title: t('aiAssistant'),
+      href: '/ai-chat',
+      icon: Bot
     },
     {
       title: t('settings'),

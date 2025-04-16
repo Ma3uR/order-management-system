@@ -5,6 +5,7 @@
 export enum Collections {
 	BlacklistEntries = "blacklist_entries",
 	ChatMessages = "chat_messages",
+	Chats = "chats",
 	CurrencyOptions = "currency_options",
 	DeliveryOptions = "delivery_options",
 	Orders = "orders",
@@ -52,6 +53,11 @@ export type ChatMessagesRecord = {
 	role: string
 	content: string
 	conversation_id: string
+}
+
+export type ChatsRecord<Tmessages = unknown> = {
+	messages?: null | Tmessages
+	user?: RecordIdString
 }
 
 export type CurrencyOptionsRecord = {
@@ -143,6 +149,7 @@ export type UsersRecord = {
 // Response types include system fields and match responses from the PocketBase API
 export type BlacklistEntriesResponse = BlacklistEntriesRecord & BaseSystemFields
 export type ChatMessagesResponse<Texpand = unknown> = ChatMessagesRecord & BaseSystemFields<Texpand>
+export type ChatsResponse<Tmessages = unknown, Texpand = unknown> = Required<ChatsRecord<Tmessages>> & BaseSystemFields<Texpand>
 export type CurrencyResponse = CurrencyOptionsRecord & BaseSystemFields
 export type DeliveryOptionsResponse = DeliveryOptionsRecord & BaseSystemFields
 export type OrdersResponse<Tproducts = unknown, Texpand = unknown> = OrdersRecord<Tproducts> & BaseSystemFields<Texpand>
@@ -157,6 +164,7 @@ export type SyncRecordsResponse = SyncRecordsRecord & BaseSystemFields
 export type CollectionRecords = {
 	blacklist_entries: BlacklistEntriesRecord
 	chat_messages: ChatMessagesRecord
+	chats: ChatsRecord
 	currency_options: CurrencyOptionsRecord
 	delivery_options: DeliveryOptionsRecord
 	orders: OrdersRecord
@@ -170,6 +178,7 @@ export type CollectionRecords = {
 export type CollectionResponses = {
 	blacklist_entries: BlacklistEntriesResponse
 	chat_messages: ChatMessagesResponse
+	chats: ChatsResponse
 	currency_options: CurrencyResponse
 	delivery_options: DeliveryOptionsResponse
 	orders: OrdersResponse

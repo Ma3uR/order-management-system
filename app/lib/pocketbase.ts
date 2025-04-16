@@ -2,6 +2,7 @@ import PocketBase, { AdminAuthResponse } from 'pocketbase';
 import { OrdersResponse, OrdersRecord, OrdersMergeStatusOptions, OrdersMergeSourceOptions } from '../types/pocketbase-types';
 import * as dotenv from 'dotenv';
 dotenv.config();
+
 // Ensure the URL is properly formatted with protocol
 const getPocketBaseUrl = () => {
     const url = process.env.NEXT_PUBLIC_POCKETBASE_URL;
@@ -11,15 +12,69 @@ const getPocketBaseUrl = () => {
     return url;
 };
 
-// Create a single PocketBase instance
-const pb = new PocketBase(getPocketBaseUrl());
+// Create a singleton instance
+let pb: PocketBase;
+
+// Initialize the PocketBase client
+function initPocketBase() {
+    if (pb) return pb;
+    
+    pb = new PocketBase(getPocketBaseUrl());
+    
+    // Enable cookie-based auth persistence for client-side usage
+    if (typeof window !== 'undefined') {
+        // We're on the client, restore auth if available in localStorage
+        try {
+            const storedAuthData = localStorage.getItem('pocketbase_auth');
+            if (storedAuthData) {
+                const authData = JSON.parse(storedAuthData);
+                pb.authStore.save(authData.token, authData.model);
+                console.log('Restored auth from localStorage:', {
+                    userId: authData.model?.id,
+                    isValid: pb.authStore.isValid
+                });
+            }
+        } catch (err) {
+            console.error('Error loading auth from local storage:', err);
+            // Clear potentially corrupted auth data
+            localStorage.removeItem('pocketbase_auth');
+            pb.authStore.clear();
+        }
+        
+        // Save auth data when it changes
+        pb.authStore.onChange(() => {
+            try {
+                if (pb.authStore.isValid) {
+                    localStorage.setItem('pocketbase_auth', JSON.stringify({
+                        token: pb.authStore.token,
+                        model: pb.authStore.model
+                    }));
+                    console.log('Saved auth to localStorage:', {
+                        userId: pb.authStore.model?.id,
+                        isValid: pb.authStore.isValid
+                    });
+                } else {
+                    localStorage.removeItem('pocketbase_auth');
+                    console.log('Cleared auth from localStorage (invalid)');
+                }
+            } catch (err) {
+                console.error('Error saving auth to local storage:', err);
+            }
+        });
+    }
+    
+    return pb;
+}
+
+// Get the PocketBase instance
+const pocketBase = initPocketBase();
 
 // Add authentication state tracking
 let authPromise: Promise<AdminAuthResponse> | null = null;
 
 // Authenticate admin on the server side
 export async function authenticateAdmin() {
-    if (pb.authStore.isValid) {
+    if (pocketBase.authStore.isValid) {
         return;
     }
 
@@ -28,7 +83,7 @@ export async function authenticateAdmin() {
         return authPromise;
     }
 
-    authPromise = pb.admins.authWithPassword(
+    authPromise = pocketBase.admins.authWithPassword(
         process.env.NEXT_PUBLIC_POCKETBASE_ADMIN_EMAIL!,
         process.env.NEXT_PUBLIC_POCKETBASE_ADMIN_PASSWORD!
     ).finally(() => {
@@ -38,22 +93,66 @@ export async function authenticateAdmin() {
     return authPromise;
 }
 
+// Helper to login a user and save to localStorage
+export async function loginUser(email: string, password: string) {
+    try {
+        const authData = await pocketBase.collection('users').authWithPassword(email, password);
+        
+        console.log('User authenticated:', {
+            userId: authData.record.id,
+            email: authData.record.email
+        });
+        
+        return {
+            success: true,
+            user: authData.record
+        };
+    } catch (error) {
+        console.error('Login error:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+// Helper to logout a user
+export function logoutUser() {
+    pocketBase.authStore.clear();
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('pocketbase_auth');
+    }
+}
+
+// Helper to get current user
+export function getCurrentUser() {
+    if (pocketBase.authStore.isValid) {
+        return pocketBase.authStore.model;
+    }
+    return null;
+}
+
+// Helper to check if user is authenticated
+export function isAuthenticated() {
+    return pocketBase.authStore.isValid;
+}
+
 // Optional: Add a method to check if admin is authenticated
 export function isAdminAuthenticated() {
-    return pb.authStore.isValid && pb.authStore.model?.type === 'admin';
+    return pocketBase.authStore.isValid && pocketBase.authStore.model?.type === 'admin';
 }
 
 // Wrapper function for authenticated collection calls
 export async function authenticatedCall<T>(callback: () => Promise<T>): Promise<T> {
   try {
-    console.log('Attempting authentication with URL:', pb.baseUrl);
+    console.log('Attempting authentication with URL:', pocketBase.baseUrl);
     await authenticateAdmin();
     return await callback();
   } catch (error) {
     if (error instanceof Error) {
       console.error('Authentication error details:', {
         message: error.message,
-        url: pb.baseUrl,
+        url: pocketBase.baseUrl,
         stack: error.stack,
         cause: error.cause
       });
@@ -64,7 +163,7 @@ export async function authenticatedCall<T>(callback: () => Promise<T>): Promise<
 
 export async function fetchOrders(): Promise<OrdersResponse[]> {
   return authenticatedCall(async () => {
-    const orders = await pb.collection('orders').getFullList<OrdersResponse>();
+    const orders = await pocketBase.collection('orders').getFullList<OrdersResponse>();
     
     // Clean and validate each order
     return orders.map(order => {
@@ -100,7 +199,7 @@ export async function fetchOrders(): Promise<OrdersResponse[]> {
 // Add this new function to get default status
 export async function getDefaultStatus(): Promise<string> {
   const statuses = await authenticatedCall(() => 
-    pb.collection('status_options').getFullList({
+    pocketBase.collection('status_options').getFullList({
       sort: '+priority', // Sort by priority ascending
       limit: 1 // Get only one record
     })
@@ -152,12 +251,12 @@ export async function createOrder(
   };
 
   return authenticatedCall(() => 
-    pb.collection('orders').create<OrdersResponse>(completeOrderData)
+    pocketBase.collection('orders').create<OrdersResponse>(completeOrderData)
   );
 }
 
-// Only export pb once, as default
-export default pb; 
+// Export default PocketBase instance
+export default pocketBase;
 
 // Add this temporarily to verify the connection
-console.log('PocketBase URL:', pb.baseUrl);
+console.log('PocketBase URL:', pocketBase.baseUrl);
