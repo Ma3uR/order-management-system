@@ -5,8 +5,9 @@
  * Run with: npx ts-node scripts/test-chat-store.ts
  */
 
-import { createChat, loadChat, saveChat, chatExists } from '../app/lib/chat-store';
+import { saveChat, loadChat, chatExists } from '../app/lib/chat-store';
 import pb from '../app/lib/pocketbase';
+import { Message } from 'ai';
 
 async function testChatStore() {
   console.log('🔍 Testing chat store functionality...');
@@ -14,7 +15,7 @@ async function testChatStore() {
   try {
     // Step 1: Create a new chat
     console.log('\n📝 Step 1: Creating a new chat...');
-    const chatId = await createChat();
+    const chatId = await saveChat({ messages: [] });
     console.log(`✅ Chat created with ID: ${chatId}`);
     console.log(`✅ ID length check: ${chatId.length === 15 ? 'PASS' : 'FAIL'} (Length: ${chatId.length}, Expected: 15)`);
     
@@ -30,18 +31,18 @@ async function testChatStore() {
     
     // Step 4: Save a test message
     console.log('\n📝 Step 4: Saving test messages...');
-    const testMessages = [
+    const testMessages: Message[] = [
       {
         id: 'test-msg-1',
         role: 'user',
         content: 'Hello, testing chat persistence',
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       },
       {
         id: 'test-msg-2',
         role: 'assistant',
         content: 'I can confirm that chat persistence is working!',
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       }
     ];
     
@@ -70,9 +71,9 @@ async function testChatStore() {
           id: 'auto-created-msg',
           role: 'system',
           content: 'This chat was auto-created when saving messages',
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(),
         }
-      ],
+      ] as Message[],
     });
     console.log(`✅ Successfully saved to non-existent chat with ID: ${newId}`);
     

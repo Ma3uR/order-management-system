@@ -32,7 +32,7 @@ async function testInvalidIds() {
             id: `msg-${testCase.id}`,
             role: 'system',
             content: `Test message for ID: ${testCase.id}`,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(),
           }
         ],
       });

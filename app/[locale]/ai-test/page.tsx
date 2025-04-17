@@ -1,13 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
 import { PageHeader } from '@/app/components/shared/ui/page-header';
 
+interface ApiResponse {
+  success: boolean;
+  message?: string;
+  response?: string;
+  error?: string;
+  details?: Record<string, unknown>;
+}
+
 export default function AiTestPage() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const testConnection = async () => {
