@@ -31,7 +31,6 @@ export default function DashboardLayout({
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const t = useTranslations('Auth');
   const isLoading = status === 'loading';
 
   useEffect(() => {

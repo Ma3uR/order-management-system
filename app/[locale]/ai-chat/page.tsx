@@ -1,13 +1,9 @@
-import { Metadata } from 'next';
+'use client';
+
 import { useTranslations } from 'next-intl';
 
 import { AiChatBox } from '@/app/components/features/dashboard/AiChatBox';
 import { PageHeader } from '@/app/components/shared/ui/page-header';
-
-export const metadata: Metadata = {
-  title: 'AI Chat Assistant',
-  description: 'AI-powered assistant for order management system',
-};
 
 export default function AiChatPage() {
   const t = useTranslations('AiChat');

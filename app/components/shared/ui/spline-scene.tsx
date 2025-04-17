@@ -8,9 +8,12 @@ interface SplineSceneProps {
   className?: string
 }
 
+// Typing for the dynamically imported Spline component
+type SplineViewerType = React.ElementType
+
 export function SplineScene({ scene, className }: SplineSceneProps) {
   const [loading, setLoading] = useState(true)
-  const [SplineViewer, setSplineViewer] = useState<any>(null)
+  const [SplineViewer, setSplineViewer] = useState<SplineViewerType | null>(null)
 
   useEffect(() => {
     // Dynamically import Spline to avoid SSR issues

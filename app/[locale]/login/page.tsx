@@ -23,7 +23,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loginResult, setLoginResult] = useState<Record<string, unknown> | null>(null);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
@@ -49,7 +48,6 @@ export default function LoginPage() {
     try {
       // Try direct PocketBase login first
       const pocketBaseResult = await loginUser(email, password);
-      setLoginResult(pocketBaseResult);
       
       if (pocketBaseResult.success) {
         // Also authenticate with next-auth for session compatibility

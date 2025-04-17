@@ -35,7 +35,11 @@ export async function GET() {
     console.error('OpenAI test error:', error);
     
     // Get detailed error info
-    let errorDetails = 'Unknown error';
+    let errorDetails: string | {
+      name: string;
+      message: string;
+      stack?: string;
+    } = 'Unknown error';
     if (error instanceof Error) {
       errorDetails = {
         name: error.name,

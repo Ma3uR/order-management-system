@@ -3,7 +3,7 @@ import pb from '@/app/lib/pocketbase';
 import { authenticatedCall } from '@/app/lib/pocketbase';
 
 // Debug route to check chat association with users
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Get the list of chats with expanded user information
     const chats = await authenticatedCall(async () => {
