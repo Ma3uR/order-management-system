@@ -34,16 +34,27 @@ export const auth: AuthOptions = {
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
+      // Extract the current locale from the URL if present
+      const urlObj = new URL(url.startsWith('/') ? `${baseUrl}${url}` : url);
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      const locales = ['en', 'ua'];
+      const currentLocale = locales.includes(pathParts[0]) ? pathParts[0] : 'en';
+      
       if (url.startsWith("/")) {
         if (url === '/auth/signin') {
-          return `${baseUrl}/dashboard`;
+          return `${baseUrl}/${currentLocale}/dashboard`;
         }
-        return `${baseUrl}${url}`;
+        // If URL already contains locale, return as is
+        if (locales.some(locale => url.startsWith(`/${locale}/`))) {
+          return `${baseUrl}${url}`;
+        }
+        // Add locale to URL if not present
+        return `${baseUrl}/${currentLocale}${url}`;
       }
       else if (new URL(url).origin === baseUrl) {
         return url;
       }
-      return `${baseUrl}/dashboard`;
+      return `${baseUrl}/${currentLocale}/dashboard`;
     },
     async session({ session }) {
       return session;

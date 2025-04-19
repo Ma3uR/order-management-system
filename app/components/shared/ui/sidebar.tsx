@@ -437,7 +437,9 @@ const SidebarFooter = React.forwardRef<
                 <span>Profile</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => signOut()}>
+              <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => signOut({
+                callbackUrl: process.env.NEXT_PUBLIC_SITE_URL || '/'
+              })}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
