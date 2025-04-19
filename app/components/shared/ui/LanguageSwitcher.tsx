@@ -5,18 +5,6 @@ import { Button } from "@/app/components/shared/ui/button"
 import { useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
-import { Link } from 'next-intl';
-
-interface Language {
-  code: string
-  name: string
-  flag: string
-}
-
-const languages: Language[] = [
-  { code: "en", name: "English", flag: "🇬🇧" },
-  { code: "ua", name: "Українська", flag: "🇺🇦" },
-]
 
 export default function LanguageSwitcher() {
   const locale = useLocale()
