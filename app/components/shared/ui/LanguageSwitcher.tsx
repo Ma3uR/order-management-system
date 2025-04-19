@@ -3,6 +3,9 @@
 import { Globe } from "lucide-react"
 import { Button } from "@/app/components/shared/ui/button"
 import { useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { Link } from 'next-intl';
 
 interface Language {
   code: string
@@ -16,25 +19,34 @@ const languages: Language[] = [
 ]
 
 export default function LanguageSwitcher() {
-  const currentLocale = useLocale()
+  const locale = useLocale()
+  const router = useRouter()
+  const pathname = usePathname()
 
   const switchLanguage = (newLocale: string) => {
-    const currentPath = window.location.pathname
-    const pathWithoutLocale = currentPath.replace(/^\/[^/]+/, '')
-    const newPath = `/${newLocale}${pathWithoutLocale}`
-    window.location.href = newPath
+    // Get the target language
+    const targetLocale = newLocale
+    
+    // Get path without locale prefix
+    const pathWithoutLocale = pathname.replace(/^\/[^/]+/, '')
+    
+    // Create new path with target locale
+    const newPath = `/${targetLocale}${pathWithoutLocale}`
+    
+    // Navigate to the new path
+    router.push(newPath)
   }
 
   return (
     <Button
-      onClick={() => switchLanguage(languages[currentLocale === 'en' ? 1 : 0].code)}
+      onClick={() => switchLanguage(locale === 'en' ? 'ua' : 'en')}
       variant="ghost"
       size="sm"
       className="flex items-center gap-2"
     >
       <Globe className="h-4 w-4" />
       <span className="hidden sm:inline">
-        {currentLocale === 'en' ? 'Українська' : 'English'}
+        {locale === 'en' ? 'Українська' : 'English'}
       </span>
     </Button>
   )

@@ -1,7 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -29,6 +29,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = useLocale();
   const { data: session, status } = useSession();
   const router = useRouter();
   const isLoading = status === 'loading';
@@ -37,9 +38,9 @@ export default function DashboardLayout({
     // If session loaded and user is not authenticated, redirect to login
     if (!isLoading && !session) {
       console.log('No authenticated session found, redirecting to login');
-      router.push('/login');
+      router.push(`/${locale}/login`);
     }
-  }, [session, isLoading, router]);
+  }, [session, isLoading, router, locale]);
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -74,15 +75,16 @@ function DashboardLayoutContent({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = useLocale();
   const t = useTranslations('Dashboard');
   const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/signin');
+      router.push(`/${locale}/login`);
     }
-  }, [status, router]);
+  }, [status, router, locale]);
 
   if (status === 'loading') {
     return <div>Loading...</div>;

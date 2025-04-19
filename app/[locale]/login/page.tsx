@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { loginUser } from '@/app/lib/pocketbase';
 import { signIn as nextAuthSignIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Card } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
@@ -19,6 +19,7 @@ import { useTheme } from 'next-themes';
 
 export default function LoginPage() {
   const t = useTranslations('Auth');
+  const locale = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -36,9 +37,9 @@ export default function LoginPage() {
   // If user is already authenticated, redirect to dashboard
   useEffect(() => {
     if (session) {
-      router.push('/dashboard');
+      router.push(`/${locale}/dashboard`);
     }
-  }, [session, router]);
+  }, [session, router, locale]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +65,7 @@ export default function LoginPage() {
         
         // Navigate to dashboard after successful login
         console.log('Login successful, redirecting to dashboard');
-        router.push('/dashboard');
+        router.push(`/${locale}/dashboard`);
         router.refresh();
       } else {
         setError(pocketBaseResult.error || t('loginError'));
