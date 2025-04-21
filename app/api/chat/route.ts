@@ -2,7 +2,7 @@ import { createOrGetUserChat, saveChat } from '@/app/lib/chat-store';
 import { NextResponse } from 'next/server';
 import { Message } from 'ai';
 import OpenAI from 'openai';
-import pb from '@/app/lib/pocketbase';
+import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 
 // Create OpenAI client
 const openai = new OpenAI({
@@ -18,7 +18,7 @@ async function verifyUserId(userId: string): Promise<boolean> {
     }    
     // First try direct lookup to see if user exists
     try {
-      await pb.collection('users').getOne(userId);
+      await authenticatedCall(() => pb.collection('users').getOne(userId));
       console.log(`verifyUserId: User found with direct lookup: "${userId}"`);
       return true;
     } catch (error) {
@@ -26,9 +26,9 @@ async function verifyUserId(userId: string): Promise<boolean> {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.log(`verifyUserId: Direct lookup failed for "${userId}", trying list: ${errorMessage}`);
       
-      const users = await pb.collection('users').getList(1, 1, {
+      const users = await authenticatedCall(() => pb.collection('users').getList(1, 1, {
         filter: `id = "${userId}"`
-      });
+      }));
       
       if (users.totalItems > 0) {
         console.log(`verifyUserId: User found with list query: "${userId}"`);
