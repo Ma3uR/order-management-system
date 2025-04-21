@@ -13,7 +13,9 @@ import {
   DropdownMenuTrigger 
 } from "@/app/components/shared/ui/dropdown-menu"
 import { LogOut, User } from "lucide-react"
-import { signOut, useSession } from "next-auth/react"
+import { logoutUser } from "@/app/lib/pocketbase"
+import { useSession } from "@/app/components/features/dashboard/useSession"
+import { useRouter } from "next/navigation"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -393,9 +395,17 @@ const SidebarFooter = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
-  const { data: session } = useSession()
+  const { user } = useSession()
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  
+  const router = useRouter()
+  
+  const handleSignOut = () => {
+    logoutUser()
+    router.push('/login')
+    router.refresh()
+  }
   
   return (
     <div
@@ -404,7 +414,7 @@ const SidebarFooter = React.forwardRef<
       className={cn("flex flex-col gap-2 p-2 mt-auto", className)}
       {...props}
     >
-      {session?.user && (
+      {user && (
         <>
           <SidebarSeparator className="mt-0 mb-2" />
           <DropdownMenu>
@@ -417,17 +427,17 @@ const SidebarFooter = React.forwardRef<
                   "transition-all", 
                   isCollapsed ? "h-9 w-9" : "h-8 w-8"
                 )}>
-                  <AvatarImage src={session.user.image || ""} alt={session.user.name || ""} />
+                  <AvatarImage src={user.avatar || ""} alt={user.name || ""} />
                   <AvatarFallback>
-                    {session.user.name ? session.user.name.charAt(0).toUpperCase() : "U"}
+                    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className={cn(
                   "flex-1 overflow-hidden transition-all",
                   isCollapsed && "hidden"
                 )}>
-                  <p className="text-sm font-medium truncate">{session.user.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                  <p className="text-sm font-medium truncate">{user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
               </div>
             </DropdownMenuTrigger>
@@ -437,9 +447,7 @@ const SidebarFooter = React.forwardRef<
                 <span>Profile</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => signOut({
-                callbackUrl: process.env.NEXT_PUBLIC_SITE_URL || '/'
-              })}>
+              <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

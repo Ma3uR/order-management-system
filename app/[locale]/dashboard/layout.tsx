@@ -1,8 +1,6 @@
 'use client';
 
-import { SessionProvider } from 'next-auth/react';
 import { useTranslations, useLocale } from 'next-intl';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
@@ -23,24 +21,24 @@ import {
 } from '@/app/components/shared/ui/breadcrumb';
 import { Footer } from '@/app/components/layouts/footer';
 import { Toaster } from "@/app/components/shared/ui/toaster";
+import { useSession } from "@/app/components/features/dashboard/useSession";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { isLoading, isAuthenticated } = useSession();
   const locale = useLocale();
-  const { data: session, status } = useSession();
   const router = useRouter();
-  const isLoading = status === 'loading';
 
   useEffect(() => {
     // If session loaded and user is not authenticated, redirect to login
-    if (!isLoading && !session) {
+    if (!isLoading && !isAuthenticated) {
       console.log('No authenticated session found, redirecting to login');
       router.push(`/${locale}/login`);
     }
-  }, [session, isLoading, router, locale]);
+  }, [isAuthenticated, isLoading, router, locale]);
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -55,17 +53,15 @@ export default function DashboardLayout({
   }
 
   // If not authenticated, show nothing (will redirect)
-  if (!session) {
+  if (!isAuthenticated) {
     return null;
   }
 
   // If authenticated, render children
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <SessionProvider>
-        <DashboardLayoutContent>{children}</DashboardLayoutContent>
-        <Toaster />
-      </SessionProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      <Toaster />
     </ThemeProvider>
   );
 }
@@ -77,20 +73,20 @@ function DashboardLayoutContent({
 }) {
   const locale = useLocale();
   const t = useTranslations('Dashboard');
-  const { data: session, status } = useSession();
+  const { isLoading, isAuthenticated } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!isLoading && !isAuthenticated) {
       router.push(`/${locale}/login`);
     }
-  }, [status, router, locale]);
+  }, [isAuthenticated, isLoading, router, locale]);
 
-  if (status === 'loading') {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  if (!session) {
+  if (!isAuthenticated) {
     return null;
   }
 

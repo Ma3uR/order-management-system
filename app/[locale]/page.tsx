@@ -1,17 +1,18 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { auth } from '@/app/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
+import { cookies } from 'next/headers';
 
 export default async function Page({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
   
-  const session = await getServerSession(auth);
-
+  // Check for PocketBase auth cookie
+  const cookieStore = cookies();
+  const authCookie = cookieStore.get('pb_auth');
+  
   // Redirect based on authentication status
-  if (session) {
+  if (authCookie) {
     redirect(`/${locale}/dashboard`);
   } else {
-    redirect(`/${locale}/auth/signin`);
+    redirect(`/${locale}/login`);
   }
 } 

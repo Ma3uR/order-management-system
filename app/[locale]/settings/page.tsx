@@ -1,18 +1,19 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { auth } from '@/app/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
 import { getTranslations } from 'next-intl/server';
+import { cookies } from 'next/headers';
 import SettingsPageClient from '@/app/[locale]/settings/SettingsPageClient';
 
 export default async function SettingsPage({ params: { locale } }: { params: { locale: string } }) {
   setRequestLocale(locale);
   const t = await getTranslations('Navigation');
+  
+  // Check for PocketBase auth cookie
+  const cookieStore = cookies();
+  const authCookie = cookieStore.get('pb_auth');
 
-  const session = await getServerSession(auth);
-
-  if (!session?.user) {
-    redirect('/auth/signin');
+  if (!authCookie) {
+    redirect(`/${locale}/login`);
   }
 
   return <SettingsPageClient translations={{ backToDashboard: t('backToDashboard') }} />;

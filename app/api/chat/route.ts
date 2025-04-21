@@ -15,38 +15,27 @@ async function verifyUserId(userId: string): Promise<boolean> {
     if (!userId) {
       console.log('verifyUserId: userId is empty or null');
       return false;
-    }
-    
-    // Clean the userID (trim whitespace and special characters)
-    const cleanUserId = userId.trim();
-    
-    if (!cleanUserId) {
-      console.log('verifyUserId: userId is empty after cleaning');
-      return false;
-    }
-    
-    console.log(`verifyUserId: Checking if user exists with ID: "${cleanUserId}" (${typeof cleanUserId})`);
-    
+    }    
     // First try direct lookup to see if user exists
     try {
-      await pb.collection('users').getOne(cleanUserId);
-      console.log(`verifyUserId: User found with direct lookup: "${cleanUserId}"`);
+      await pb.collection('users').getOne(userId);
+      console.log(`verifyUserId: User found with direct lookup: "${userId}"`);
       return true;
     } catch (error) {
       // If direct lookup fails, try to search for the user
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(`verifyUserId: Direct lookup failed for "${cleanUserId}", trying list: ${errorMessage}`);
+      console.log(`verifyUserId: Direct lookup failed for "${userId}", trying list: ${errorMessage}`);
       
       const users = await pb.collection('users').getList(1, 1, {
-        filter: `id = "${cleanUserId}"`
+        filter: `id = "${userId}"`
       });
       
       if (users.totalItems > 0) {
-        console.log(`verifyUserId: User found with list query: "${cleanUserId}"`);
+        console.log(`verifyUserId: User found with list query: "${userId}"`);
         return true;
       }
       
-      console.log(`verifyUserId: No user found with ID "${cleanUserId}"`);
+      console.log(`verifyUserId: No user found with ID "${userId}"`);
       return false;
     }
   } catch (error) {
