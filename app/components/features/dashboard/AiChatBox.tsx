@@ -54,6 +54,7 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
   
   const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload } = useChat({
     api: '/api/chat',
+    streamProtocol: 'text',
     id, // Use the provided chat ID for persistence
     body: { 
       userId: currentUserId,

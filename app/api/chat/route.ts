@@ -1,13 +1,8 @@
 import { createOrGetUserChat, saveChat } from '@/app/lib/chat-store';
 import { NextResponse } from 'next/server';
-import { Message } from 'ai';
-import OpenAI from 'openai';
+import { Message, streamText } from 'ai';
+import { openai as aiOpenAI } from '@ai-sdk/openai';
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
-
-// Create OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // Helper to verify user exists in database
 async function verifyUserId(userId: string): Promise<boolean> {
@@ -50,7 +45,7 @@ export async function POST(req: Request) {
     const { messages, id, userId, debug } = await req.json();
     
     // For debugging
-    console.log(`Chat API called with id: ${id}, userId: "${userId}", type: ${typeof userId}`);
+    console.log(`Chat API called with id: ${id}, userId: "${userId}"`);
     
     // Log debug info if available
     if (debug) {
@@ -86,89 +81,42 @@ export async function POST(req: Request) {
       console.warn('No userId or chatId provided - chat persistence may be limited');
     }
     
-    // Convert messages to OpenAI format
-    const openaiMessages = [
-      {
-        role: "system", 
-        content: "You are a helpful AI assistant for an order management system. You can answer questions about orders, help analyze data, and provide general assistance with the system's features."
-      },
-      ...messages.map((m: Message) => ({
+    // Use streamText with the correct model format
+    const result = streamText({
+      model: aiOpenAI('gpt-3.5-turbo'),
+      system: "You are a helpful AI assistant for an order management system. You can answer questions about orders, help analyze data, and provide general assistance with the system's features.",
+      messages: messages.map((m: Message) => ({
         role: m.role as "user" | "assistant" | "system",
         content: m.content
-      }))
-    ];
-    
-    // Call OpenAI API
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: openaiMessages,
+      })),
       temperature: 0.7,
-      max_tokens: 1024,
-      stream: true,
-    });
-    
-    // Create a stream for the response
-    // We need to manually handle streaming since we're not using vercel ai sdk's stream functions
-    const stream = new ReadableStream({
-      async start(controller) {
-        // Function to send a complete message
-        function sendMessage(chunk: string) {
-          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
-        }
-        
-        try {
-          let text = '';
+      maxTokens: 1024,
+      onFinish: async ({ response }) => {
+        if (chatId) {
+          // Extract the text content from the response
+          const responseContent = response.messages[response.messages.length - 1]?.content || '';
           
-          for await (const chunk of response) {
-            if (chunk.choices[0]?.delta?.content) {
-              const content = chunk.choices[0].delta.content;
-              text += content;
-              sendMessage(content);
-            }
-          }
+          // Add the AI response to messages
+          const updatedMessages = [...messages, {
+            id: `ai-${Date.now()}`,
+            role: 'assistant' as const,
+            content: responseContent,
+            createdAt: new Date()
+          }];
           
-          // Save the full conversation with the AI's response
-          if (chatId) {
-            // Add the AI response to messages
-            const updatedMessages = [...messages, {
-              id: `ai-${Date.now()}`,
-              role: 'assistant' as const,
-              content: text,
-              createdAt: new Date()
-            }];
-            
-            // Save to database
-            await saveChat({
-              id: chatId,
-              userId,
-              messages: updatedMessages
-            });
-            console.log(`Saved updated chat with ${updatedMessages.length} messages`);
-          }
-          
-          // End the stream
-          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
-          controller.close();
-        } catch (error) {
-          console.error('Error processing stream:', error);
-          controller.error(error);
+          // Save to database
+          await saveChat({
+            id: chatId,
+            userId,
+            messages: updatedMessages
+          });
+          console.log(`Saved updated chat with ${updatedMessages.length} messages`);
         }
       }
     });
     
-    // Build and return the response
-    const headers = new Headers();
-    headers.set('Content-Type', 'text/event-stream');
-    headers.set('Cache-Control', 'no-cache');
-    headers.set('Connection', 'keep-alive');
-    
-    if (chatId) {
-      headers.set('X-Chat-ID', chatId);
-    }
-    
-    return new Response(stream, {
-      headers
-    });
+    // Return a text stream response for client compatibility
+    return result.toTextStreamResponse();
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json(

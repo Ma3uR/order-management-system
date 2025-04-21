@@ -17,6 +17,7 @@ export function AiChat() {
   
   const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload } = useChat({
     api: '/api/chat',
+    streamProtocol: 'text',
     initialMessages: [
       {
         id: 'initial-message',
