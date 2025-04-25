@@ -107,10 +107,13 @@ async function getLastOrder() {
     // Format items information if available
     let itemsInfo: Array<{name: string, quantity: number, price: number}> = [];
     if (Array.isArray(order.products) && order.products.length > 0) {
+      // Add debug logging to see the structure of the first product
+      console.log('Product data structure:', JSON.stringify(order.products[0], null, 2));
+      
       itemsInfo = order.products.map(item => ({
-        name: item.name || 'Unnamed product',
-        quantity: item.quantity || 1,
-        price: item.price || 0
+        name: item.name || item.title || item.productName || item.product_name || 'Unnamed product',
+        quantity: item.quantity || item.qty || item.amount || 1,
+        price: item.price || item.cost || item.value || 0
       }));
     }
     
@@ -228,6 +231,170 @@ async function executeFunction(functionName: string, args: Record<string, unknow
       return { error: 'Invalid phone number provided' };
     default:
       return { error: `Unknown function: ${functionName}` };
+  }
+}
+
+// Add language detection function
+function detectLanguage(text: string): 'uk' | 'en' {
+  // Simple detection based on common Ukrainian characters
+  const ukrChars = 'їєіґащшчухїйцукенгшщзхїфівапролджєячсмитьбю';
+  const normalizedText = text.toLowerCase();
+  
+  for (const char of normalizedText) {
+    if (ukrChars.includes(char)) {
+      return 'uk';
+    }
+  }
+  
+  return 'en';
+}
+
+// Add translations for generic messages
+const translations = {
+  en: {
+    orderIntro: 'Here is the most recent order in your system:',
+    orderPrompt: 'Is there anything specific about this order you would like to know?',
+    countIntro: 'I\'ve checked the system. There are currently',
+    countPrompt: 'orders in total. Is there anything specific you\'d like to know about them?',
+    unknownDate: 'Unknown date',
+    noItemDetails: 'No item details available',
+    noOrderData: 'No order data available',
+    created: 'Created',
+    status: 'Status',
+    customer: 'Customer',
+    total: 'Total',
+    payment: 'Payment',
+    delivery: 'Delivery',
+    items: 'Items',
+    notSpecified: 'Not specified',
+    error: 'Error',
+    order: 'Order'
+  },
+  uk: {
+    orderIntro: 'Ось найновіше замовлення у вашій системі:',
+    orderPrompt: 'Чи є щось конкретне про це замовлення, що ви хотіли б дізнатися?',
+    countIntro: 'Я перевірив систему. На даний момент у вас',
+    countPrompt: 'замовлень. Чи є щось конкретне, що ви хотіли б дізнатися про них?',
+    unknownDate: 'Дата невідома',
+    noItemDetails: 'Немає доступних деталей товарів',
+    noOrderData: 'Немає доступних даних про замовлення',
+    created: 'Створено',
+    status: 'Статус',
+    customer: 'Клієнт',
+    total: 'Сума',
+    payment: 'Оплата',
+    delivery: 'Доставка',
+    items: 'Товари',
+    notSpecified: 'Не вказано',
+    error: 'Помилка',
+    order: 'Замовлення'
+  }
+};
+
+/**
+ * Format order data into a readable message
+ */
+function formatOrderMessage(orderData: Record<string, unknown>, userMessages?: Array<Message>): string {
+  // Detect language from the last user message, default to English
+  const language: 'uk' | 'en' = userMessages && userMessages.length > 0 
+    ? detectLanguage(String(userMessages[userMessages.length - 1].content))
+    : 'en';
+  
+  const t = translations[language];
+  
+  if (!orderData || typeof orderData !== 'object') {
+    return t.noOrderData;
+  }
+
+  // Handle error cases
+  if ('error' in orderData && orderData.error) {
+    return `${t.error}: ${orderData.error}${orderData.details ? ` - ${orderData.details}` : ''}`;
+  }
+  
+  if ('message' in orderData && orderData.message) {
+    return String(orderData.message);
+  }
+
+  // Format order count response
+  if ('count' in orderData && !('id' in orderData)) {
+    return `${t.countIntro} ${orderData.count} ${t.countPrompt}`;
+  }
+
+  // Format last order response
+  try {
+    let message = `${t.orderIntro}\n\n`;
+    
+    const formattedDate = 'createdAt' in orderData && orderData.createdAt 
+      ? new Date(String(orderData.createdAt)).toLocaleString(language === 'uk' ? 'uk-UA' : 'en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : t.unknownDate;
+
+    message += `📦 ${t.order} #${('orderNumber' in orderData && orderData.orderNumber) || ('id' in orderData && orderData.id) || 'Unknown'}\n\n`;
+    message += `📅 ${t.created}: ${formattedDate}\n`;
+    
+    if ('statusName' in orderData && orderData.statusName && orderData.statusName !== 'Not specified') {
+      message += `🏷️ ${t.status}: ${orderData.statusName}\n`;
+    }
+    
+    if ('customer' in orderData && orderData.customer && orderData.customer !== 'Not available') {
+      message += `👤 ${t.customer}: ${orderData.customer}\n`;
+    }
+    
+    // Format total with currency
+    message += `💰 ${t.total}: `;
+    if ('total' in orderData && orderData.total !== undefined) {
+      message += `${orderData.total}`;
+      if ('currencySymbol' in orderData && orderData.currencySymbol) {
+        message += ` ${orderData.currencySymbol}`;
+      } else if ('currencyCode' in orderData && orderData.currencyCode && orderData.currencyCode !== 'Not specified') {
+        message += ` ${orderData.currencyCode}`;
+      }
+    } else {
+      message += t.notSpecified;
+    }
+    message += '\n';
+    
+    // Add payment method if specified
+    if ('paymentMethod' in orderData && orderData.paymentMethod && orderData.paymentMethod !== 'Not specified') {
+      message += `💳 ${t.payment}: ${orderData.paymentMethod}\n`;
+    }
+    
+    // Add delivery method if specified
+    if ('deliveryMethod' in orderData && orderData.deliveryMethod && orderData.deliveryMethod !== 'Not specified') {
+      message += `🚚 ${t.delivery}: ${orderData.deliveryMethod}\n`;
+    }
+    
+    // Add items information
+    if ('itemsCount' in orderData && orderData.itemsCount !== undefined) {
+      message += `\n📝 ${t.items} (${orderData.itemsCount}):\n`;
+      
+      if ('items' in orderData && Array.isArray(orderData.items) && orderData.items.length > 0) {
+        orderData.items.forEach((item: {name?: string, quantity?: number, price?: number}, index: number) => {
+          message += `${index + 1}. ${item.name || 'Unnamed'} - `;
+          message += `${item.quantity || 1}x ${item.price || 0}`;
+          if ('currencySymbol' in orderData && orderData.currencySymbol) {
+            message += ` ${orderData.currencySymbol}`;
+          }
+          message += '\n\n';
+        });
+      } else {
+        message += `${t.noItemDetails}\n\n`;
+      }
+    }
+    
+    // Add a prompt for further questions
+    message += `\n${t.orderPrompt}`;
+    
+    return message;
+  } catch (error) {
+    console.error('Error formatting order message:', error);
+    // If anything fails, return a simpler format
+    return `${t.orderIntro} ${('orderNumber' in orderData && orderData.orderNumber) || ('id' in orderData && orderData.id) || 'Unknown'}: ${t.created} ${'createdAt' in orderData && orderData.createdAt ? new Date(String(orderData.createdAt)).toLocaleString(language === 'uk' ? 'uk-UA' : 'en-US') : t.unknownDate}`; 
   }
 }
 
@@ -389,22 +556,22 @@ export async function POST(req: Request) {
                       max_tokens: 1024
                     });
                     
-                    // Return raw data instead of formatted message
-                    const fallbackMsg = JSON.stringify(functionResult, null, 2);
+                    // Return formatted message instead of raw data
+                    const fallbackMsg = formatOrderMessage(functionResult, messages);
                     
                     controller.enqueue(encoder.encode(fallbackMsg));
                     responseText += fallbackMsg;
                   } catch (followUpError) {
                     console.error('Error with follow-up response:', followUpError);
-                    // Return raw data instead of formatted message
-                    const fallbackMsg = JSON.stringify(functionResult, null, 2);
+                    // Return formatted message instead of raw data
+                    const fallbackMsg = formatOrderMessage(functionResult, messages);
                     
                     controller.enqueue(encoder.encode(fallbackMsg));
                     responseText += fallbackMsg;
                   }
                 } else {
-                  // No function call ID available, provide raw data response
-                  const simpleResponse = JSON.stringify(functionResult, null, 2);
+                  // No function call ID available, provide formatted response
+                  const simpleResponse = formatOrderMessage(functionResult, messages);
                   controller.enqueue(encoder.encode(simpleResponse));
                   responseText += simpleResponse;
                 }
