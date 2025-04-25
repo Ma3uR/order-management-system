@@ -218,7 +218,7 @@ export async function getDefaultStatus(): Promise<string> {
     })
   );
   
-  if (!statuses.length) {
+  if (!statuses) {
     throw new Error('No status options found');
   }
   
@@ -235,7 +235,8 @@ export async function createOrder(
   orderData: Partial<OrdersRecord>, 
   productInputs: ProductInput[]
 ): Promise<OrdersResponse> {
-  const defaultStatus = await getDefaultStatus();
+  //TODO: get default status from pocketbase
+  const defaultStatus = 'xbqw6zjruht03og'
   
   // Calculate totals from products
   const amount = productInputs.reduce((sum, p) => sum + (p.price * p.quantity), 0);
