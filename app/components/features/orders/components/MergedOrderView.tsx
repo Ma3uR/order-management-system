@@ -21,7 +21,7 @@ export function MergedOrderView({ order, originalOrders, translations }: MergedO
   useEffect(() => {
     async function loadTranslations() {
       if (order) {
-        const title = await translations.ordersFromSource(order.orderNumber, order.source)
+        const title = await translations.ordersFromSource(order.orderNumber ?? '', order.source ?? '')
         setOrderTitle(title)
       }
       if (originalOrders?.length) {

@@ -125,7 +125,7 @@ export default function BlacklistManagement() {
       }
 
       if (result.data) {
-        setItems(prev => [...prev, result.data]);
+        setItems(prev => [...prev, result.data as BlacklistEntriesResponse]);
         toast.success(t('addSuccess'), {
           duration: 4000,
           position: "top-right",

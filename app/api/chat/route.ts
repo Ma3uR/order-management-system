@@ -1,402 +1,10 @@
 import { createOrGetUserChat, saveChat } from '@/app/lib/chat-store';
 import { NextResponse } from 'next/server';
 import { Message } from 'ai';
-import OpenAI from 'openai';
-import pb, { authenticatedCall } from '@/app/lib/pocketbase';
-import { OrdersResponse, StatusResponse, CurrencyResponse, DeliveryOptionsResponse, PaymentMethodsResponse } from '@/app/types/pocketbase-types';
-
-// Get OpenAI API key from env var
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Helper to verify user exists in database
-async function verifyUserId(userId: string): Promise<boolean> {
-  try {
-    if (!userId) {
-      console.log('verifyUserId: userId is empty or null');
-      return false;
-    }    
-    // First try direct lookup to see if user exists
-    try {
-      await authenticatedCall(() => pb.collection('users').getOne(userId));
-      return true;
-    } catch (error) {
-      // If direct lookup fails, try to search for the user
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(`verifyUserId: Direct lookup failed for "${userId}", trying list: ${errorMessage}`);
-      
-      const users = await authenticatedCall(() => pb.collection('users').getList(1, 1, {
-        filter: `id = "${userId}"`
-      }));
-      
-      if (users.totalItems > 0) {
-        return true;
-      }
-      
-      return false;
-    }
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(`verifyUserId: Error verifying user "${userId}":`, error.message);
-    } else {
-      console.error(`verifyUserId: Error verifying user "${userId}":`, String(error));
-    }
-    return false;
-  }
-}
-
-/**
- * Get total count of orders in the system
- */
-async function getOrdersCount() {
-  try {
-    console.log('Executing getOrdersCount...');
-    const result = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 1, { sort: '-created' })
-    );
-    console.log('getOrdersCount result:', result.totalItems);
-    return { count: result.totalItems };
-  } catch (error) {
-    console.error('Error getting orders count:', error);
-    return { error: 'Failed to get orders count', details: String(error) };
-  }
-}
-
-/**
- * Get the most recent order from the system with enhanced details
- */
-async function getLastOrder() {
-  try {
-    console.log('Executing getLastOrder...');
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList<OrdersResponse<unknown, {
-        status: StatusResponse,
-        currency: CurrencyResponse,
-        paymentMethod: PaymentMethodsResponse,
-        deliveryMethod: DeliveryOptionsResponse
-      }>>(1, 1, { 
-        sort: '-created',
-        expand: 'status,currency,paymentMethod,deliveryMethod',
-        fields: 'id,created,orderNumber,fullName,phoneNumber,status,currency,paymentMethod,deliveryMethod,amount,products,numberOfItems,expand'
-      })
-    );
-    
-    if (orders.items.length === 0) {
-      console.log('No orders found');
-      return { message: 'No orders found' };
-    }
-    
-    // Get the raw order data
-    const order = orders.items[0];
-    console.log('Last order found:', order.id);
-    console.log('Order:', order);
-    
-    // Get expanded data
-    const statusName = order.expand?.status?.name || 'Not specified';
-    const currencyCode = order.expand?.currency?.code || 'Not specified';
-    const currencySymbol = order.expand?.currency?.symbol || '';
-    const paymentMethodName = order.expand?.paymentMethod?.name || 'Not specified';
-    const deliveryMethodName = order.expand?.deliveryMethod?.name || 'Not specified';
-    
-    // Format customer information
-    const customerInfo = order.fullName 
-      ? `${order.fullName} (${order.phoneNumber})` 
-      : 'Not available';
-    
-    // Format items information if available
-    let itemsInfo: Array<{name: string, quantity: number, price: number}> = [];
-    if (Array.isArray(order.products) && order.products.length > 0) {
-      // Add debug logging to see the structure of the first product
-      console.log('Product data structure:', JSON.stringify(order.products[0], null, 2));
-      
-      itemsInfo = order.products.map(item => ({
-        name: item.name || item.title || item.productName || item.product_name || 'Unnamed product',
-        quantity: item.quantity || item.qty || item.amount || 1,
-        price: item.price || item.cost || item.value || 0
-      }));
-    }
-    
-    return {
-      id: order.id,
-      orderNumber: order.orderNumber,
-      createdAt: order.created,
-      statusName: statusName,
-      customer: customerInfo,
-      total: order.amount || 0,
-      currencyCode: currencyCode,
-      currencySymbol: currencySymbol,
-      paymentMethod: paymentMethodName,
-      deliveryMethod: deliveryMethodName,
-      itemsCount: order.numberOfItems || 0,
-      items: itemsInfo
-    };
-  } catch (error) {
-    console.error('Error getting last order:', error);
-    return { error: 'Failed to get last order', details: String(error) };
-  }
-}
-
-/**
- * Get orders by customer phone number 
- */
-async function getOrdersByPhone(phoneNumber: string) {
-  try {
-    console.log(`Executing getOrdersByPhone with number: ${phoneNumber}...`);
-    
-    if (!phoneNumber) {
-      console.log('Phone number is missing');
-      return { error: 'Phone number is required' };
-    }
-    
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 10, { 
-        filter: `customer.phone ~ "${phoneNumber}"`,
-        sort: '-created'
-      })
-    );
-    
-    console.log(`Found ${orders.totalItems} orders for phone ${phoneNumber}`);
-    
-    if (orders.totalItems === 0) {
-      return { message: `No orders found for phone number ${phoneNumber}` };
-    }
-    
-    // Return simplified versions of the orders
-    return {
-      count: orders.totalItems,
-      orders: orders.items.map(order => ({
-        id: order.id,
-        createdAt: order.created,
-        status: order.status,
-        customer: order.customer,
-        total: order.total
-      }))
-    };
-  } catch (error) {
-    console.error(`Error getting orders for phone ${phoneNumber}:`, error);
-    return { error: 'Failed to get orders by phone', details: String(error) };
-  }
-}
-
-// Define the available functions
-const availableFunctions = [
-  {
-    name: 'getOrdersCount',
-    description: 'Get the total count of orders in the system',
-    parameters: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: 'getLastOrder',
-    description: 'Get the most recent order in the system',
-    parameters: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: 'getOrdersByPhone',
-    description: 'Get orders for a specific customer by phone number',
-    parameters: {
-      type: 'object',
-      properties: {
-        phoneNumber: {
-          type: 'string',
-          description: 'Customer phone number to search for'
-        }
-      },
-      required: ['phoneNumber']
-    }
-  }
-];
-
-// Execute a function based on the name and arguments
-async function executeFunction(functionName: string, args: Record<string, unknown>) {
-  console.log(`Executing function ${functionName} with args:`, args);
-  
-  switch (functionName) {
-    case 'getOrdersCount':
-      return await getOrdersCount();
-    case 'getLastOrder':
-      return await getLastOrder();
-    case 'getOrdersByPhone':
-      if (typeof args.phoneNumber === 'string') {
-        return await getOrdersByPhone(args.phoneNumber);
-      }
-      return { error: 'Invalid phone number provided' };
-    default:
-      return { error: `Unknown function: ${functionName}` };
-  }
-}
-
-// Add language detection function
-function detectLanguage(text: string): 'uk' | 'en' {
-  // Simple detection based on common Ukrainian characters
-  const ukrChars = 'їєіґащшчухїйцукенгшщзхїфівапролджєячсмитьбю';
-  const normalizedText = text.toLowerCase();
-  
-  for (const char of normalizedText) {
-    if (ukrChars.includes(char)) {
-      return 'uk';
-    }
-  }
-  
-  return 'en';
-}
-
-// Add translations for generic messages
-const translations = {
-  en: {
-    orderIntro: 'Here is the most recent order in your system:',
-    orderPrompt: 'Is there anything specific about this order you would like to know?',
-    countIntro: 'I\'ve checked the system. There are currently',
-    countPrompt: 'orders in total. Is there anything specific you\'d like to know about them?',
-    unknownDate: 'Unknown date',
-    noItemDetails: 'No item details available',
-    noOrderData: 'No order data available',
-    created: 'Created',
-    status: 'Status',
-    customer: 'Customer',
-    total: 'Total',
-    payment: 'Payment',
-    delivery: 'Delivery',
-    items: 'Items',
-    notSpecified: 'Not specified',
-    error: 'Error',
-    order: 'Order'
-  },
-  uk: {
-    orderIntro: 'Ось найновіше замовлення у вашій системі:',
-    orderPrompt: 'Чи є щось конкретне про це замовлення, що ви хотіли б дізнатися?',
-    countIntro: 'Я перевірив систему. На даний момент у вас',
-    countPrompt: 'замовлень. Чи є щось конкретне, що ви хотіли б дізнатися про них?',
-    unknownDate: 'Дата невідома',
-    noItemDetails: 'Немає доступних деталей товарів',
-    noOrderData: 'Немає доступних даних про замовлення',
-    created: 'Створено',
-    status: 'Статус',
-    customer: 'Клієнт',
-    total: 'Сума',
-    payment: 'Оплата',
-    delivery: 'Доставка',
-    items: 'Товари',
-    notSpecified: 'Не вказано',
-    error: 'Помилка',
-    order: 'Замовлення'
-  }
-};
-
-/**
- * Format order data into a readable message
- */
-function formatOrderMessage(orderData: Record<string, unknown>, userMessages?: Array<Message>): string {
-  // Detect language from the last user message, default to English
-  const language: 'uk' | 'en' = userMessages && userMessages.length > 0 
-    ? detectLanguage(String(userMessages[userMessages.length - 1].content))
-    : 'en';
-  
-  const t = translations[language];
-  
-  if (!orderData || typeof orderData !== 'object') {
-    return t.noOrderData;
-  }
-
-  // Handle error cases
-  if ('error' in orderData && orderData.error) {
-    return `${t.error}: ${orderData.error}${orderData.details ? ` - ${orderData.details}` : ''}`;
-  }
-  
-  if ('message' in orderData && orderData.message) {
-    return String(orderData.message);
-  }
-
-  // Format order count response
-  if ('count' in orderData && !('id' in orderData)) {
-    return `${t.countIntro} ${orderData.count} ${t.countPrompt}`;
-  }
-
-  // Format last order response
-  try {
-    let message = `${t.orderIntro}\n\n`;
-    
-    const formattedDate = 'createdAt' in orderData && orderData.createdAt 
-      ? new Date(String(orderData.createdAt)).toLocaleString(language === 'uk' ? 'uk-UA' : 'en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      : t.unknownDate;
-
-    message += `📦 ${t.order} #${('orderNumber' in orderData && orderData.orderNumber) || ('id' in orderData && orderData.id) || 'Unknown'}\n\n`;
-    message += `📅 ${t.created}: ${formattedDate}\n`;
-    
-    if ('statusName' in orderData && orderData.statusName && orderData.statusName !== 'Not specified') {
-      message += `🏷️ ${t.status}: ${orderData.statusName}\n`;
-    }
-    
-    if ('customer' in orderData && orderData.customer && orderData.customer !== 'Not available') {
-      message += `👤 ${t.customer}: ${orderData.customer}\n`;
-    }
-    
-    // Format total with currency
-    message += `💰 ${t.total}: `;
-    if ('total' in orderData && orderData.total !== undefined) {
-      message += `${orderData.total}`;
-      if ('currencySymbol' in orderData && orderData.currencySymbol) {
-        message += ` ${orderData.currencySymbol}`;
-      } else if ('currencyCode' in orderData && orderData.currencyCode && orderData.currencyCode !== 'Not specified') {
-        message += ` ${orderData.currencyCode}`;
-      }
-    } else {
-      message += t.notSpecified;
-    }
-    message += '\n';
-    
-    // Add payment method if specified
-    if ('paymentMethod' in orderData && orderData.paymentMethod && orderData.paymentMethod !== 'Not specified') {
-      message += `💳 ${t.payment}: ${orderData.paymentMethod}\n`;
-    }
-    
-    // Add delivery method if specified
-    if ('deliveryMethod' in orderData && orderData.deliveryMethod && orderData.deliveryMethod !== 'Not specified') {
-      message += `🚚 ${t.delivery}: ${orderData.deliveryMethod}\n`;
-    }
-    
-    // Add items information
-    if ('itemsCount' in orderData && orderData.itemsCount !== undefined) {
-      message += `\n📝 ${t.items} (${orderData.itemsCount}):\n`;
-      
-      if ('items' in orderData && Array.isArray(orderData.items) && orderData.items.length > 0) {
-        orderData.items.forEach((item: {name?: string, quantity?: number, price?: number}, index: number) => {
-          message += `${index + 1}. ${item.name || 'Unnamed'} - `;
-          message += `${item.quantity || 1}x ${item.price || 0}`;
-          if ('currencySymbol' in orderData && orderData.currencySymbol) {
-            message += ` ${orderData.currencySymbol}`;
-          }
-          message += '\n\n';
-        });
-      } else {
-        message += `${t.noItemDetails}\n\n`;
-      }
-    }
-    
-    // Add a prompt for further questions
-    message += `\n${t.orderPrompt}`;
-    
-    return message;
-  } catch (error) {
-    console.error('Error formatting order message:', error);
-    // If anything fails, return a simpler format
-    return `${t.orderIntro} ${('orderNumber' in orderData && orderData.orderNumber) || ('id' in orderData && orderData.id) || 'Unknown'}: ${t.created} ${'createdAt' in orderData && orderData.createdAt ? new Date(String(orderData.createdAt)).toLocaleString(language === 'uk' ? 'uk-UA' : 'en-US') : t.unknownDate}`; 
-  }
-}
+import { verifyUserId } from '@/app/lib/utils/auth';
+import { createChatCompletion, continueChatWithFunctionResult } from '@/app/lib/services/openai';
+import { formatOrderMessage } from '@/app/lib/formatters';
+import { availableFunctions, executeFunction } from '@/app/lib/functions';
 
 // This is the main chat route that handles chat requests
 export async function POST(req: Request) {
@@ -443,30 +51,14 @@ export async function POST(req: Request) {
     try {
       console.log('Starting OpenAI streaming with function calling...');
       
-      // Convert our messages to OpenAI format
-      const openaiMessages = [
-        {
-          role: 'system',
-          content: "You are a helpful AI assistant for an order management system. You can answer questions about orders, help analyze data, and provide general assistance with the system's features. You can count orders, get the most recent order, and find orders by customer phone number."
-        },
-        ...messages.map((m: Message) => ({
-          role: m.role as "user" | "assistant" | "system",
-          content: m.content
-        }))
-      ];
-      
       // Create a stream from OpenAI with function calling
-      const stream = await openai.chat.completions.create({
-        model: 'gpt-4-turbo',
-        messages: openaiMessages,
-        temperature: 0.7,
-        max_tokens: 1024,
-        stream: true,
-        tools: availableFunctions.map(func => ({
+      const stream = await createChatCompletion(
+        messages as Message[], 
+        availableFunctions.map(func => ({
           type: 'function',
           function: func
         }))
-      });
+      );
       
       // Set up proper headers for streaming
       const encoder = new TextEncoder();
@@ -518,60 +110,35 @@ export async function POST(req: Request) {
                 
                 // Execute the function
                 const functionResult = await executeFunction(functionCallName, args);
-                console.log('Function result:', functionResult);
-                
-                // DON'T show the raw function data to the user anymore
-                // This is for server-side logging only
-                const debugStr = `\n\nFetching data using ${functionCallName}...\n\n${JSON.stringify(functionResult, null, 2)}`;
-                console.log(debugStr);
                 
                 // Only attempt follow-up if we have a valid function call ID
                 if (functionCallId) {
                   try {
                     // Continue the conversation with the AI using the function result
-                    await openai.chat.completions.create({
-                      model: 'gpt-4-turbo',
-                      messages: [
-                        ...openaiMessages,
-                        {
-                          role: 'assistant',
-                          content: null,
-                          tool_calls: [{
-                            id: functionCallId,
-                            type: 'function',
-                            function: {
-                              name: functionCallName,
-                              arguments: functionCallArguments
-                            }
-                          }]
-                        },
-                        {
-                          role: 'tool',
-                          tool_call_id: functionCallId,
-                          content: JSON.stringify(functionResult),
-                          name: functionCallName
-                        }
-                      ],
-                      temperature: 0.7,
-                      max_tokens: 1024
-                    });
+                    await continueChatWithFunctionResult(
+                      messages as Message[],
+                      functionCallId,
+                      functionCallName,
+                      functionCallArguments,
+                      functionResult
+                    );
                     
                     // Return formatted message instead of raw data
-                    const fallbackMsg = formatOrderMessage(functionResult, messages);
+                    const fallbackMsg = formatOrderMessage(functionResult, messages as Message[]);
                     
                     controller.enqueue(encoder.encode(fallbackMsg));
                     responseText += fallbackMsg;
                   } catch (followUpError) {
                     console.error('Error with follow-up response:', followUpError);
                     // Return formatted message instead of raw data
-                    const fallbackMsg = formatOrderMessage(functionResult, messages);
+                    const fallbackMsg = formatOrderMessage(functionResult, messages as Message[]);
                     
                     controller.enqueue(encoder.encode(fallbackMsg));
                     responseText += fallbackMsg;
                   }
                 } else {
                   // No function call ID available, provide formatted response
-                  const simpleResponse = formatOrderMessage(functionResult, messages);
+                  const simpleResponse = formatOrderMessage(functionResult, messages as Message[]);
                   controller.enqueue(encoder.encode(simpleResponse));
                   responseText += simpleResponse;
                 }
@@ -607,7 +174,7 @@ export async function POST(req: Request) {
                 role: 'assistant' as const,
                 content: responseText,
                 createdAt: new Date()
-              }];
+              }] as Message[];
               
               await saveChat({
                 id: chatId,

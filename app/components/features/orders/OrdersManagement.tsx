@@ -267,6 +267,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         const orderToArchive = orders.find(o => o.id === orderId)!;
         await updateOrder(orderId, {
           ...orderToArchive,
+          source: orderToArchive.source || '',
           products: (orderToArchive.products || []) as Array<{ title: string; quantity: number; price: number }>,
           originalOrders: null,
           archived: true
@@ -290,6 +291,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
         const orderToRestore = orders.find(o => o.id === orderId)!;
         await updateOrder(orderId, {
           ...orderToRestore,
+          source: orderToRestore.source || '',
           products: (orderToRestore.products || []) as Array<{ title: string; quantity: number; price: number }>,
           originalOrders: null,
           archived: false
@@ -383,6 +385,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       // Update local database
       const updatePayload = {
         ...order,
+        source: order.source || '',
         status: statusId,
         products: validProducts,
         numberOfItems: validProducts.reduce((sum, p) => sum + p.quantity, 0),
@@ -607,6 +610,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       await Promise.all(orders.map(order => 
         updateOrder(order.id, {
           ...order,
+          source: order.source || '',
           products: (order.products || []) as Array<{ title: string; quantity: number; price: number }>,
           originalOrders: (order.originalOrders || []) as string[],
           mergeStatus: OrdersMergeStatusOptions.rejected
@@ -629,6 +633,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       
       const mergedOrder = {
         ...primaryOrderData,  // Now contains all fields except ID
+        source: primaryOrderData.source || '',
         ...resolvedConflicts,
         marketplaceIds: orders.map(o => o.marketplaceIds).filter(Boolean).join(','),
         mergeStatus: OrdersMergeStatusOptions.none,
@@ -647,6 +652,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       await Promise.all(orders.map(order => 
         updateOrder(order.id, {
           ...order,
+          source: order.source || '',
           products: (order.products as Array<{ title: string; quantity: number; price: number }>) || [],
           originalOrders: null,
           archived: true,
@@ -975,7 +981,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               const updatePayload = {
                 status: orderData.status || selectedOrder.status,
                 orderNumber: orderData.orderNumber || selectedOrder.orderNumber,
-                source: orderData.source || selectedOrder.source,
+                source: orderData.source || selectedOrder.source || '',
                 deliveryMethod: orderData.deliveryMethod || selectedOrder.deliveryMethod,
                 phoneNumber: orderData.phoneNumber || selectedOrder.phoneNumber,
                 fullName: orderData.fullName || selectedOrder.fullName,

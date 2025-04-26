@@ -1,6 +1,8 @@
 1- setup ai chat in the pet project 
 2- give the ai chat the custom tools in needs to talk to the db
     . for example give it a get all orders tool, getOrderById tool, getOrderInRange tool, getOrderByFilter 
+
+
 3- use generative ui to create 2 component one for generating pdf report from html page, another for generating excel 
 sheet from a csv
 4- 
