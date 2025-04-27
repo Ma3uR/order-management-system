@@ -108,7 +108,10 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     }
   }, [messages]);
 
@@ -172,7 +175,7 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
   };
 
   return (
-    <Card className="h-[500px] flex flex-col bg-white/50 dark:bg-black/90 backdrop-blur-sm">
+    <Card className="h-[600px] flex flex-col bg-white/50 dark:bg-black/90 backdrop-blur-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-medium">{t('title')}</CardTitle>
         <div className="flex space-x-2">
@@ -208,80 +211,82 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea className="flex-1 px-4 mb-4" ref={scrollAreaRef}>
-          {error && (
-            <div className="p-3 mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <h4 className="text-sm font-medium text-red-800 dark:text-red-400">{t('errorTitle') || "Error"}</h4>
-              <p className="text-sm text-red-700 dark:text-red-300">{error.message}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => reload()}
-                className="mt-2 flex items-center gap-1"
-              >
-                <RefreshCw className="h-3 w-3 mr-1" />
-                {t('retry') || "Retry"}
-              </Button>
-            </div>
-          )}
-          
-          <AnimatePresence initial={false}>
-            {messages.map((message) => (
-              <motion.div
-                key={message.id}
-                variants={messageVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                layout
-                className={`flex items-start space-x-2 mb-4 ${
-                  message.role === 'assistant' ? 'flex-row' : 'flex-row-reverse'
-                }`}
-              >
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 500, damping: 25 }}
+      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+        <ScrollArea className="flex-1 px-4 mb-4 h-full" ref={scrollAreaRef}>
+          <div className="py-4">
+            {error && (
+              <div className="p-3 mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <h4 className="text-sm font-medium text-red-800 dark:text-red-400">{t('errorTitle') || "Error"}</h4>
+                <p className="text-sm text-red-700 dark:text-red-300">{error.message}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => reload()}
+                  className="mt-2 flex items-center gap-1"
                 >
-                  <Avatar className={`h-8 w-8 ${
-                    message.role === 'assistant' 
-                      ? 'bg-blue-500 dark:bg-blue-600' 
-                      : 'bg-green-500 dark:bg-green-600'
-                  }`}>
-                    <AvatarImage src="" alt="" className="flex h-full w-full items-center justify-center">
-                      {message.role === 'assistant' ? (
-                        <Bot className="h-4 w-4 text-white" />
-                      ) : (
-                        <User className="h-4 w-4 text-white" />
-                      )}
-                    </AvatarImage>
-                    <AvatarFallback>
-                      {message.role === 'assistant' ? 'AI' : 'You'}
-                    </AvatarFallback>
-                  </Avatar>
-                </motion.div>
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  {t('retry') || "Retry"}
+                </Button>
+              </div>
+            )}
+            
+            <AnimatePresence initial={false}>
+              {messages.map((message) => (
                 <motion.div
-                  initial={{ scale: 0.5, x: message.role === 'assistant' ? -20 : 20 }}
-                  animate={{ scale: 1, x: 0 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                    message.role === 'assistant'
-                      ? 'bg-slate-100 dark:bg-slate-700/50 text-slate-900 dark:text-slate-100'
-                      : 'bg-blue-500/90 dark:bg-blue-600/90 text-white'
+                  key={message.id}
+                  variants={messageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  layout
+                  className={`flex items-start space-x-2 mb-4 ${
+                    message.role === 'assistant' ? 'flex-row' : 'flex-row-reverse'
                   }`}
                 >
-                  {message.content}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 500, damping: 25 }}
+                  >
+                    <Avatar className={`h-8 w-8 ${
+                      message.role === 'assistant' 
+                        ? 'bg-blue-500 dark:bg-blue-600' 
+                        : 'bg-green-500 dark:bg-green-600'
+                    }`}>
+                      <AvatarImage src="" alt="" className="flex h-full w-full items-center justify-center">
+                        {message.role === 'assistant' ? (
+                          <Bot className="h-4 w-4 text-white" />
+                        ) : (
+                          <User className="h-4 w-4 text-white" />
+                        )}
+                      </AvatarImage>
+                      <AvatarFallback>
+                        {message.role === 'assistant' ? 'AI' : 'You'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </motion.div>
+                  <motion.div
+                    initial={{ scale: 0.5, x: message.role === 'assistant' ? -20 : 20 }}
+                    animate={{ scale: 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                    className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                      message.role === 'assistant'
+                        ? 'bg-slate-100 dark:bg-slate-700/50 text-slate-900 dark:text-slate-100'
+                        : 'bg-blue-500/90 dark:bg-blue-600/90 text-white'
+                    }`}
+                  >
+                    {message.content}
+                  </motion.div>
                 </motion.div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          
-          {status === 'submitted' && (
-            <div className="flex justify-center my-2">
-              <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-            </div>
-          )}
+              ))}
+            </AnimatePresence>
+            
+            {status === 'submitted' && (
+              <div className="flex justify-center my-2">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+              </div>
+            )}
+          </div>
         </ScrollArea>
 
         <div className="border-t">
