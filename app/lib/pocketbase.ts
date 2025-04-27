@@ -274,3 +274,15 @@ export default pocketBase;
 
 // Add this temporarily to verify the connection
 console.log('PocketBase URL:', pocketBase.baseUrl);
+
+// Collection Types
+export interface ExpensesRecord {
+  id: string;
+  created: string;
+  updated: string;
+  amount: number;
+  description: string;
+  date: string;
+  category?: string;
+  receipt?: string;
+}

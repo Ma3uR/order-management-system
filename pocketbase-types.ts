@@ -147,15 +147,16 @@ export type UsersRecord = {
 // Response types include system fields and match responses from the PocketBase API
 export type BlacklistEntriesResponse = Required<BlacklistEntriesRecord> & BaseSystemFields
 export type ChatsResponse<Tmessages = unknown, Texpand = unknown> = Required<ChatsRecord<Tmessages>> & BaseSystemFields<Texpand>
-export type CurrencyResponse = CurrencyOptionsRecord & BaseSystemFields
-export type DeliveryOptionsResponse = DeliveryOptionsRecord & BaseSystemFields
-export type OrdersResponse<Tproducts = unknown, Texpand = unknown> = OrdersRecord<Tproducts> & BaseSystemFields<Texpand>
-export type PaymentMethodsResponse = PaymentOptionsRecord & BaseSystemFields
-export type SourcesResponse = SourcesRecord & BaseSystemFields
-export type StatusResponse = StatusOptionsRecord & BaseSystemFields
-export type UsersResponse = UsersRecord & AuthSystemFields
-export type SyncRecordsResponse = SyncRecordsRecord & BaseSystemFields
-export type ExpensesResponse = ExpensesRecord & BaseSystemFields
+export type CurrencyOptionsResponse = Required<CurrencyOptionsRecord> & BaseSystemFields
+export type DeliveryOptionsResponse = Required<DeliveryOptionsRecord> & BaseSystemFields
+export type ExpensesResponse = Required<ExpensesRecord> & BaseSystemFields
+export type OrdersResponse<ToriginalOrders = unknown, Tproducts = unknown, Texpand = unknown> = Required<OrdersRecord<ToriginalOrders, Tproducts>> & BaseSystemFields<Texpand>
+export type PaymentOptionsResponse = Required<PaymentOptionsRecord> & BaseSystemFields
+export type SourcesResponse = Required<SourcesRecord> & BaseSystemFields
+export type StatusOptionsResponse = Required<StatusOptionsRecord> & BaseSystemFields
+export type SyncRecordsResponse = Required<SyncRecordsRecord> & BaseSystemFields
+export type UsersResponse = Required<UsersRecord> & AuthSystemFields
+
 // Types containing all Records and Responses, useful for creating typing helper functions
 
 export type CollectionRecords = {
@@ -175,13 +176,13 @@ export type CollectionRecords = {
 export type CollectionResponses = {
 	blacklist_entries: BlacklistEntriesResponse
 	chats: ChatsResponse
-	currency_options: CurrencyResponse
+	currency_options: CurrencyOptionsResponse
 	delivery_options: DeliveryOptionsResponse
 	expenses: ExpensesResponse
 	orders: OrdersResponse
-	payment_options: PaymentMethodsResponse
+	payment_options: PaymentOptionsResponse
 	sources: SourcesResponse
-	status_options: StatusResponse
+	status_options: StatusOptionsResponse
 	sync_records: SyncRecordsResponse
 	users: UsersResponse
 }
