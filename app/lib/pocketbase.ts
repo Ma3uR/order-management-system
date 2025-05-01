@@ -147,7 +147,12 @@ export function getCurrentUser() {
 
 // Helper to check if user is authenticated
 export function isAuthenticated() {
-    return pocketBase.authStore.isValid;
+  console.log('isAuthenticated check', {
+    isValid: pocketBase.authStore.isValid,
+    model: pocketBase.authStore.model,
+    token: pocketBase.authStore.token ? 'exists' : 'missing'
+  });
+  return pocketBase.authStore.isValid;
 }
 
 // Optional: Add a method to check if admin is authenticated

@@ -52,9 +52,10 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
     });
   }, [id, currentUserId, initialMessages, user, isSessionLoading, userId]);
   
-  const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload, setMessages } = useChat({
     api: '/api/chat',
     streamProtocol: 'text',
+    experimental_throttle: 50, // Lower this for more responsive streaming
     id, // Use the provided chat ID for persistence
     body: { 
       userId: currentUserId,
@@ -96,6 +97,42 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
   useEffect(() => {
     console.log(`Current messages state:`, messages);
     console.log(`Current message count: ${messages.length}`);
+    
+    // Fix any malformed message content showing raw token format
+    if (messages && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      
+      if (lastMessage && typeof lastMessage.content === 'string') {
+        const content = lastMessage.content;
+        
+        // Check if it starts with a potential token format
+        if (content.startsWith('f:{"messageId":"') && content.includes('0:"')) {
+          console.log('Detected raw token format in AiChatBox, attempting to fix');
+          
+          try {
+            // Extract the actual text content from tokens
+            const textContent = content
+              .split('0:"')
+              .slice(1)
+              .map(part => part.split('"')[0])
+              .join('');
+            
+            // Create a corrected deep copy of all messages
+            const correctedMessages = messages.map((message, index) => {
+              if (index === messages.length - 1 && message.role === 'assistant') {
+                return { ...message, content: textContent };
+              }
+              return message;
+            });
+            
+            // Set the corrected messages
+            setMessages && setMessages(correctedMessages);
+          } catch (err) {
+            console.error('Failed to fix tokenized message:', err);
+          }
+        }
+      }
+    }
   }, [messages]);
 
   // If we received an updated ID, redirect to the correct chat page
