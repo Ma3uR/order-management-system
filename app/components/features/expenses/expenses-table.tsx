@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/shared/ui/table"
 import { Card, CardContent, CardHeader } from "@/app/components/shared/ui/card"
 import { format } from "date-fns"
@@ -12,72 +12,46 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/shared
 import { Calendar as CalendarComponent } from "@/app/components/shared/ui/calendar"
 import type { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
+import pb from "@/app/lib/pocketbase"
+import { ExpensesResponse } from "@/app/types/pocketbase-types"
 
 // Sample data - in a real app, this would come from a database
-const initialExpenses = [
-  {
-    id: "1",
-    amount: 42.99,
-    description: "Grocery shopping at Whole Foods",
-    date: new Date("2023-04-15"),
-    category: "Food & Dining",
-  },
-  {
-    id: "2",
-    amount: 9.99,
-    description: "Netflix monthly subscription",
-    date: new Date("2023-04-10"),
-    category: "Entertainment",
-  },
-  {
-    id: "3",
-    amount: 35.5,
-    description: "Gas station fill-up",
-    date: new Date("2023-04-08"),
-    category: "Transportation",
-  },
-  {
-    id: "4",
-    amount: 120.0,
-    description: "Electricity bill payment",
-    date: new Date("2023-04-05"),
-    category: "Utilities",
-  },
-  {
-    id: "5",
-    amount: 65.75,
-    description: "Dinner at Italian restaurant",
-    date: new Date("2023-04-12"),
-    category: "Food & Dining",
-  },
-  {
-    id: "6",
-    amount: 89.99,
-    description: "New shoes from Nike",
-    date: new Date("2023-04-03"),
-    category: "Shopping",
-  },
-]
 
 export function ExpensesTable() {
-  const [expenses] = useState(initialExpenses)
+  const [expenses, setExpenses] = useState<ExpensesResponse[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [isFiltering, setIsFiltering] = useState(false)
-
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    async function fetchExpenses() {
+      try {
+        const data = await pb.collection('expenses').getFullList<ExpensesResponse>()
+        setExpenses(data)
+      } catch (error) {
+        console.error("Error fetching expenses:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchExpenses()
+  }, [])
+  
   // Sorting function
   const sortedExpenses = [...expenses].sort((a, b) => {
     if (!sortConfig) return 0
 
     if (sortConfig.key === "date") {
       return sortConfig.direction === "ascending"
-        ? new Date(a.date).getTime() - new Date(b.date).getTime()
-        : new Date(b.date).getTime() - new Date(a.date).getTime()
+        ? new Date(a.date || "").getTime() - new Date(b.date || "").getTime()
+        : new Date(b.date || "").getTime() - new Date(a.date || "").getTime()
     }
 
     if (sortConfig.key === "amount") {
-      return sortConfig.direction === "ascending" ? a.amount - b.amount : b.amount - a.amount
+      return sortConfig.direction === "ascending" ? (a.amount || 0) - (b.amount || 0) : (b.amount || 0) - (a.amount || 0)
     }
 
     return 0
@@ -230,7 +204,7 @@ export function ExpensesTable() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-3 w-3 text-black dark:text-white opacity-70" />
-                          {format(expense.date, "yyyy-MM-dd")}
+                          {expense.date ? format(new Date(expense.date), "yyyy-MM-dd") : "N/A"}
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[300px] truncate" title={expense.description}>

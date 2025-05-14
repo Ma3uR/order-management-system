@@ -8,6 +8,7 @@ export enum Collections {
 	CurrencyOptions = "currency_options",
 	DeliveryOptions = "delivery_options",
 	Expenses = "expenses",
+	ExpensesCategories = "expenses_categories",
 	Orders = "orders",
 	PaymentOptions = "payment_options",
 	Sources = "sources",
@@ -71,6 +72,11 @@ export type ExpensesRecord = {
 	amount?: number
 	description?: string
 	date?: IsoDateString
+}
+
+export type ExpensesCategoriesRecord = {
+	name: string
+	color?: string
 }
 
 export enum OrdersMergeStatusOptions {
@@ -156,6 +162,7 @@ export type StatusResponse = StatusOptionsRecord & BaseSystemFields
 export type UsersResponse = UsersRecord & AuthSystemFields
 export type SyncRecordsResponse = SyncRecordsRecord & BaseSystemFields
 export type ExpensesResponse = ExpensesRecord & BaseSystemFields
+export type ExpensesCategoriesResponse = ExpensesCategoriesRecord & BaseSystemFields
 // Types containing all Records and Responses, useful for creating typing helper functions
 
 export type CollectionRecords = {
@@ -164,6 +171,7 @@ export type CollectionRecords = {
 	currency_options: CurrencyOptionsRecord
 	delivery_options: DeliveryOptionsRecord
 	expenses: ExpensesRecord
+	expenses_categories: ExpensesCategoriesRecord
 	orders: OrdersRecord
 	payment_options: PaymentOptionsRecord
 	sources: SourcesRecord
@@ -178,6 +186,7 @@ export type CollectionResponses = {
 	currency_options: CurrencyResponse
 	delivery_options: DeliveryOptionsResponse
 	expenses: ExpensesResponse
+	expenses_categories: ExpensesCategoriesResponse
 	orders: OrdersResponse
 	payment_options: PaymentMethodsResponse
 	sources: SourcesResponse

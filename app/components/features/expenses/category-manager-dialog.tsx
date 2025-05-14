@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -12,6 +12,8 @@ import { Input } from "@/app/components/shared/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/shared/ui/dialog"
 import { cn } from "@/lib/utils"
+import { ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
+import pb, { authenticatedCall } from "@/app/lib/pocketbase"
 
 const formSchema = z.object({
   name: z
@@ -29,32 +31,39 @@ const formSchema = z.object({
 
 type CategoryFormValues = z.infer<typeof formSchema>
 
-// Sample initial categories
-const initialCategories = [
-  { id: "1", name: "Food & Dining", color: "#FF5757" },
-  { id: "2", name: "Transportation", color: "#54C5EB" },
-  { id: "3", name: "Entertainment", color: "#A36FFE" },
-  { id: "4", name: "Utilities", color: "#FF9F40" },
-  { id: "5", name: "Housing", color: "#4CAF50" },
-  { id: "6", name: "Shopping", color: "#FF4081" },
-  { id: "7", name: "Healthcare", color: "#2196F3" },
-  { id: "8", name: "Travel", color: "#FFC107" },
-  { id: "9", name: "Education", color: "#9C27B0" },
-  { id: "10", name: "Personal Care", color: "#00BCD4" },
-  { id: "11", name: "Other", color: "#607D8B" },
-]
-
 interface CategoryManagerDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 export function CategoryManagerDialog({ open, onOpenChange }: CategoryManagerDialogProps) {
-  const [categories, setCategories] = useState(initialCategories)
+  const [categories, setCategories] = useState<ExpensesCategoriesResponse[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<{ name: string; color: string } | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        setIsLoading(true);
+        const categories = await authenticatedCall(async () => 
+          pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
+        );
+        setCategories(categories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        showSuccessNotification("Failed to load categories");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    if (open) {
+      fetchCategories();
+    }
+  }, [open]);
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(formSchema),
@@ -70,28 +79,42 @@ export function CategoryManagerDialog({ open, onOpenChange }: CategoryManagerDia
     setTimeout(() => setShowSuccess(false), 2000)
   }
 
-  const onSubmit = (values: CategoryFormValues) => {
-    // Add new category
-    const newCategory = {
-      id: `${Date.now()}`,
-      name: values.name,
-      color: values.color,
+  const onSubmit = async (values: CategoryFormValues) => {
+    try {
+      setIsLoading(true);
+      await authenticatedCall(async () => {
+        await pb.collection('expenses_categories').create({
+          name: values.name,
+          color: values.color,
+        });
+      });
+
+      // Refresh the categories from the server
+      const updatedCategories = await authenticatedCall(async () => 
+        pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
+      );
+      setCategories(updatedCategories);
+      
+      form.reset({
+        name: "",
+        color: "#6D28D9",
+      });
+
+      showSuccessNotification("Category added successfully!");
+    } catch (error) {
+      console.error("Error adding category:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      showSuccessNotification(`Failed to add category: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
     }
-
-    setCategories([...categories, newCategory])
-    form.reset({
-      name: "",
-      color: "#6D28D9",
-    })
-
-    showSuccessNotification("Category added successfully!")
   }
 
   const startEditing = (category: (typeof categories)[0]) => {
     setEditingId(category.id)
     setEditForm({
       name: category.name,
-      color: category.color,
+      color: category.color || "#6D28D9",
     })
   }
 
@@ -100,20 +123,47 @@ export function CategoryManagerDialog({ open, onOpenChange }: CategoryManagerDia
     setEditForm(null)
   }
 
-  const saveEditing = () => {
+  const saveEditing = async () => {
     if (editingId && editForm) {
-      setCategories(
-        categories.map((cat) => (cat.id === editingId ? { ...cat, name: editForm.name, color: editForm.color } : cat)),
-      )
-      setEditingId(null)
-      setEditForm(null)
-      showSuccessNotification("Category updated successfully!")
+      try {
+        setIsLoading(true);
+        await authenticatedCall(async () => {
+          await pb.collection('expenses_categories').update(editingId, {
+            name: editForm.name,
+            color: editForm.color
+          });
+        });
+        
+        setCategories(
+          categories.map((cat) => (cat.id === editingId ? { ...cat, name: editForm.name, color: editForm.color } : cat)),
+        )
+        setEditingId(null)
+        setEditForm(null)
+        showSuccessNotification("Category updated successfully!")
+      } catch (error) {
+        console.error("Error updating category:", error);
+        showSuccessNotification("Failed to update category")
+      } finally {
+        setIsLoading(false);
+      }
     }
   }
 
-  const deleteCategory = (id: string) => {
-    setCategories(categories.filter((cat) => cat.id !== id))
-    showSuccessNotification("Category deleted successfully!")
+  const deleteCategory = async (id: string) => {
+    try {
+      setIsLoading(true);
+      await authenticatedCall(async () => {
+        await pb.collection('expenses_categories').delete(id);
+      });
+      
+      setCategories(categories.filter((cat) => cat.id !== id))
+      showSuccessNotification("Category deleted successfully!")
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      showSuccessNotification("Failed to delete category")
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const handleEditFormChange = (field: "name" | "color", value: string) => {
@@ -220,9 +270,22 @@ export function CategoryManagerDialog({ open, onOpenChange }: CategoryManagerDia
                       <Button
                         type="submit"
                         className="w-full bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-all duration-300"
+                        disabled={isLoading}
                       >
-                        <PlusCircleIcon className="h-4 w-4 mr-2" />
-                        Add Category
+                        {isLoading ? (
+                          <span className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                          </span>
+                        ) : (
+                          <>
+                            <PlusCircleIcon className="h-4 w-4 mr-2" />
+                            Add Category
+                          </>
+                        )}
                       </Button>
                     </motion.div>
                   </form>
@@ -264,7 +327,7 @@ export function CategoryManagerDialog({ open, onOpenChange }: CategoryManagerDia
                               onChange={(e) => handleEditFormChange("color", e.target.value)}
                               className="w-8 h-8 p-1 border-slate-200 dark:border-slate-700"
                             />
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEditing}>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => saveEditing()}>
                               <CheckIcon className="h-4 w-4 text-black dark:text-white" />
                             </Button>
                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEditing}>

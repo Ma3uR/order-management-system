@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -17,6 +17,9 @@ import { Calendar } from "@/app/components/shared/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader } from "@/app/components/shared/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select"
+import { addExpense } from "@/app/lib/services/expenses"
+import { ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
+import pb from "@/app/lib/pocketbase"
 
 const formSchema = z.object({
   amount: z.coerce.number().min(0, {
@@ -40,25 +43,20 @@ type ExpenseFormValues = z.infer<typeof formSchema>
 
 // Sample initial categories - in a real app, these would be fetched from the database
 // and would be the same as those managed in the CategoryManager component
-const initialCategories = [
-  { id: "1", name: "Food & Dining", color: "#FF5757" },
-  { id: "2", name: "Transportation", color: "#54C5EB" },
-  { id: "3", name: "Entertainment", color: "#A36FFE" },
-  { id: "4", name: "Utilities", color: "#FF9F40" },
-  { id: "5", name: "Housing", color: "#4CAF50" },
-  { id: "6", name: "Shopping", color: "#FF4081" },
-  { id: "7", name: "Healthcare", color: "#2196F3" },
-  { id: "8", name: "Travel", color: "#FFC107" },
-  { id: "9", name: "Education", color: "#9C27B0" },
-  { id: "10", name: "Personal Care", color: "#00BCD4" },
-  { id: "11", name: "Other", color: "#607D8B" },
-]
-
 export function ExpenseForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [categories, setCategories] = useState(initialCategories)
+  const [categories, setCategories] = useState<ExpensesCategoriesResponse[]>([])
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchCategories() {
+      const categories = await pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
+      setCategories(categories)
+    }
+    fetchCategories()
+  }, [])
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
@@ -72,24 +70,41 @@ export function ExpenseForm() {
 
   async function onSubmit(values: ExpenseFormValues) {
     setIsSubmitting(true)
+    setErrorMessage(null)
 
-    // Simulate API call
-    console.log(values)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      // Format date to ISO string (YYYY-MM-DD)
+      const formattedDate = format(values.date, 'yyyy-MM-dd')
+      
+      // Call the addExpense service function
+      const result = await addExpense(
+        values.amount,
+        values.description,
+        formattedDate,
+        values.category
+      )
+      
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
-    // Show success message
-    setShowSuccess(true)
-    setTimeout(() => setShowSuccess(false), 3000)
+      // Show success message
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 3000)
 
-    // Reset form
-    form.reset({
-      amount: undefined,
-      description: "",
-      date: new Date(),
-      category: "",
-    })
-
-    setIsSubmitting(false)
+      // Reset form
+      form.reset({
+        amount: undefined,
+        description: "",
+        date: new Date(),
+        category: "",
+      })
+    } catch (error) {
+      console.error('Error adding expense:', error)
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to add expense')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -112,6 +127,27 @@ export function ExpenseForm() {
                 />
               </svg>
               <span>Expense added successfully!</span>
+            </div>
+          </motion.div>
+        )}
+
+        {errorMessage && (
+          <motion.div
+            className="absolute top-0 left-0 right-0 z-50 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 p-4 rounded-lg shadow-lg flex items-center justify-center"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>{errorMessage}</span>
             </div>
           </motion.div>
         )}
