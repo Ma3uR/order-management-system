@@ -58,21 +58,21 @@ function normalizeOrder(order: Order | ApiOrder): {
     return {
       id: order.id,
       orderNumber: order.orderNumber,
-      status: order.statusName,
+      status: order.statusName || '',
       createdAt: order.createdAt,
-      customerName: order.customer,
-      amount: order.total,
-      currency: order.currencyCode,
-      currencySymbol: order.currencySymbol,
-      paymentMethod: order.paymentMethod,
-      deliveryMethod: order.deliveryMethod,
-      phoneNumber: order.customer.match(/\(\+\d+\)/)?.toString().replace(/[()]/g, '') || '',
-      products: order.items.map((item, index) => ({
+      customerName: order.customer || '',
+      amount: order.total || 0,
+      currency: order.currencyCode || '',
+      currencySymbol: order.currencySymbol || '',
+      paymentMethod: order.paymentMethod || '',
+      deliveryMethod: order.deliveryMethod || '',
+      phoneNumber: order.customer?.match(/\(\+\d+\)/)?.toString().replace(/[()]/g, '') || '',
+      products: order.items?.map((item, index) => ({
         id: `item-${index}`,
         name: item.name,
         quantity: item.quantity,
         price: item.price
-      }))
+      })) || []
     };
   } else {
     // It's our internal Order type
