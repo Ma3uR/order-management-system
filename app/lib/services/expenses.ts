@@ -1,5 +1,4 @@
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
-import { ExpensesRecord, ExpensesResponse } from '@/app/types/pocketbase-types';
 
 /**
  * Add a new expense to the system

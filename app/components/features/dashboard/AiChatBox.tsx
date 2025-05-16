@@ -420,7 +420,7 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
         }
       }
     }
-  }, [messages]);
+  }, [messages, setMessages]);
 
   // If we received an updated ID, redirect to the correct chat page
   useEffect(() => {
