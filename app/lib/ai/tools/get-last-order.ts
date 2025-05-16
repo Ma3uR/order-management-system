@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ToolDefinition } from './types';
 import { getLastOrder as getLastOrderService } from '@/app/lib/services/orders';
 
-export const getLastOrder: ToolDefinition<{}, unknown> = {
+export const getLastOrder: ToolDefinition<Record<string, never>, unknown> = {
   description: 'Get the last order in the system',
   parameters: z.object({}),
   execute: async () => {

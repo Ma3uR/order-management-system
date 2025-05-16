@@ -259,7 +259,7 @@ export default function Dashboard() {
           <MonthlyChart
             data={stats.monthlyData}
             labels={months}
-            className="lg:col-span-2"
+            className="h-full"
           />
         </motion.div>
       </motion.div>

@@ -494,7 +494,7 @@ export async function getOrdersBeingAssembled() {
     // Get orders with "being assembled" status
     const orders = await authenticatedCall(() => 
       pb.collection('orders').getList(1, 100, { 
-        filter: `status.name ~ "being assembled"`,
+        filter: `status.name ~ "Комплектується"`,
         expand: 'status',
         fields: 'id,orderNumber,created,fullName,phoneNumber,products'
       })
@@ -503,7 +503,7 @@ export async function getOrdersBeingAssembled() {
     console.log(`Found ${orders.totalItems} orders being assembled`);
     
     if (orders.totalItems === 0) {
-      return { message: 'No orders found with "being assembled" status' };
+      return { message: 'No orders found with "Комплектується" status' };
     }
     
     // Aggregate product counts across all orders

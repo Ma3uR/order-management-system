@@ -7,7 +7,7 @@ import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/shared/ui/avatar";
-import { Send, Bot, User, StopCircle, RefreshCw, Trash2, CloudRain, ShoppingBag } from "lucide-react";
+import { Send, Bot, User, StopCircle, RefreshCw, Trash2, CloudRain, ShoppingBag, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from '@ai-sdk/react';
 import { Message, ToolInvocation } from 'ai';
@@ -18,6 +18,8 @@ import { useSession } from './useSession';
 import { Weather } from './ai-tools-components/wheater';
 import { OrderTool } from './ai-tools-components/orders';
 import { type AiOrder } from './ai-tools-components/orders/order-list';
+import { ProductsTool } from './ai-tools-components/products';
+import { AiToolRenderer } from './ai-tools-renderer';
 
 interface AiChatBoxProps {
   id?: string;
@@ -110,10 +112,30 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
       {toolInvocations.map(toolInvocation => {
         const { toolName, toolCallId, state } = toolInvocation;
 
+        // Type assertion to make TypeScript recognize 'result' property when state is 'result'
+        type ToolInvocationWithResult = ToolInvocation & {
+          result?: unknown;
+        };
+        
+        const typedToolInvocation = toolInvocation as ToolInvocationWithResult;
+
         if (state === 'result') {
+          // Use the AiToolRenderer for all tool results
+          if ('result' in typedToolInvocation) {
+            return (
+              <AiToolRenderer 
+                key={toolCallId}
+                tool={toolName}
+                result={typedToolInvocation.result}
+              />
+            );
+          }
+          
+          // For backward compatibility, keep the existing renderers
+          
           // Handle weather tool
-          if (toolName === 'displayWeather' && 'result' in toolInvocation) {
-            const result = toolInvocation.result as {
+          if (toolName === 'displayWeather' && 'result' in typedToolInvocation) {
+            const result = typedToolInvocation.result as {
               location: string;
               temperature: number;
               weather: string;
@@ -132,8 +154,8 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
           }
           
           // Handle order display tools
-          if (toolName === 'getLastOrder' && 'result' in toolInvocation) {
-            const result = toolInvocation.result;
+          if (toolName === 'getLastOrder' && 'result' in typedToolInvocation) {
+            const result = typedToolInvocation.result;
             
             // Format 1: Result contains orders array
             if (result && typeof result === 'object' && 'orders' in result && Array.isArray(result.orders)) {
@@ -156,8 +178,8 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
             }
           }
           
-          if (toolName === 'getOrderByPhone' && 'result' in toolInvocation) {
-            const result = toolInvocation.result;
+          if (toolName === 'getOrderByPhone' && 'result' in typedToolInvocation) {
+            const result = typedToolInvocation.result;
             
             // Format 1: Result contains orders array
             if (result && typeof result === 'object' && 'orders' in result && Array.isArray(result.orders)) {
@@ -180,8 +202,8 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
             }
           }
           
-          if (toolName === 'getOrderById' && 'result' in toolInvocation) {
-            const result = toolInvocation.result;
+          if (toolName === 'getOrderById' && 'result' in typedToolInvocation) {
+            const result = typedToolInvocation.result;
             
             // Format 1: Result contains a single order property
             if (result && typeof result === 'object' && 'order' in result && result.order) {
@@ -203,6 +225,25 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
               );
             }
           }
+
+          // Handle products being assembled tool
+          if (toolName === 'getProductsBeingAssembled' && 'result' in typedToolInvocation) {
+            const result = typedToolInvocation.result as {
+              products: Array<{ name: string, quantity: number }>;
+              ordersCount?: number;
+              productsCount?: number;
+            };
+            
+            if (result && Array.isArray(result.products)) {
+              return (
+                <ProductsTool 
+                  key={toolCallId}
+                  products={result.products}
+                  ordersCount={result.ordersCount || 0}
+                />
+              );
+            }
+          }
         } else {
           // Handle loading states
           return (
@@ -220,6 +261,13 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
                     <ShoppingBag className="h-4 w-4 text-green-500" />
                   </div>
                   <span>Loading order information...</span>
+                </div>
+              ) : toolName === 'getProductsBeingAssembled' ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-pulse">
+                    <Package className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <span>Loading products information...</span>
                 </div>
               ) : (
                 <div>Processing {toolName}...</div>
