@@ -22,12 +22,6 @@ export function useSession() {
       try {
         setIsLoading(true);
         
-        // Add some debugging to check initial auth state
-        console.log('Initial auth state:', {
-          isValid: pb.authStore.isValid,
-          modelId: pb.authStore.model?.id || null
-        });
-        
         // If we have a valid auth, use it
         if (pb.authStore.isValid && pb.authStore.model) {
           setUser({
@@ -37,7 +31,6 @@ export function useSession() {
             username: pb.authStore.model.username,
             avatar: pb.authStore.model.avatar,
           });
-          console.log('Set user from existing valid auth:', pb.authStore.model.id);
         } else {
           // No valid auth, try to refresh it
           try {

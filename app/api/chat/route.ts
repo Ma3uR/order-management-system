@@ -6,20 +6,12 @@ import {
 } from 'ai';
 import { getLastOrder } from '@/app/lib/services/orders';
 import { ChatsRecord } from '@/pocketbase-types';
-// import { systemPrompt } from '@/lib/ai/prompts';
 import {
   deleteChat,
   getChat,
   getMessagesByUserId,
   saveMessages,
 } from '@/app/[locale]/chat/actions/chat';
-// import { generateUUID, getTrailingMessageId } from '@/lib/utils';
-// import { generateTitleFromUserMessage } from '../../actions';
-// import { createDocument } from '@/lib/ai/tools/create-document';
-// import { updateDocument } from '@/lib/ai/tools/update-document';
-// import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
-// import { getWeather } from '@/lib/ai/tools/get-weather';
-// import { isProductionEnvironment } from '@/lib/constants';
 import pocketbase, { authenticateAdmin, authenticatedCall } from '@/app/lib/pocketbase';
 import { isAuthenticated as checkAuth } from '@/app/lib/pocketbase';
 import { z } from 'zod';
@@ -27,16 +19,53 @@ import { systemPrompt } from '@/app/lib/ai/prompts';
 import { myProvider } from '@/app/lib/ai/providers';
 import { v4 as uuid } from 'uuid';
 
+// Extended interface for assistant messages with tool invocations
+interface AssistantMessageWithTools {
+  id: string;
+  role: 'assistant';
+  content: string;
+  toolInvocations?: Array<{
+    toolName: string;
+    toolCallId: string;
+    state: string;
+    result?: unknown;
+  }>;
+}
+
+interface UserMessage {
+  role: string;
+  content: string;
+}
+
+interface ToolInvocation {
+  toolName: string;
+  toolCallId: string;
+  state: string;
+  result?: unknown;
+}
+
 // Define request body schema
 const postRequestBodySchema = z.object({
   userId: z.string(),
   message: z.string().optional().default(''),
-  selectedChatModel: z.string().optional().default('gpt-3.5-turbo')
+  selectedChatModel: z.string().optional().default('gpt-4o')
 });
 
 type PostRequestBody = z.infer<typeof postRequestBodySchema>;
 
 export const maxDuration = 60;
+
+// Custom system prompt that emphasizes using displayWeather tool
+const customSystemPrompt = (params: { selectedChatModel: string }) => {
+  const basePrompt = systemPrompt(params);
+  return `${basePrompt}
+  
+IMPORTANT INSTRUCTION ABOUT TOOLS:
+- When a user asks about weather for ANY city or location, you MUST use the displayWeather tool, not the text-based getWeatherInformation tool.
+- Never respond with text about weather - always use the displayWeather tool to show visual weather information.
+- Even if the user doesn't explicitly ask for a visual display, still use the displayWeather tool for any weather-related queries.
+`;
+};
 
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
@@ -44,6 +73,19 @@ export async function POST(request: Request) {
   try {
     const json = await request.json();
     requestBody = postRequestBodySchema.parse(json);
+
+    // Check if there are messages in the request (AI SDK format)
+    if (json.messages && Array.isArray(json.messages) && json.messages.length > 0) {
+      // Extract the last user message from the messages array
+      const lastUserMessage = [...json.messages]
+        .reverse()
+        .find(msg => msg.role === 'user') as UserMessage | undefined;
+        
+      if (lastUserMessage && typeof lastUserMessage.content === 'string' && lastUserMessage.content.trim()) {
+        // Override empty message with the one from messages array
+        requestBody.message = lastUserMessage.content;
+      }
+    }
   } catch (error: unknown) {
     if (error instanceof Error) {
       return new Response(error.message, { status: 400 });
@@ -60,24 +102,8 @@ export async function POST(request: Request) {
 
     const isUserAuthenticated = checkAuth();
     if (!isUserAuthenticated) {
-      return new Response('Unauthorized111111x', { status: 401 });
+      return new Response('Unauthorized', { status: 401 });
     }
-
-    // const userType: UserType = session.user.type;
-    //TODO: Uncomment this when we have a way to check the user type
-    // const messageCount = await getMessageCountByUserId({
-    //   id: session.user.id,
-    //   differenceInHours: 24,
-    // });
-
-    // if (messageCount > entitlementsByUserType[userType].maxMessagesPerDay) {
-    //   return new Response(
-    //     'You have exceeded your maximum number of messages for the day! Please try again later.',
-    //     {
-    //       status: 429,
-    //     },
-    //   );
-    // }
 
     const previousMessages = await getMessagesByUserId(userId);
 
@@ -110,6 +136,8 @@ export async function POST(request: Request) {
     // we'll use the content from the most recent user message that comes in the messages array
     // This is needed because AI SDK might not send the message in the body but in the messages
     const messageContent = message || '';
+    
+    console.log('Final message content for processing:', messageContent);
 
     // Map message format to include content property for AI SDK compatibility
     const messageWithContent = {
@@ -118,40 +146,76 @@ export async function POST(request: Request) {
       role: "user" as "user" | "system" | "assistant" | "data"
     };
 
-    const messages = appendClientMessage({
+    let messagesForAI = [];
+    
+    // Regular message handling
+    messagesForAI = appendClientMessage({
       messages: previousMessages.data,
       message: messageWithContent,
     });
 
-    await saveMessages(userId, messages);
+    await saveMessages(userId, messagesForAI);
+
+    // Check for and fix messages with array content (which causes validation errors)
+    const fixedMessages = messagesForAI.map(msg => {
+      if (typeof msg.content === 'object' && msg.content !== null) {
+        console.log('Found message with object content, converting to string:', 
+          { role: msg.role, contentType: typeof msg.content, isArray: Array.isArray(msg.content) });
+        
+        // Create shallow copy with content fixed
+        return {
+          ...msg,
+          content: JSON.stringify(msg.content)
+        };
+      }
+      return msg;
+    });
 
     return createDataStreamResponse({
       execute: (dataStream) => {
+        // Add a debugging message to trace execution
+        console.log('Processing weather query with tools enabled...');
+        
         const result = streamText({
-          model: myProvider.languageModel('gpt-3.5-turbo'),
-          system: systemPrompt({ selectedChatModel }),
-          messages,
+          model: myProvider.languageModel('gpt-4o'),
+          system: customSystemPrompt({ selectedChatModel }),
+          messages: fixedMessages, 
           maxSteps: 5,
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: () => uuid(),
           tools: {
-            getWeatherInformation: {
-              description: 'show the weather in a given city to the user',
-              parameters: z.object({ city: z.string() }),
-              execute: async ({}: { city: string }) => {
+            displayWeather: {
+              description: 'Display current weather conditions for a specific city. Use this tool EVERY TIME a user asks about weather for any location. This is required for showing visual weather information.',
+              parameters: z.object({ 
+                city: z.string().describe('The name of the city to get weather for, e.g., "London", "New York", "Tokyo"')
+              }),
+              execute: async ({ city }: { city: string }) => {
+                console.log(`Getting weather for city: ${city}`);
                 const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
-                return weatherOptions[
+                const weather = weatherOptions[
                   Math.floor(Math.random() * weatherOptions.length)
                 ];
+                
+                // Return a structured object for the Weather component
+                const response = {
+                  city,
+                  temperature: Math.floor(15 + Math.random() * 15), // Random temp between 15-30
+                  condition: weather,
+                  humidity: Math.floor(40 + Math.random() * 40), // Random humidity between 40-80%
+                  windSpeed: Math.floor(5 + Math.random() * 15), // Random wind speed between 5-20 km/h
+                };
+                
+                console.log("Weather tool response:", JSON.stringify(response));
+                return response;
               },
             },
-            // getLastOrder: {
-            //   description: 'Get the last order in the system',
-            //   parameters: z.object({}),
-            //   execute: async () => {
-            //     return getLastOrder();
-            //   },
-            // },
+            getLastOrder: {
+              description: 'Get the last order in the system',
+              parameters: z.object({}),
+              execute: async () => {
+                return getLastOrder();
+              },
+            },
           },
           onFinish: async ({ response }) => {
             if (pocketbase.authStore.model?.id) {
@@ -166,12 +230,31 @@ export async function POST(request: Request) {
                   return;
                 }
                 
-                // Extract just the content from the assistant message
-                const assistantMessage = {
+                const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
+                
+                // Log if there are tool invocations
+                const tools = (lastAssistantMessage as AssistantMessageWithTools).toolInvocations || [];
+                if (tools.length > 0) {
+                  console.log('Tool invocations detected in response:', {
+                    count: tools.length,
+                    tools: tools.map((t: ToolInvocation) => t.toolName),
+                    states: tools.map((t: ToolInvocation) => t.state)
+                  });
+                }
+                
+                // Create message with proper typing
+                const assistantMessage: AssistantMessageWithTools = {
                   id: uuid(),
                   role: 'assistant',
-                  content: assistantMessages[assistantMessages.length - 1].content.toString(),
+                  content: typeof lastAssistantMessage.content === 'string' 
+                    ? lastAssistantMessage.content 
+                    : JSON.stringify(lastAssistantMessage.content),
                 };
+                
+                // Add tool invocations if present
+                if (tools.length > 0) {
+                  assistantMessage.toolInvocations = tools;
+                }
 
                 // Get the current messages and append the new message instead of overwriting
                 const currentMessages = await getMessagesByUserId(userId);
@@ -197,8 +280,21 @@ export async function POST(request: Request) {
           sendReasoning: false
         });
       },
-      onError: () => {
-        return 'Oops, an error occurred!';
+      onError: (error: Error | unknown) => {
+        console.error("AI stream error:", error);
+        
+        if (error instanceof Error) {
+          console.error("Error details:", {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            cause: error.cause
+          });
+          return `Error: ${error.message}`;
+        } else {
+          console.error("Unknown error format:", typeof error);
+          return 'An unexpected error occurred';
+        }
       },
     });
   } catch (error: unknown) {

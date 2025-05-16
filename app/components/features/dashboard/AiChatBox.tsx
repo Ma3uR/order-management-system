@@ -7,19 +7,270 @@ import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/shared/ui/avatar";
-import { Send, Bot, User, StopCircle, RefreshCw, Trash2 } from "lucide-react";
+import { Send, Bot, User, StopCircle, RefreshCw, Trash2, CloudRain } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from '@ai-sdk/react';
-import { Message } from 'ai';
+import { Message, ToolInvocation } from 'ai';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { clearUserChat } from '@/app/lib/chat-store';
 import { useSession } from './useSession';
+import { Weather } from './wheater';
 
 interface AiChatBoxProps {
   id?: string;
   userId?: string;
   initialMessages?: Message[];
+}
+
+// Detect if there's weather content in the message text
+function detectWeatherInfo(content: string): React.ReactNode {
+  // Pattern to match weather information in markdown format
+  const markdownRegex = /[\*\-].*Temperature:[\*\s]*(\d+)°C[\*\s\n]*.*Condition:[\*\s]*(\w+)[\*\s\n]*.*(?:Humidity:[\*\s]*(\d+)%)?[\*\s\n]*.*(?:Wind Speed:[\*\s]*(\d+)\s*km\/h)?/m;
+  
+  // Standard pattern
+  const stdRegex = /Temperature:\s*(\d+)°C[\s\S]*?Condition:\s*(\w+)[\s\S]*?(?:Humidity:\s*(\d+)%)?[\s\S]*?(?:Wind Speed:\s*(\d+)\s*km\/h)?/m;
+  
+  const match = content.match(markdownRegex) || content.match(stdRegex);
+  
+  if (match) {
+    console.log('Detected weather info in text content', match);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [fullMatch, temperature, condition, humidity, windSpeed] = match;
+    
+    // Extract location from text
+    const locationRegex = /(?:weather|display)?\s+(?:for|in)\s+([^:\n.]+)(?::|\.|\n)/i;
+    const locationMatch = content.match(locationRegex);
+    const location = locationMatch ? locationMatch[1] : "Unknown Location";
+    
+    console.log('Found weather location:', location);
+    
+    return (
+      <>
+        <div className="mb-3">{content}</div>
+        <div className="mt-2 border-t pt-2 border-blue-200 dark:border-blue-800">
+          <Weather
+            location={location}
+            temperature={parseInt(temperature, 10)}
+            weather={condition}
+          />
+        </div>
+      </>
+    );
+  }
+  
+  return content;
+}
+
+/**
+ * Render message content safely, handling potential JSON strings
+ */
+function renderMessageContent(content: unknown): React.ReactNode {
+  if (content === null || content === undefined) {
+    return '';
+  }
+
+  // If content is already a string, check for common weather patterns
+  if (typeof content === 'string') {
+    // First, check for weather information in different formats
+    if (
+      (content.includes('Temperature:') && content.includes('Condition:')) ||
+      (content.includes('weather') && content.includes('°C')) ||
+      (content.includes('**Temperature:**') && content.includes('**Condition:**'))
+    ) {
+      return detectWeatherInfo(content);
+    }
+    
+    // Specific fix for weather api responses that have a specific format
+    if (content.includes('The weather in') && content.includes(' is ')) {
+      return content; // Just return the formatted weather text directly
+    }
+    
+    // Check if it's an escaped stringified array with type/text (common for weather tools)
+    if (content.startsWith('[{') && content.includes('"type":"text"')) {
+      try {
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.some(item => item.type === 'text')) {
+          return parsed
+            .filter(item => item.type === 'text')
+            .map(item => item.text)
+            .join(' ');
+        }
+      } catch {
+        // If we can't parse directly, continue with other approaches
+      }
+    }
+    
+    // First handle common malformed JSON prefixes 
+    if (content.startsWith('[{\\')) {
+      // This is a common pattern in malformed messages
+      // First try to fix obvious double escaping
+      const fixedContent = content.replace(/^\[\{\\/, '[{').replace(/\\"/g, '"');
+      console.log("Fixed string prefix:", fixedContent.substring(0, 50));
+      
+      try {
+        // Try parsing the fixed content
+        return renderMessageContent(JSON.parse(fixedContent));
+      } catch (e) {
+        // If we can't parse it even after fixing, just render the cleaned up version
+        console.error("Failed to parse content after prefix fix:", e);
+        return fixedContent;
+      }
+    }
+    
+    // Check if it's a JSON string (starting with [ or {)
+    if ((content.startsWith('[') || content.startsWith('{')) && 
+        (content.includes('"type"') || content.includes('"text"'))) {
+      try {
+        // Try to parse it as JSON
+        const parsed = JSON.parse(content);
+        
+        // If we have an array of objects with type/text fields, this is likely a rich text format
+        if (Array.isArray(parsed) && parsed.some(item => item.type === 'text')) {
+          // Extract just the text content from the rich text format
+          return parsed
+            .filter(item => item.type === 'text')
+            .map(item => item.text)
+            .join(' ');
+        }
+        
+        // If single object with text property
+        if (parsed.text) {
+          return parsed.text;
+        }
+        
+        // If nested array with type/text
+        if (Array.isArray(parsed) && parsed.some(item => item.text && typeof item.text === 'string')) {
+          return parsed
+            .map(item => item.text || JSON.stringify(item))
+            .join(' ');
+        }
+        
+        // For any other object, format it nicely
+        if (typeof parsed === 'object' && parsed !== null) {
+          return (
+            <pre className="text-sm whitespace-pre-wrap overflow-auto">
+              {JSON.stringify(parsed, null, 2)}
+            </pre>
+          );
+        }
+        
+        // If it parsed as something else, just return it
+        return String(parsed);
+      } catch {
+        // If it's not valid JSON, handle it as regular text
+        return content;
+      }
+    }
+    
+    // Handle the specific case of malformed tool responses
+    if (content.includes('[{"type":"text","text":"')) {
+      try {
+        // Extract the actual text using regex
+        const textMatch = content.match(/\[\{"type":"text","text":"(.*?)"\}\]/);
+        if (textMatch && textMatch[1]) {
+          return textMatch[1];
+        }
+      } catch {
+        // If extraction fails, return as is
+      }
+    }
+    
+    // Normal string, not JSON
+    return content;
+  }
+
+  // If content is an array (e.g., AI SDK rich text format)
+  if (Array.isArray(content)) {
+    // If array of rich text objects
+    if (content.some(item => item.type === 'text')) {
+      return content
+        .filter(item => item.type === 'text')
+        .map(item => item.text)
+        .join(' ');
+    }
+    
+    // Generic array
+    return content.map((item, index) => (
+      <div key={index}>{renderMessageContent(item)}</div>
+    ));
+  }
+
+  // If content is already an object, stringify it
+  if (typeof content === 'object') {
+    try {
+      // If it has a text property, use that
+      if (content && 'text' in content && typeof (content as Record<string, unknown>).text === 'string') {
+        return (content as Record<string, string>).text;
+      }
+      
+      // Otherwise stringify the whole object
+      return (
+        <pre className="text-sm whitespace-pre-wrap overflow-auto">
+          {JSON.stringify(content, null, 2)}
+        </pre>
+      );
+    } catch {
+      return '[Complex Object]';
+    }
+  }
+
+  // For any other type, convert to string
+  return String(content);
+}
+
+// Render tool invocations, specifically for weather data
+function renderToolInvocations(toolInvocations: ToolInvocation[]) {
+  if (!toolInvocations || !Array.isArray(toolInvocations) || toolInvocations.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      {toolInvocations.map(toolInvocation => {
+        const { toolName, toolCallId, state } = toolInvocation;
+
+        if (state === 'result') {
+          if (toolName === 'displayWeather' && 'result' in toolInvocation) {
+            const result = toolInvocation.result as {
+              city: string;
+              temperature: number;
+              condition: string;
+              humidity?: number;
+              windSpeed?: number;
+            };
+            
+            return (
+              <Weather 
+                key={toolCallId}
+                location={result.city}
+                temperature={result.temperature}
+                weather={result.condition}
+              />
+            );
+          }
+        } else {
+          // Handle loading state
+          return (
+            <div key={toolCallId} className="text-sm bg-gray-100 dark:bg-gray-800 rounded-md p-2">
+              {toolName === 'displayWeather' ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-pulse">
+                    <CloudRain className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <span>Loading weather information...</span>
+                </div>
+              ) : (
+                <div>Processing {toolName}...</div>
+              )}
+            </div>
+          );
+        }
+        
+        return null;
+      })}
+    </div>
+  );
 }
 
 export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) {
@@ -30,27 +281,11 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
-  const { user, isLoading: isSessionLoading } = useSession();
+  const { user } = useSession();
   
   // Use provided userId or get from session
   const currentUserId = userId || user?.id;
   
-  // Debug logging for props
-  useEffect(() => {
-    console.log(`AiChatBox mounted with id: ${id}, userId param: "${userId}"`);
-    console.log(`Session user:`, user);
-    console.log(`Current user ID being used: "${currentUserId}", type: ${typeof currentUserId}`);
-    console.log(`Initial messages:`, initialMessages);
-    console.log(`Initial message count: ${initialMessages ? initialMessages.length : 0}`);
-    
-    // Log authentication state
-    console.log('Authentication state:', {
-      user,
-      isSessionLoading,
-      currentUserId,
-      isAuthenticated: !!user
-    });
-  }, [id, currentUserId, initialMessages, user, isSessionLoading, userId]);
   
   const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload, setMessages } = useChat({
     api: '/api/chat',
@@ -95,8 +330,60 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
 
   // Debug logging for messages
   useEffect(() => {
-    console.log(`Current messages state:`, messages);
-    console.log(`Current message count: ${messages.length}`);
+    // Log message content for debugging
+    if (messages && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      
+      // Add specific logs for weather detection
+      if (lastMessage.role === 'assistant' && typeof lastMessage.content === 'string') {
+        const content = lastMessage.content;
+        const hasWeatherInfo = 
+          (content.includes('Temperature:') && content.includes('Condition:')) ||
+          (content.includes('weather') && content.includes('°C')) ||
+          (content.includes('**Temperature:**') && content.includes('**Condition:**'));
+        
+        if (hasWeatherInfo) {
+          console.log('🌤️ Detected weather info in text response:', {
+            hasToolInvocations: !!lastMessage.toolInvocations,
+            contentPreview: content.substring(0, 100),
+            weatherTriggerWords: {
+              temperature: content.includes('Temperature:') || content.includes('**Temperature:**'),
+              condition: content.includes('Condition:') || content.includes('**Condition:**'),
+              celsius: content.includes('°C'),
+              markdown: content.includes('**')
+            }
+          });
+        }
+      }
+      
+      // Regular logging  
+      console.log('Latest message:', {
+        role: lastMessage.role,
+        contentType: typeof lastMessage.content,
+        contentPreview: typeof lastMessage.content === 'string' 
+          ? lastMessage.content.substring(0, 100) + (lastMessage.content.length > 100 ? '...' : '')
+          : String(lastMessage.content).substring(0, 100),
+        isArray: Array.isArray(lastMessage.content),
+        hasToolInvocations: !!lastMessage.toolInvocations
+      });
+      
+      // Log tool invocations if present
+      if (lastMessage.toolInvocations && lastMessage.toolInvocations.length > 0) {
+        console.log('Tool invocations found!', {
+          count: lastMessage.toolInvocations.length,
+          details: lastMessage.toolInvocations,
+          firstTool: lastMessage.toolInvocations[0],
+          hasResult: lastMessage.toolInvocations[0]?.state === 'result'
+        });
+      } else {
+        console.log('No tool invocations in message', {
+          messageId: lastMessage.id,
+          role: lastMessage.role,
+          hasToolField: 'toolInvocations' in lastMessage,
+          toolValue: lastMessage.toolInvocations
+        });
+      }
+    }
     
     // Fix any malformed message content showing raw token format
     if (messages && messages.length > 0) {
@@ -126,7 +413,7 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
             });
             
             // Set the corrected messages
-            setMessages && setMessages(correctedMessages);
+            setMessages?.(correctedMessages);
           } catch (err) {
             console.error('Failed to fix tokenized message:', err);
           }
@@ -312,7 +599,30 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
                         : 'bg-blue-500/90 dark:bg-blue-600/90 text-white'
                     }`}
                   >
-                    {message.content}
+                    {renderMessageContent(message.content)}
+                    {message.toolInvocations && renderToolInvocations(message.toolInvocations)}
+                    
+                    {/* Debug information - remove in production */}
+                    {process.env.NODE_ENV !== 'production' && (
+                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <details className="text-xs text-gray-500">
+                          <summary>Debug info</summary>
+                          <pre className="mt-1 bg-gray-100 dark:bg-gray-800 p-2 rounded text-xs overflow-auto">
+                            {JSON.stringify({
+                              id: message.id,
+                              role: message.role,
+                              hasToolInvocations: Boolean(message.toolInvocations),
+                              toolCount: message.toolInvocations?.length || 0,
+                              tools: message.toolInvocations?.map(t => ({
+                                name: t.toolName,
+                                state: t.state,
+                                hasResult: 'result' in t
+                              }))
+                            }, null, 2)}
+                          </pre>
+                        </details>
+                      </div>
+                    )}
                   </motion.div>
                 </motion.div>
               ))}

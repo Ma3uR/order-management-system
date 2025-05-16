@@ -29,24 +29,20 @@ export default async function ChatPage({ params }: { params: { locale: string } 
     }
     
     const userId = authData.model.id;
-    console.log(`Loading chat for user ID: ${userId}`);
     
     // Load or create the user's chat
     const { chatId } = await loadUserChat(userId);
     
     if (!chatId) {
       // Create a new chat for the user
-      console.log(`No chat found for user ${userId}, creating one`);
       const newChatId = await createOrGetUserChat(userId);
       
       if (newChatId) {
-        console.log(`Created chat ${newChatId} for user ${userId}`);
         redirect(`/${locale}/chat/${newChatId}`);
       } else {
         throw new Error('Failed to create chat');
       }
     } else {
-      console.log(`Found chat ${chatId} for user ${userId}`);
       redirect(`/${locale}/chat/${chatId}`);
     }
   } catch (error) {
