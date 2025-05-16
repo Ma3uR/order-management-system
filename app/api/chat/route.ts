@@ -187,7 +187,7 @@ export async function POST(request: Request) {
         console.log('Stream protocol should be set to "data" in the client to properly receive tool invocations');
         
         const result = streamText({
-          model: myProvider.languageModel('gpt-4o'),
+          model: myProvider.languageModel('gpt-3.5-turbo'),
           system: customSystemPrompt({ selectedChatModel }),
           messages: fixedMessages, 
           maxSteps: 5, // Allow up to 5 tool calls in a single conversation turn
