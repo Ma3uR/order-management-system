@@ -4,7 +4,6 @@ import {
   smoothStream,
   streamText,
 } from 'ai';
-import { getLastOrder } from '@/app/lib/services/orders';
 import { ChatsRecord } from '@/pocketbase-types';
 import {
   deleteChat,
@@ -18,6 +17,7 @@ import { z } from 'zod';
 import { systemPrompt } from '@/app/lib/ai/prompts';
 import { myProvider } from '@/app/lib/ai/providers';
 import { v4 as uuid } from 'uuid';
+import { tools } from '@/app/lib/ai/tools';
 
 // Extended interface for assistant messages with tool invocations
 interface AssistantMessageWithTools {
@@ -64,6 +64,11 @@ IMPORTANT INSTRUCTION ABOUT TOOLS:
 - When a user asks about weather for ANY city or location, you MUST use the displayWeather tool, not the text-based getWeatherInformation tool.
 - Never respond with text about weather - always use the displayWeather tool to show visual weather information.
 - Even if the user doesn't explicitly ask for a visual display, still use the displayWeather tool for any weather-related queries.
+
+IMPORTANT ORDER TOOL INSTRUCTIONS:
+- When a user asks about "last order" or wants to "see the last order", ALWAYS use the getLastOrder tool.
+- Do NOT respond with text about orders - use the getLastOrder tool to show the visual order component.
+- The phrase "last order" is a direct trigger to call the getLastOrder tool, without exception.
 `;
 };
 
@@ -105,6 +110,9 @@ export async function POST(request: Request) {
       return new Response('Unauthorized', { status: 401 });
     }
 
+    // Debug: Log the available tools
+    console.log('Available tools for AI:', Object.keys(tools));
+    
     const previousMessages = await getMessagesByUserId(userId);
 
     // Find or create a chat for this user
@@ -174,49 +182,18 @@ export async function POST(request: Request) {
     return createDataStreamResponse({
       execute: (dataStream) => {
         // Add a debugging message to trace execution
-        console.log('Processing weather query with tools enabled...');
+        console.log('Processing message with tools enabled...');
+        console.log('Using tools:', Object.keys(tools));
+        console.log('Stream protocol should be set to "data" in the client to properly receive tool invocations');
         
         const result = streamText({
           model: myProvider.languageModel('gpt-4o'),
           system: customSystemPrompt({ selectedChatModel }),
           messages: fixedMessages, 
-          maxSteps: 5,
+          maxSteps: 5, // Allow up to 5 tool calls in a single conversation turn
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: () => uuid(),
-          tools: {
-            displayWeather: {
-              description: 'Display current weather conditions for a specific city. Use this tool EVERY TIME a user asks about weather for any location. This is required for showing visual weather information.',
-              parameters: z.object({ 
-                city: z.string().describe('The name of the city to get weather for, e.g., "London", "New York", "Tokyo"')
-              }),
-              execute: async ({ city }: { city: string }) => {
-                console.log(`Getting weather for city: ${city}`);
-                const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
-                const weather = weatherOptions[
-                  Math.floor(Math.random() * weatherOptions.length)
-                ];
-                
-                // Return a structured object for the Weather component
-                const response = {
-                  city,
-                  temperature: Math.floor(15 + Math.random() * 15), // Random temp between 15-30
-                  condition: weather,
-                  humidity: Math.floor(40 + Math.random() * 40), // Random humidity between 40-80%
-                  windSpeed: Math.floor(5 + Math.random() * 15), // Random wind speed between 5-20 km/h
-                };
-                
-                console.log("Weather tool response:", JSON.stringify(response));
-                return response;
-              },
-            },
-            getLastOrder: {
-              description: 'Get the last order in the system',
-              parameters: z.object({}),
-              execute: async () => {
-                return getLastOrder();
-              },
-            },
-          },
+          tools,
           onFinish: async ({ response }) => {
             if (pocketbase.authStore.model?.id) {
               try {
@@ -278,6 +255,8 @@ export async function POST(request: Request) {
 
         result.mergeIntoDataStream(dataStream, {
           sendReasoning: false
+          // We can't use suppressText as it's not available, 
+          // so we'll handle displaying/hiding text responses in the UI component instead
         });
       },
       onError: (error: Error | unknown) => {

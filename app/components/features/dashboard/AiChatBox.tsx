@@ -7,7 +7,7 @@ import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/shared/ui/avatar";
-import { Send, Bot, User, StopCircle, RefreshCw, Trash2, CloudRain } from "lucide-react";
+import { Send, Bot, User, StopCircle, RefreshCw, Trash2, CloudRain, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from '@ai-sdk/react';
 import { Message, ToolInvocation } from 'ai';
@@ -15,7 +15,9 @@ import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { clearUserChat } from '@/app/lib/chat-store';
 import { useSession } from './useSession';
-import { Weather } from './wheater';
+import { Weather } from './ai-tools-components/wheater';
+import { OrderTool } from './ai-tools-components/orders';
+import { type AiOrder } from './ai-tools-components/orders/order-list';
 
 interface AiChatBoxProps {
   id?: string;
@@ -23,160 +25,30 @@ interface AiChatBoxProps {
   initialMessages?: Message[];
 }
 
-// Detect if there's weather content in the message text
-function detectWeatherInfo(content: string): React.ReactNode {
-  // Pattern to match weather information in markdown format
-  const markdownRegex = /[\*\-].*Temperature:[\*\s]*(\d+)°C[\*\s\n]*.*Condition:[\*\s]*(\w+)[\*\s\n]*.*(?:Humidity:[\*\s]*(\d+)%)?[\*\s\n]*.*(?:Wind Speed:[\*\s]*(\d+)\s*km\/h)?/m;
-  
-  // Standard pattern
-  const stdRegex = /Temperature:\s*(\d+)°C[\s\S]*?Condition:\s*(\w+)[\s\S]*?(?:Humidity:\s*(\d+)%)?[\s\S]*?(?:Wind Speed:\s*(\d+)\s*km\/h)?/m;
-  
-  const match = content.match(markdownRegex) || content.match(stdRegex);
-  
-  if (match) {
-    console.log('Detected weather info in text content', match);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [fullMatch, temperature, condition, humidity, windSpeed] = match;
-    
-    // Extract location from text
-    const locationRegex = /(?:weather|display)?\s+(?:for|in)\s+([^:\n.]+)(?::|\.|\n)/i;
-    const locationMatch = content.match(locationRegex);
-    const location = locationMatch ? locationMatch[1] : "Unknown Location";
-    
-    console.log('Found weather location:', location);
-    
-    return (
-      <>
-        <div className="mb-3">{content}</div>
-        <div className="mt-2 border-t pt-2 border-blue-200 dark:border-blue-800">
-          <Weather
-            location={location}
-            temperature={parseInt(temperature, 10)}
-            weather={condition}
-          />
-        </div>
-      </>
-    );
-  }
-  
-  return content;
-}
-
 /**
- * Render message content safely, handling potential JSON strings
+ * Render message content safely
  */
 function renderMessageContent(content: unknown): React.ReactNode {
   if (content === null || content === undefined) {
     return '';
   }
 
-  // If content is already a string, check for common weather patterns
+  // If content is a string that contains JSON with type/text format, try to parse it
+  if (typeof content === 'string' && content.startsWith('[{') && content.includes('"type":"text"')) {
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed) && parsed.some(item => item.type === 'text')) {
+        return parsed
+          .filter(item => item.type === 'text')
+          .map((item, index) => <div key={index}>{item.text}</div>);
+      }
+    } catch {
+      // If parsing fails, continue with other approaches
+    }
+  }
+
+  // If content is a string, return it directly
   if (typeof content === 'string') {
-    // First, check for weather information in different formats
-    if (
-      (content.includes('Temperature:') && content.includes('Condition:')) ||
-      (content.includes('weather') && content.includes('°C')) ||
-      (content.includes('**Temperature:**') && content.includes('**Condition:**'))
-    ) {
-      return detectWeatherInfo(content);
-    }
-    
-    // Specific fix for weather api responses that have a specific format
-    if (content.includes('The weather in') && content.includes(' is ')) {
-      return content; // Just return the formatted weather text directly
-    }
-    
-    // Check if it's an escaped stringified array with type/text (common for weather tools)
-    if (content.startsWith('[{') && content.includes('"type":"text"')) {
-      try {
-        const parsed = JSON.parse(content);
-        if (Array.isArray(parsed) && parsed.some(item => item.type === 'text')) {
-          return parsed
-            .filter(item => item.type === 'text')
-            .map(item => item.text)
-            .join(' ');
-        }
-      } catch {
-        // If we can't parse directly, continue with other approaches
-      }
-    }
-    
-    // First handle common malformed JSON prefixes 
-    if (content.startsWith('[{\\')) {
-      // This is a common pattern in malformed messages
-      // First try to fix obvious double escaping
-      const fixedContent = content.replace(/^\[\{\\/, '[{').replace(/\\"/g, '"');
-      console.log("Fixed string prefix:", fixedContent.substring(0, 50));
-      
-      try {
-        // Try parsing the fixed content
-        return renderMessageContent(JSON.parse(fixedContent));
-      } catch (e) {
-        // If we can't parse it even after fixing, just render the cleaned up version
-        console.error("Failed to parse content after prefix fix:", e);
-        return fixedContent;
-      }
-    }
-    
-    // Check if it's a JSON string (starting with [ or {)
-    if ((content.startsWith('[') || content.startsWith('{')) && 
-        (content.includes('"type"') || content.includes('"text"'))) {
-      try {
-        // Try to parse it as JSON
-        const parsed = JSON.parse(content);
-        
-        // If we have an array of objects with type/text fields, this is likely a rich text format
-        if (Array.isArray(parsed) && parsed.some(item => item.type === 'text')) {
-          // Extract just the text content from the rich text format
-          return parsed
-            .filter(item => item.type === 'text')
-            .map(item => item.text)
-            .join(' ');
-        }
-        
-        // If single object with text property
-        if (parsed.text) {
-          return parsed.text;
-        }
-        
-        // If nested array with type/text
-        if (Array.isArray(parsed) && parsed.some(item => item.text && typeof item.text === 'string')) {
-          return parsed
-            .map(item => item.text || JSON.stringify(item))
-            .join(' ');
-        }
-        
-        // For any other object, format it nicely
-        if (typeof parsed === 'object' && parsed !== null) {
-          return (
-            <pre className="text-sm whitespace-pre-wrap overflow-auto">
-              {JSON.stringify(parsed, null, 2)}
-            </pre>
-          );
-        }
-        
-        // If it parsed as something else, just return it
-        return String(parsed);
-      } catch {
-        // If it's not valid JSON, handle it as regular text
-        return content;
-      }
-    }
-    
-    // Handle the specific case of malformed tool responses
-    if (content.includes('[{"type":"text","text":"')) {
-      try {
-        // Extract the actual text using regex
-        const textMatch = content.match(/\[\{"type":"text","text":"(.*?)"\}\]/);
-        if (textMatch && textMatch[1]) {
-          return textMatch[1];
-        }
-      } catch {
-        // If extraction fails, return as is
-      }
-    }
-    
-    // Normal string, not JSON
     return content;
   }
 
@@ -196,7 +68,7 @@ function renderMessageContent(content: unknown): React.ReactNode {
     ));
   }
 
-  // If content is already an object, stringify it
+  // If content is an object
   if (typeof content === 'object') {
     try {
       // If it has a text property, use that
@@ -204,7 +76,7 @@ function renderMessageContent(content: unknown): React.ReactNode {
         return (content as Record<string, string>).text;
       }
       
-      // Otherwise stringify the whole object
+      // Otherwise stringify the object
       return (
         <pre className="text-sm whitespace-pre-wrap overflow-auto">
           {JSON.stringify(content, null, 2)}
@@ -219,8 +91,16 @@ function renderMessageContent(content: unknown): React.ReactNode {
   return String(content);
 }
 
-// Render tool invocations, specifically for weather data
-function renderToolInvocations(toolInvocations: ToolInvocation[]) {
+/**
+ * Render tool invocations by mapping them to corresponding React components
+ */
+function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNode {
+  console.log('RENDERING TOOL INVOCATIONS:', {
+    count: toolInvocations?.length || 0,
+    firstTool: toolInvocations?.[0] || null,
+    allTools: toolInvocations
+  });
+
   if (!toolInvocations || !Array.isArray(toolInvocations) || toolInvocations.length === 0) {
     return null;
   }
@@ -231,11 +111,12 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]) {
         const { toolName, toolCallId, state } = toolInvocation;
 
         if (state === 'result') {
+          // Handle weather tool
           if (toolName === 'displayWeather' && 'result' in toolInvocation) {
             const result = toolInvocation.result as {
-              city: string;
+              location: string;
               temperature: number;
-              condition: string;
+              weather: string;
               humidity?: number;
               windSpeed?: number;
             };
@@ -243,14 +124,87 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]) {
             return (
               <Weather 
                 key={toolCallId}
-                location={result.city}
+                location={result.location}
                 temperature={result.temperature}
-                weather={result.condition}
+                weather={result.weather}
               />
             );
           }
+          
+          // Handle order display tools
+          if (toolName === 'getLastOrder' && 'result' in toolInvocation) {
+            const result = toolInvocation.result;
+            
+            // Format 1: Result contains orders array
+            if (result && typeof result === 'object' && 'orders' in result && Array.isArray(result.orders)) {
+              return (
+                <OrderTool 
+                  key={toolCallId}
+                  orders={result.orders as AiOrder[]}
+                />
+              );
+            }
+            
+            // Format 2: Result is a single order object directly
+            if (result && typeof result === 'object' && ('id' in result || 'orderNumber' in result)) {
+              return (
+                <OrderTool 
+                  key={toolCallId}
+                  orders={[result as AiOrder]}
+                />
+              );
+            }
+          }
+          
+          if (toolName === 'getOrderByPhone' && 'result' in toolInvocation) {
+            const result = toolInvocation.result;
+            
+            // Format 1: Result contains orders array
+            if (result && typeof result === 'object' && 'orders' in result && Array.isArray(result.orders)) {
+              return (
+                <OrderTool 
+                  key={toolCallId}
+                  orders={result.orders as AiOrder[]}
+                />
+              );
+            }
+            
+            // Format 2: Result is a single order object directly
+            if (result && typeof result === 'object' && ('id' in result || 'orderNumber' in result)) {
+              return (
+                <OrderTool 
+                  key={toolCallId}
+                  orders={[result as AiOrder]}
+                />
+              );
+            }
+          }
+          
+          if (toolName === 'getOrderById' && 'result' in toolInvocation) {
+            const result = toolInvocation.result;
+            
+            // Format 1: Result contains a single order property
+            if (result && typeof result === 'object' && 'order' in result && result.order) {
+              return (
+                <OrderTool 
+                  key={toolCallId}
+                  orders={[result.order as AiOrder]}
+                />
+              );
+            }
+            
+            // Format 2: Result is a single order object directly
+            if (result && typeof result === 'object' && ('id' in result || 'orderNumber' in result)) {
+              return (
+                <OrderTool 
+                  key={toolCallId}
+                  orders={[result as AiOrder]}
+                />
+              );
+            }
+          }
         } else {
-          // Handle loading state
+          // Handle loading states
           return (
             <div key={toolCallId} className="text-sm bg-gray-100 dark:bg-gray-800 rounded-md p-2">
               {toolName === 'displayWeather' ? (
@@ -259,6 +213,13 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]) {
                     <CloudRain className="h-4 w-4 text-blue-500" />
                   </div>
                   <span>Loading weather information...</span>
+                </div>
+              ) : toolName.includes('Order') || toolName.includes('order') ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-pulse">
+                    <ShoppingBag className="h-4 w-4 text-green-500" />
+                  </div>
+                  <span>Loading order information...</span>
                 </div>
               ) : (
                 <div>Processing {toolName}...</div>
@@ -286,10 +247,9 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
   // Use provided userId or get from session
   const currentUserId = userId || user?.id;
   
-  
-  const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload, setMessages } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload } = useChat({
     api: '/api/chat',
-    streamProtocol: 'text',
+    streamProtocol: 'data',  // Using data protocol to correctly handle tool invocations
     experimental_throttle: 50, // Lower this for more responsive streaming
     id, // Use the provided chat ID for persistence
     body: { 
@@ -334,38 +294,59 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
     if (messages && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       
-      // Add specific logs for weather detection
-      if (lastMessage.role === 'assistant' && typeof lastMessage.content === 'string') {
-        const content = lastMessage.content;
-        const hasWeatherInfo = 
-          (content.includes('Temperature:') && content.includes('Condition:')) ||
-          (content.includes('weather') && content.includes('°C')) ||
-          (content.includes('**Temperature:**') && content.includes('**Condition:**'));
-        
-        if (hasWeatherInfo) {
-          console.log('🌤️ Detected weather info in text response:', {
-            hasToolInvocations: !!lastMessage.toolInvocations,
-            contentPreview: content.substring(0, 100),
-            weatherTriggerWords: {
-              temperature: content.includes('Temperature:') || content.includes('**Temperature:**'),
-              condition: content.includes('Condition:') || content.includes('**Condition:**'),
-              celsius: content.includes('°C'),
-              markdown: content.includes('**')
+      // Debug: Log the exact content format for assistant messages
+      if (lastMessage.role === 'assistant') {
+        console.log('Assistant message content:', {
+          contentType: typeof lastMessage.content,
+          isArray: Array.isArray(lastMessage.content),
+          isString: typeof lastMessage.content === 'string',
+          contentPreview: typeof lastMessage.content === 'string' 
+            ? lastMessage.content.substring(0, 100) 
+            : JSON.stringify(lastMessage.content).substring(0, 100),
+          hasToolInvocations: Boolean(lastMessage.toolInvocations),
+          toolCount: lastMessage.toolInvocations?.length || 0
+        });
+
+        // Special handling for raw protocol format that might contain tool calls
+        if (typeof lastMessage.content === 'string' && lastMessage.content.includes('toolCallId') && !lastMessage.toolInvocations) {
+          console.log('⚠️ Detected possible tool call in raw content but toolInvocations is empty!', 
+            lastMessage.content.substring(0, 150));
+            
+          try {
+            // Try to extract tool call data from the raw protocol format
+            const toolCallIdMatch = lastMessage.content.match(/9:\{\"toolCallId\":\"([^"]+)\",\"toolName\":\"([^"]+)\"/);
+            const resultMatch = lastMessage.content.match(/a:\{\"toolCallId\":\"([^"]+)\",\"result\":(\{[^}]+\})/);
+            
+            if (toolCallIdMatch && resultMatch) {
+              console.log('Found tool call data in raw format!', {
+                toolCallId: toolCallIdMatch[1],
+                toolName: toolCallIdMatch[2],
+                resultPreview: resultMatch[2].substring(0, 100)
+              });
+              
+              // If this was successful, reload the page to get properly formatted data
+              if (confirm('Tool call detected but not properly formatted. Reload to fix?')) {
+                window.location.reload();
+              }
             }
-          });
+          } catch (e) {
+            console.error('Failed to extract tool call data from raw content:', e);
+          }
+        }
+
+        // Special check for text array format which might be hiding tool calls
+        if (typeof lastMessage.content === 'string' && 
+            lastMessage.content.startsWith('[{') && 
+            lastMessage.content.includes('"type":"text"')) {
+          console.log('Detected JSON text array format, trying to parse:', lastMessage.content.substring(0, 150));
+          try {
+            const parsed = JSON.parse(lastMessage.content);
+            console.log('Parsed content:', parsed);
+          } catch (e) {
+            console.error('Failed to parse content as JSON:', e);
+          }
         }
       }
-      
-      // Regular logging  
-      console.log('Latest message:', {
-        role: lastMessage.role,
-        contentType: typeof lastMessage.content,
-        contentPreview: typeof lastMessage.content === 'string' 
-          ? lastMessage.content.substring(0, 100) + (lastMessage.content.length > 100 ? '...' : '')
-          : String(lastMessage.content).substring(0, 100),
-        isArray: Array.isArray(lastMessage.content),
-        hasToolInvocations: !!lastMessage.toolInvocations
-      });
       
       // Log tool invocations if present
       if (lastMessage.toolInvocations && lastMessage.toolInvocations.length > 0) {
@@ -375,52 +356,9 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
           firstTool: lastMessage.toolInvocations[0],
           hasResult: lastMessage.toolInvocations[0]?.state === 'result'
         });
-      } else {
-        console.log('No tool invocations in message', {
-          messageId: lastMessage.id,
-          role: lastMessage.role,
-          hasToolField: 'toolInvocations' in lastMessage,
-          toolValue: lastMessage.toolInvocations
-        });
       }
     }
-    
-    // Fix any malformed message content showing raw token format
-    if (messages && messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      
-      if (lastMessage && typeof lastMessage.content === 'string') {
-        const content = lastMessage.content;
-        
-        // Check if it starts with a potential token format
-        if (content.startsWith('f:{"messageId":"') && content.includes('0:"')) {
-          console.log('Detected raw token format in AiChatBox, attempting to fix');
-          
-          try {
-            // Extract the actual text content from tokens
-            const textContent = content
-              .split('0:"')
-              .slice(1)
-              .map(part => part.split('"')[0])
-              .join('');
-            
-            // Create a corrected deep copy of all messages
-            const correctedMessages = messages.map((message, index) => {
-              if (index === messages.length - 1 && message.role === 'assistant') {
-                return { ...message, content: textContent };
-              }
-              return message;
-            });
-            
-            // Set the corrected messages
-            setMessages?.(correctedMessages);
-          } catch (err) {
-            console.error('Failed to fix tokenized message:', err);
-          }
-        }
-      }
-    }
-  }, [messages, setMessages]);
+  }, [messages]);
 
   // If we received an updated ID, redirect to the correct chat page
   useEffect(() => {
@@ -599,7 +537,10 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
                         : 'bg-blue-500/90 dark:bg-blue-600/90 text-white'
                     }`}
                   >
-                    {renderMessageContent(message.content)}
+                    {/* Only show text content if there are no tool invocations with result state */}
+                    {!(message.toolInvocations?.some(tool => tool.state === 'result')) && 
+                      renderMessageContent(message.content)
+                    }
                     {message.toolInvocations && renderToolInvocations(message.toolInvocations)}
                     
                     {/* Debug information - remove in production */}

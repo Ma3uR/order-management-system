@@ -242,6 +242,11 @@ export default function Dashboard() {
           />
         </motion.div>
 
+        {/* AI Chat Box - Full Width */}
+        <motion.div variants={itemVariants} className="h-[500px] relative z-10">
+          <AiChatBox />
+        </motion.div>
+
         {/* Middle Row - Charts */}
         <motion.div 
           className="grid grid-cols-1 lg:grid-cols-2 gap-6"
@@ -251,7 +256,6 @@ export default function Dashboard() {
             data={stats.trafficData}
             className="h-full"
           />
-          <AiChatBox />
           <MonthlyChart
             data={stats.monthlyData}
             labels={months}
