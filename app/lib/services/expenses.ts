@@ -17,13 +17,22 @@ export async function addExpense(
       return { error: 'Amount, description and date are required' };
     }
     
-    const data = {
+    const data: any = {
       amount,
       description,
-      date,
-      ...(category && { category }),
-      ...(receipt && { receipt })
+      date
     };
+    
+    // Only add category if it's a valid non-empty string
+    if (category && category.trim() !== '') {
+      data.category = category;
+    }
+    
+    if (receipt) {
+      data.receipt = receipt;
+    }
+    
+    console.log('Creating expense with data:', data);
     
     const expense = await authenticatedCall(() => 
       pb.collection('expenses').create(data)

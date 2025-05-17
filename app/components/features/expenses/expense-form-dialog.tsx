@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -17,6 +17,19 @@ import { Calendar } from "@/app/components/shared/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/shared/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select"
+import { ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
+import pb, { authenticatedCall } from "@/app/lib/pocketbase"
+import { addExpense } from "@/app/lib/services/expenses"
+import { toast } from "@/app/components/shared/ui/use-toast"
+
+// Create a custom event for expense added
+export const EXPENSE_ADDED_EVENT = 'expense:added';
+
+// Create a function to dispatch the event
+export function dispatchExpenseAddedEvent() {
+  const event = new CustomEvent(EXPENSE_ADDED_EVENT);
+  document.dispatchEvent(event);
+}
 
 const formSchema = z.object({
   amount: z.coerce.number().min(0, {
@@ -38,21 +51,6 @@ const formSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof formSchema>
 
-// Sample initial categories - in a real app, these would be fetched from the database
-const initialCategories = [
-  { id: "1", name: "Food & Dining", color: "#FF5757" },
-  { id: "2", name: "Transportation", color: "#54C5EB" },
-  { id: "3", name: "Entertainment", color: "#A36FFE" },
-  { id: "4", name: "Utilities", color: "#FF9F40" },
-  { id: "5", name: "Housing", color: "#4CAF50" },
-  { id: "6", name: "Shopping", color: "#FF4081" },
-  { id: "7", name: "Healthcare", color: "#2196F3" },
-  { id: "8", name: "Travel", color: "#FFC107" },
-  { id: "9", name: "Education", color: "#9C27B0" },
-  { id: "10", name: "Personal Care", color: "#00BCD4" },
-  { id: "11", name: "Other", color: "#607D8B" },
-]
-
 interface ExpenseFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -61,7 +59,25 @@ interface ExpenseFormDialogProps {
 export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [categories] = useState(initialCategories)
+  const [categories, setCategories] = useState<ExpensesCategoriesResponse[]>([])
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const fetchedCategories = await authenticatedCall(async () => 
+          pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
+        );
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    }
+    
+    if (open) {
+      fetchCategories();
+    }
+  }, [open]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
@@ -75,27 +91,61 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
 
   async function onSubmit(values: ExpenseFormValues) {
     setIsSubmitting(true)
+    setErrorMessage(null)
 
-    // Simulate API call
-    console.log(values)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      // Format date to ISO string (YYYY-MM-DD)
+      const formattedDate = format(values.date, 'yyyy-MM-dd')
+      
+      // Call the addExpense service function
+      const result = await addExpense(
+        values.amount,
+        values.description,
+        formattedDate,
+        values.category
+      )
+      
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
-    // Show success message
-    setShowSuccess(true)
-    setTimeout(() => {
-      setShowSuccess(false)
-      onOpenChange(false)
-    }, 1500)
+      // Show success message
+      setShowSuccess(true)
+      
+      // Dispatch the custom event to notify other components
+      dispatchExpenseAddedEvent();
+      
+      setTimeout(() => {
+        setShowSuccess(false)
+        onOpenChange(false)
+      }, 1500)
 
-    // Reset form
-    form.reset({
-      amount: undefined,
-      description: "",
-      date: new Date(),
-      category: "",
-    })
-
-    setIsSubmitting(false)
+      // Reset form
+      form.reset({
+        amount: undefined,
+        description: "",
+        date: new Date(),
+        category: "",
+      })
+      
+      // Show a toast notification
+      toast({
+        title: "Expense added",
+        description: "Your expense has been added successfully.",
+      });
+    } catch (error) {
+      console.error('Error adding expense:', error)
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to add expense')
+      
+      // Show error toast
+      toast({
+        title: "Error adding expense",
+        description: error instanceof Error ? error.message : 'Failed to add expense', 
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -124,6 +174,12 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
               </motion.div>
             )}
           </AnimatePresence>
+
+          {errorMessage && (
+            <div className="absolute top-0 inset-x-0 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-t-lg">
+              {errorMessage}
+            </div>
+          )}
 
           <DialogHeader className="pt-6 px-6 pb-2 bg-gray-100 dark:bg-gray-800">
             <div className="flex items-center justify-between">
@@ -261,7 +317,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                           </FormControl>
                           <SelectContent>
                             {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.name}>
+                              <SelectItem key={category.id} value={category.id}>
                                 <div className="flex items-center gap-2">
                                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
                                   {category.name}

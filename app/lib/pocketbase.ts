@@ -163,8 +163,11 @@ export function isAdminAuthenticated() {
 // Wrapper function for authenticated collection calls
 export async function authenticatedCall<T>(callback: () => Promise<T>): Promise<T> {
   try {
-    console.log('Attempting authentication with URL:', pocketBase.baseUrl);
-    await authenticateAdmin();
+    // Only attempt authentication if not already authenticated
+    if (!pocketBase.authStore.isValid) {
+      await authenticateAdmin();
+    }
+    
     return await callback();
   } catch (error) {
     if (error instanceof Error) {

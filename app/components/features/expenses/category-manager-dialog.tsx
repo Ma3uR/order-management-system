@@ -93,6 +93,7 @@ export function CategoryManagerDialog({ open, onOpenChange }: CategoryManagerDia
       const updatedCategories = await authenticatedCall(async () => 
         pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
       );
+      
       setCategories(updatedCategories);
       
       form.reset({
@@ -160,7 +161,8 @@ export function CategoryManagerDialog({ open, onOpenChange }: CategoryManagerDia
       showSuccessNotification("Category deleted successfully!")
     } catch (error) {
       console.error("Error deleting category:", error);
-      showSuccessNotification("Failed to delete category")
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      showSuccessNotification(`Failed to delete category: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

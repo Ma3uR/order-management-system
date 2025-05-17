@@ -72,6 +72,7 @@ export type ExpensesRecord = {
 	amount?: number
 	description?: string
 	date?: IsoDateString
+	category?: RecordIdString
 }
 
 export type ExpensesCategoriesRecord = {

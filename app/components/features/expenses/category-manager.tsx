@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -12,6 +12,8 @@ import { Input } from "@/app/components/shared/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form"
 import { Card, CardContent, CardHeader } from "@/app/components/shared/ui/card"
 import { cn } from "@/lib/utils"
+import pb, { authenticatedCall } from "@/app/lib/pocketbase"
+import { ExpensesCategoriesResponse } from "../../../types/pocketbase-types"
 
 const formSchema = z.object({
   name: z
@@ -29,24 +31,9 @@ const formSchema = z.object({
 
 type CategoryFormValues = z.infer<typeof formSchema>
 
-// Sample initial categories
-const initialCategories = [
-  { id: "1", name: "Food & Dining", color: "#FF5757" },
-  { id: "2", name: "Transportation", color: "#54C5EB" },
-  { id: "3", name: "Entertainment", color: "#A36FFE" },
-  { id: "4", name: "Utilities", color: "#FF9F40" },
-  { id: "5", name: "Housing", color: "#4CAF50" },
-  { id: "6", name: "Shopping", color: "#FF4081" },
-  { id: "7", name: "Healthcare", color: "#2196F3" },
-  { id: "8", name: "Travel", color: "#FFC107" },
-  { id: "9", name: "Education", color: "#9C27B0" },
-  { id: "10", name: "Personal Care", color: "#00BCD4" },
-  { id: "11", name: "Other", color: "#607D8B" },
-]
-
 export function CategoryManager() {
+  const [categories, setCategories] = useState<ExpensesCategoriesResponse[]>([])
   const [isOpen, setIsOpen] = useState(false)
-  const [categories, setCategories] = useState(initialCategories)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<{ name: string; color: string } | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -59,6 +46,19 @@ export function CategoryManager() {
       color: "#6D28D9", // Default violet color
     },
   })
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await authenticatedCall(async () => pb.collection("expenses_categories").getFullList<ExpensesCategoriesResponse>());
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
 
   const showSuccessNotification = (message: string) => {
     setSuccessMessage(message)
@@ -74,7 +74,7 @@ export function CategoryManager() {
       color: values.color,
     }
 
-    setCategories([...categories, newCategory])
+    setCategories([...categories, newCategory as ExpensesCategoriesResponse])
     form.reset({
       name: "",
       color: "#6D28D9",
@@ -83,11 +83,11 @@ export function CategoryManager() {
     showSuccessNotification("Category added successfully!")
   }
 
-  const startEditing = (category: (typeof categories)[0]) => {
+  const startEditing = (category: ExpensesCategoriesResponse) => {
     setEditingId(category.id)
     setEditForm({
       name: category.name,
-      color: category.color,
+      color: category.color || "#6D28D9",
     })
   }
 
@@ -99,7 +99,7 @@ export function CategoryManager() {
   const saveEditing = () => {
     if (editingId && editForm) {
       setCategories(
-        categories.map((cat) => (cat.id === editingId ? { ...cat, name: editForm.name, color: editForm.color } : cat)),
+        categories.map((cat: ExpensesCategoriesResponse) => (cat.id === editingId ? { ...cat, name: editForm.name, color: editForm.color } : cat)),
       )
       setEditingId(null)
       setEditForm(null)
@@ -108,7 +108,7 @@ export function CategoryManager() {
   }
 
   const deleteCategory = (id: string) => {
-    setCategories(categories.filter((cat) => cat.id !== id))
+    setCategories(categories.filter((cat: ExpensesCategoriesResponse) => cat.id !== id))
     showSuccessNotification("Category deleted successfully!")
   }
 
