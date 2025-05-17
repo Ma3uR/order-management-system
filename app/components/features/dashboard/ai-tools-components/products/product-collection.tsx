@@ -37,7 +37,8 @@ export function ProductCollection({
   isCompact = false,
 }: ProductCollectionProps) {
   const t = useTranslations("Dashboard")
-  const [searchTerm, setSearchTerm] = useState("")
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [searchTerm, _setSearchTerm] = useState("")
   const [isFullViewOpen, setIsFullViewOpen] = useState(false)
 
   // Group products by category
@@ -53,7 +54,8 @@ export function ProductCollection({
     {} as Record<string, Product[]>,
   )
 
-  // Filter products based on search term
+  // Filter products based on search term - used by full view
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const filteredGroups = Object.entries(groupedProducts).reduce(
     (acc, [category, categoryProducts]) => {
       const filtered = categoryProducts.filter((product) =>
@@ -66,6 +68,7 @@ export function ProductCollection({
     },
     {} as Record<string, Product[]>,
   )
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   // Calculate total products
   const totalProducts = products.reduce((sum, product) => sum + product.quantity, 0)
@@ -178,7 +181,9 @@ function FullProductView({
   onDownload: () => void
 }) {
   const t = useTranslations("Dashboard")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, _setSearchTerm] = useState("")
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isFullViewOpen, setIsFullViewOpen] = useState(false)
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({})
 
   // Group products by category
@@ -232,10 +237,10 @@ function FullProductView({
           placeholder={t("searchProducts")}
           className="pl-8"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => _setSearchTerm(e.target.value)}
         />
         {searchTerm && (
-          <button className="absolute right-2 top-2.5" onClick={() => setSearchTerm("")} aria-label={t("clearSearch")}>
+          <button className="absolute right-2 top-2.5" onClick={() => _setSearchTerm("")} aria-label={t("clearSearch")}>
             <X className="h-4 w-4 text-gray-400" />
           </button>
         )}

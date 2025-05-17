@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { ProductsTool } from "./products/index"
 import { Button } from "@/app/components/shared/ui/button"
 

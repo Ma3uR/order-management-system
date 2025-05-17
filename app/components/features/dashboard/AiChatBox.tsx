@@ -25,6 +25,7 @@ interface AiChatBoxProps {
   id?: string;
   userId?: string;
   initialMessages?: Message[];
+  className?: string;
 }
 
 /**
@@ -282,7 +283,7 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
   );
 }
 
-export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) {
+export function AiChatBox({ id, userId, initialMessages, className }: AiChatBoxProps = {}) {
   const t = useTranslations('AiChat');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [updatedChatId, setUpdatedChatId] = useState<string | null>(null);
@@ -485,7 +486,7 @@ export function AiChatBox({ id, userId, initialMessages }: AiChatBoxProps = {}) 
   };
 
   return (
-    <Card className="h-[600px] flex flex-col bg-white/50 dark:bg-black/90 backdrop-blur-sm">
+    <Card className={`h-full flex flex-col bg-white/50 dark:bg-black/90 backdrop-blur-sm ${className || ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-medium">{t('title')}</CardTitle>
         <div className="flex space-x-2">

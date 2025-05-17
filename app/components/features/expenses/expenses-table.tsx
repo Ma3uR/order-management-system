@@ -38,7 +38,8 @@ interface ExtendedExpense extends ExpensesResponse {
 
 export function ExpensesTable() {
   const [expenses, setExpenses] = useState<ExtendedExpense[]>([])
-  const [categories, setCategories] = useState<{[key: string]: ExpensesCategoriesResponse}>({})
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [categoriesMap, setCategories] = useState<{[key: string]: ExpensesCategoriesResponse}>({})
   const [searchTerm, setSearchTerm] = useState("")
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
@@ -77,12 +78,15 @@ export function ExpensesTable() {
         const extendedExpense: ExtendedExpense = {...expense};
         
         // If using expand and the relation exists
-        if (expense.expand && expense.expand.category) {
-          const expandedCategory = expense.expand.category as unknown as ExpensesCategoriesResponse;
-          extendedExpense.categoryInfo = {
-            name: expandedCategory.name,
-            color: expandedCategory.color || '#CCCCCC'
-          };
+        if (expense.expand) {
+          const expObj = expense.expand as Record<string, unknown>;
+          if ('category' in expObj && expObj.category) {
+            const expandedCategory = expObj.category as ExpensesCategoriesResponse;
+            extendedExpense.categoryInfo = {
+              name: expandedCategory.name,
+              color: expandedCategory.color || '#CCCCCC'
+            };
+          }
         }
         // If the category ID exists in our map
         else if (expense.category && categoriesMap[expense.category]) {

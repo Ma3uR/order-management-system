@@ -2,7 +2,7 @@
 
 ## Main Functions (Основні функції)
 
-### Order Status Report
+### Order Status Report (Done)
 - Generate report of all orders with status "being assembled" (комплектуються)
 - Format as quantity counts of each product needed
 

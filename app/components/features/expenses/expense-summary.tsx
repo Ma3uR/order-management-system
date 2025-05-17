@@ -8,6 +8,13 @@ import { useTranslations } from 'next-intl'
 import pb, { authenticatedCall } from "@/app/lib/pocketbase"
 import { ExpensesResponse, ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
 
+// Define the expanded type to include the category field
+type ExpensesResponseWithExpand = ExpensesResponse & {
+  expand?: {
+    category?: ExpensesCategoriesResponse
+  }
+}
+
 export function ExpenseSummary() {
   const t = useTranslations('Expenses')
   const [loading, setLoading] = useState(true)
@@ -48,7 +55,7 @@ export function ExpenseSummary() {
         
         // Fetch current month expenses with expanded category relations
         const currentMonthExpenses = await authenticatedCall(async () => 
-          pb.collection('expenses').getFullList<ExpensesResponse>({
+          pb.collection('expenses').getFullList<ExpensesResponseWithExpand>({
             filter: `date >= "${formatDate(currentMonthStart)}" && date <= "${formatDate(currentMonthEnd)}"`,
             expand: 'category'
           })
@@ -56,7 +63,7 @@ export function ExpenseSummary() {
         
         // Fetch previous month expenses
         const prevMonthExpenses = await authenticatedCall(async () => 
-          pb.collection('expenses').getFullList<ExpensesResponse>({
+          pb.collection('expenses').getFullList<ExpensesResponseWithExpand>({
             filter: `date >= "${formatDate(prevMonthStart)}" && date <= "${formatDate(prevMonthEnd)}"`,
             expand: 'category'
           })
@@ -84,15 +91,18 @@ export function ExpenseSummary() {
         // Group expenses by category
         const expensesByCategory: {[key: string]: number} = {}
         
-        currentMonthExpenses.forEach(expense => {
+        currentMonthExpenses.forEach((expense: ExpensesResponseWithExpand) => {
           let categoryId: string | null = null;
           
           // Get category from either relation or expanded data
           if (expense.category) {
             categoryId = expense.category;
-          } else if (expense.expand && expense.expand.category) {
-            const expandedCategory = expense.expand.category as unknown as ExpensesCategoriesResponse;
-            categoryId = expandedCategory.id;
+          } else if (expense.expand) {
+            const expObj = expense.expand as Record<string, unknown>;
+            if ('category' in expObj && expObj.category) {
+              const cat = expObj.category as ExpensesCategoriesResponse;
+              categoryId = cat.id;
+            }
           }
           
           if (categoryId) {

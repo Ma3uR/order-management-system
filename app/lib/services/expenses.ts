@@ -17,7 +17,15 @@ export async function addExpense(
       return { error: 'Amount, description and date are required' };
     }
     
-    const data: any = {
+    interface ExpenseData {
+      amount: number;
+      description: string;
+      date: string;
+      category?: string;
+      receipt?: string;
+    }
+    
+    const data: ExpenseData = {
       amount,
       description,
       date
