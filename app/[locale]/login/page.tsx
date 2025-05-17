@@ -12,7 +12,6 @@ import { Spotlight } from "@/app/components/shared/ui/spotlight";
 import { Lock, Mail, AlertCircle } from "lucide-react";
 import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
 import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
-import { Footer } from '@/app/components/layouts/footer';
 import AnimatedWordCycle from '@/app/components/shared/ui/animated-text-cycle';
 import { useTheme } from 'next-themes';
 import { useSession } from '@/app/components/features/dashboard/useSession';
@@ -226,9 +225,6 @@ function LoginForm() {
           </div>
         </Card>
       </div>
-      
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

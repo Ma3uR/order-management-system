@@ -1,5 +1,6 @@
 import { Button } from "@/app/components/shared/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select";
 
 interface OrderPaginationProps {
   currentPage: number;
@@ -8,6 +9,9 @@ interface OrderPaginationProps {
   endIndex: number;
   totalItems: number;
   onPageChange: (page: number) => void;
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
+  pageSizeOptions?: number[];
   translations: {
     showing: string;
     of: string;
@@ -25,6 +29,9 @@ export function OrderPagination({
   endIndex,
   totalItems,
   onPageChange,
+  pageSize = 10,
+  onPageSizeChange,
+  pageSizeOptions = [10, 50, 100],
   translations
 }: OrderPaginationProps) {
   // Function to generate a reasonable range of page numbers
@@ -50,12 +57,32 @@ export function OrderPagination({
   
   return (
     <div className="flex flex-col md:flex-row items-center justify-between border-t border-border px-2 py-3 md:px-6 mt-4 gap-3">
-      <div className="w-full md:w-auto">
-        <p className="text-xs md:text-sm text-center md:text-left text-muted-foreground">
+      <div className="w-full md:w-auto flex items-center">
+        <p className="text-xs md:text-sm text-center md:text-left text-muted-foreground mr-4">
           {translations.showing} <span className="font-medium">{startIndex + 1}</span>-
           <span className="font-medium">{Math.min(endIndex, totalItems)}</span> {translations.of}{" "}
           <span className="font-medium">{totalItems}</span> {translations.results}
         </p>
+        
+        {onPageSizeChange && (
+          <div className="hidden md:flex items-center ml-4">
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => onPageSizeChange(parseInt(value))}
+            >
+              <SelectTrigger className="h-8 w-[80px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
       
       <div className="flex items-center justify-center">
@@ -134,6 +161,26 @@ export function OrderPagination({
           </Button>
         </nav>
       </div>
+      
+      {onPageSizeChange && (
+        <div className="md:hidden w-full flex justify-center items-center mt-2">
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => onPageSizeChange(parseInt(value))}
+          >
+            <SelectTrigger className="h-8 w-[80px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {pageSizeOptions.map((size) => (
+                <SelectItem key={size} value={size.toString()}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       
       <div className="text-xs text-muted-foreground text-center md:hidden">
         {translations.page || 'Page'} {currentPage} {translations.of} {totalPages}

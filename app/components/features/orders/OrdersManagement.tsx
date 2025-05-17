@@ -155,6 +155,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<OrdersResponse | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(itemsPerPage)
   const [sources, setSources] = useState<SourcesResponse[]>([])
   const [statuses, setStatuses] = useState<StatusResponse[]>([])
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryOptionsResponse[]>([])
@@ -520,10 +521,16 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   }, [orders, filters, filterText])
 
   // Calculate pagination
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
+  const totalPages = Math.ceil(filteredOrders.length / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
   const currentOrders = filteredOrders.slice(startIndex, endIndex)
+
+  // Handler for page size change
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
 
   // Add merge handling functions
   const findPotentialMerges = (orders: OrdersResponse[]) => {
@@ -682,7 +689,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
   }
 
   return (
-    <div className="space-y-4 sm:space-y-8">
+    <div className="space-y-4 sm:space-y-6">
       {/* Add MergeNotification */}
       {potentialMerges.length > 0 && (
         <MergeNotification
@@ -766,15 +773,19 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           </div>
         </DialogContent>
       </Dialog>
+      
+      <Toaster richColors />
 
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6 p-0 md:p-1">
-        <Toaster richColors />
+      <div className={cn(
+        "flex flex-col md:flex-row gap-4 md:gap-6 p-0 md:p-1",
+        pageSize <= 10 ? "min-h-[70vh]" : ""
+      )}>
         {/* Main Orders List Card - Full width on mobile, 75% on desktop */}
         <Card className={cn(
-          "transition-all duration-300 ease-in-out w-full",
-          !isCollapsed && "md:flex-[3]",
+          "transition-all duration-300 ease-in-out w-full flex flex-col",
+          !isCollapsed && "md:flex-[3]"
         )}>
-          <CardHeader className="px-3 py-3 md:p-6">
+          <CardHeader className="px-3 py-3 md:p-6 flex-shrink-0">
             <CardTitle className="text-lg md:text-xl mb-2 md:mb-4">{translations.title}</CardTitle>
             
             {/* Mobile Actions - shown only on mobile */}
@@ -818,8 +829,12 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="px-2 sm:px-4 md:px-6 pb-4">
-            <ScrollArea className="h-[calc(100vh-16rem)]">
+          <CardContent className="px-2 sm:px-4 md:px-6 pb-4 flex-grow">
+            {/* Single scrollable container without nesting */}
+            <div className={cn(
+              "w-full",
+              pageSize <= 10 ? "max-h-[calc(100vh-20rem)] overflow-auto" : ""
+            )}>
               <OrderList
                 orders={currentOrders}
                 onViewDetails={(order) => {
@@ -834,7 +849,7 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                 statuses={statuses}
                 translateStatus={(status) => status}
               />
-            </ScrollArea>
+            </div>
             
             {filteredOrders.length > 0 && (
               <div className="mt-4">
@@ -843,9 +858,12 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
                   startIndex={startIndex}
-                  endIndex={endIndex}
+                  endIndex={Math.min(endIndex, filteredOrders.length)}
                   totalItems={filteredOrders.length}
                   translations={translations}
+                  pageSize={pageSize}
+                  onPageSizeChange={handlePageSizeChange}
+                  pageSizeOptions={[10, 20, 50, 100]}
                 />
               </div>
             )}
@@ -871,22 +889,14 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           </div>
 
           <Card className={cn(
-            "transition-all duration-300 ease-in-out h-[calc(100vh--6rem)]",
+            "transition-all duration-300 ease-in-out flex flex-col",
             isCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-80 opacity-100"
           )}>
-            <CardHeader>
+            <CardHeader className="flex-shrink-0">
               <CardTitle>{translations.actionsAndStatistics}</CardTitle>
             </CardHeader> 
-            <CardContent className="flex flex-col h-[calc(100%-5rem)]">
-              <div className="pt-6 mt-auto">
-                <MarketplaceSync onSyncComplete={async () => {
-                  const result = await getOrders();
-                  if (result.data) {
-                    setOrders(result.data as OrdersResponse[]);
-                  }
-                }} />
-              </div>
-              <div className="space-y-6 flex-1">
+            <CardContent className="flex flex-col flex-grow pb-4">
+              <div className="flex flex-col h-full">
                 <Button 
                   className="w-full hover:bg-accent"
                   size="lg"
@@ -897,16 +907,19 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                   {translations.createNewOrder}
                 </Button>
 
-                <Separator />
+                <Separator className="my-4" />
 
                 <OrderStats 
                   orders={orders as (OrdersResponse & { expand?: { currency?: CurrencyResponse }})[]} 
                   translations={translations} 
                 />
 
-                <Separator />
+                <Separator className="my-4" />
 
-                <ScrollArea className="flex-1">
+                <div className={cn(
+                  "pr-2",
+                  pageSize <= 10 ? "max-h-[calc(100vh-32rem)] overflow-auto" : ""
+                )}>
                   <OrderFilters
                     filters={filters}
                     onFilterChange={setFilters}
@@ -934,7 +947,18 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
                     }}
                     onToggleArchived={handleToggleArchived}
                   />
-                </ScrollArea>
+                </div>
+                
+                <Separator className="my-4" />
+                
+                <div className="mt-auto">
+                  <MarketplaceSync onSyncComplete={async () => {
+                    const result = await getOrders();
+                    if (result.data) {
+                      setOrders(result.data as OrdersResponse[]);
+                    }
+                  }} />
+                </div>
               </div>
             </CardContent>
           </Card>
