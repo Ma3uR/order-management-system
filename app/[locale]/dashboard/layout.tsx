@@ -35,7 +35,9 @@ export default function DashboardLayout({
     // If session loaded and user is not authenticated, redirect to login
     if (!isLoading && !isAuthenticated) {
       console.log('No authenticated session found, redirecting to login');
-      router.push(`/${locale}/login`);
+      // Use the current window location for redirects instead of hardcoded paths
+      const baseUrl = window.location.origin;
+      router.push(`${baseUrl}/${locale}/login`);
     }
   }, [isAuthenticated, isLoading, router, locale]);
 
@@ -77,7 +79,9 @@ function DashboardLayoutContent({
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push(`/${locale}/login`);
+      // Use the current window location for redirects
+      const baseUrl = window.location.origin;
+      router.push(`${baseUrl}/${locale}/login`);
     }
   }, [isAuthenticated, isLoading, router, locale]);
 
