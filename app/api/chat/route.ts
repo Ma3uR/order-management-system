@@ -1,190 +1,320 @@
-import { createOrGetUserChat, saveChat } from '@/app/lib/chat-store';
-import { NextResponse } from 'next/server';
-import { Message } from 'ai';
-import OpenAI from 'openai';
-import pb from '@/app/lib/pocketbase';
+import {
+  appendClientMessage,
+  createDataStreamResponse,
+  smoothStream,
+  streamText,
+} from 'ai';
+import { ChatsRecord } from '@/pocketbase-types';
+import {
+  deleteChat,
+  getChat,
+  getMessagesByUserId,
+  saveMessages,
+} from '@/app/[locale]/chat/actions/chat';
+import pocketbase, { authenticateAdmin, authenticatedCall } from '@/app/lib/pocketbase';
+import { isAuthenticated as checkAuth } from '@/app/lib/pocketbase';
+import { z } from 'zod';
+import { systemPrompt } from '@/app/lib/ai/prompts';
+import { myProvider } from '@/app/lib/ai/providers';
+import { v4 as uuid } from 'uuid';
+import { tools } from '@/app/lib/ai/tools';
 
-// Create OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Extended interface for assistant messages with tool invocations
+interface AssistantMessageWithTools {
+  id: string;
+  role: 'assistant';
+  content: string;
+  toolInvocations?: Array<{
+    toolName: string;
+    toolCallId: string;
+    state: string;
+    result?: unknown;
+  }>;
+}
+
+interface UserMessage {
+  role: string;
+  content: string;
+}
+
+interface ToolInvocation {
+  toolName: string;
+  toolCallId: string;
+  state: string;
+  result?: unknown;
+}
+
+// Define request body schema
+const postRequestBodySchema = z.object({
+  userId: z.string(),
+  message: z.string().optional().default(''),
+  selectedChatModel: z.string().optional().default('gpt-4o')
 });
 
-// Helper to verify user exists in database
-async function verifyUserId(userId: string): Promise<boolean> {
+type PostRequestBody = z.infer<typeof postRequestBodySchema>;
+
+export const maxDuration = 60;
+
+// Custom system prompt that emphasizes using displayWeather tool
+const customSystemPrompt = (params: { selectedChatModel: string }) => {
+  const basePrompt = systemPrompt(params);
+  return `${basePrompt}
+  
+IMPORTANT INSTRUCTION ABOUT TOOLS:
+- When a user asks about weather for ANY city or location, you MUST use the displayWeather tool, not the text-based getWeatherInformation tool.
+- Never respond with text about weather - always use the displayWeather tool to show visual weather information.
+- Even if the user doesn't explicitly ask for a visual display, still use the displayWeather tool for any weather-related queries.
+
+IMPORTANT ORDER TOOL INSTRUCTIONS:
+- When a user asks about "last order" or wants to "see the last order", ALWAYS use the getLastOrder tool.
+- Do NOT respond with text about orders - use the getLastOrder tool to show the visual order component.
+- The phrase "last order" is a direct trigger to call the getLastOrder tool, without exception.
+`;
+};
+
+export async function POST(request: Request) {
+  let requestBody: PostRequestBody;
+
   try {
-    if (!userId) {
-      console.log('verifyUserId: userId is empty or null');
-      return false;
-    }
-    
-    // Clean the userID (trim whitespace and special characters)
-    const cleanUserId = userId.trim();
-    
-    if (!cleanUserId) {
-      console.log('verifyUserId: userId is empty after cleaning');
-      return false;
-    }
-    
-    console.log(`verifyUserId: Checking if user exists with ID: "${cleanUserId}" (${typeof cleanUserId})`);
-    
-    // First try direct lookup to see if user exists
-    try {
-      await pb.collection('users').getOne(cleanUserId);
-      console.log(`verifyUserId: User found with direct lookup: "${cleanUserId}"`);
-      return true;
-    } catch (error) {
-      // If direct lookup fails, try to search for the user
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(`verifyUserId: Direct lookup failed for "${cleanUserId}", trying list: ${errorMessage}`);
-      
-      const users = await pb.collection('users').getList(1, 1, {
-        filter: `id = "${cleanUserId}"`
-      });
-      
-      if (users.totalItems > 0) {
-        console.log(`verifyUserId: User found with list query: "${cleanUserId}"`);
-        return true;
+    const json = await request.json();
+    requestBody = postRequestBodySchema.parse(json);
+
+    // Check if there are messages in the request (AI SDK format)
+    if (json.messages && Array.isArray(json.messages) && json.messages.length > 0) {
+      // Extract the last user message from the messages array
+      const lastUserMessage = [...json.messages]
+        .reverse()
+        .find(msg => msg.role === 'user') as UserMessage | undefined;
+        
+      if (lastUserMessage && typeof lastUserMessage.content === 'string' && lastUserMessage.content.trim()) {
+        // Override empty message with the one from messages array
+        requestBody.message = lastUserMessage.content;
       }
-      
-      console.log(`verifyUserId: No user found with ID "${cleanUserId}"`);
-      return false;
     }
-  } catch (error) {
-    console.error(`Error verifying user "${userId}":`, error);
-    return false;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return new Response(error.message, { status: 400 });
+    }
+    return new Response('Invalid request body', { status: 400 });
+  }
+
+  try {
+    const { userId, message, selectedChatModel } = requestBody;
+
+    if (!pocketbase.authStore.isValid) {
+      await authenticateAdmin();  // Use your existing admin auth function
+    }
+
+    const isUserAuthenticated = checkAuth();
+    if (!isUserAuthenticated) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    // Debug: Log the available tools
+    console.log('Available tools for AI:', Object.keys(tools));
+    
+    const previousMessages = await getMessagesByUserId(userId);
+
+    // Find or create a chat for this user
+    try {
+      // First try to find an existing chat for this user
+      const existingChats = await authenticatedCall(() => 
+        pocketbase.collection('chats').getFullList({
+          filter: `user = "${userId}"`
+        })
+      );
+      
+      // If no chat exists for this user, create one
+      if (!existingChats || existingChats.length === 0) {
+        const chatData: ChatsRecord = {     
+          user: userId,
+          messages: []
+        };
+
+        await pocketbase.collection('chats').create(chatData);
+        console.log('Created new chat for user', userId);
+      } else {
+        console.log('Found existing chat for user', userId);
+      }
+    } catch (error) {
+      console.error('Error finding/creating chat:', error);
+    }
+
+    // If message isn't provided directly in the request body,
+    // we'll use the content from the most recent user message that comes in the messages array
+    // This is needed because AI SDK might not send the message in the body but in the messages
+    const messageContent = message || '';
+    
+    console.log('Final message content for processing:', messageContent);
+
+    // Map message format to include content property for AI SDK compatibility
+    const messageWithContent = {
+      id: uuid(),
+      content: messageContent,
+      role: "user" as "user" | "system" | "assistant" | "data"
+    };
+
+    let messagesForAI = [];
+    
+    // Regular message handling
+    messagesForAI = appendClientMessage({
+      messages: previousMessages.data,
+      message: messageWithContent,
+    });
+
+    await saveMessages(userId, messagesForAI);
+
+    // Check for and fix messages with array content (which causes validation errors)
+    const fixedMessages = messagesForAI.map(msg => {
+      if (typeof msg.content === 'object' && msg.content !== null) {
+        console.log('Found message with object content, converting to string:', 
+          { role: msg.role, contentType: typeof msg.content, isArray: Array.isArray(msg.content) });
+        
+        // Create shallow copy with content fixed
+        return {
+          ...msg,
+          content: JSON.stringify(msg.content)
+        };
+      }
+      return msg;
+    });
+
+    return createDataStreamResponse({
+      execute: (dataStream) => {
+        // Add a debugging message to trace execution
+        console.log('Processing message with tools enabled...');
+        console.log('Using tools:', Object.keys(tools));
+        console.log('Stream protocol should be set to "data" in the client to properly receive tool invocations');
+        
+        const result = streamText({
+          model: myProvider.languageModel('gpt-3.5-turbo'),
+          system: customSystemPrompt({ selectedChatModel }),
+          messages: fixedMessages, 
+          maxSteps: 5, // Allow up to 5 tool calls in a single conversation turn
+          experimental_transform: smoothStream({ chunking: 'word' }),
+          experimental_generateMessageId: () => uuid(),
+          tools,
+          onFinish: async ({ response }) => {
+            if (pocketbase.authStore.model?.id) {
+              try {
+                // Get the ID of the last assistant message
+                const assistantMessages = response.messages.filter(
+                  (message) => message.role === 'assistant'
+                );
+                
+                if (assistantMessages.length === 0) {
+                  console.warn('No assistant message found in response');
+                  return;
+                }
+                
+                const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
+                
+                // Log if there are tool invocations
+                const tools = (lastAssistantMessage as AssistantMessageWithTools).toolInvocations || [];
+                if (tools.length > 0) {
+                  console.log('Tool invocations detected in response:', {
+                    count: tools.length,
+                    tools: tools.map((t: ToolInvocation) => t.toolName),
+                    states: tools.map((t: ToolInvocation) => t.state)
+                  });
+                }
+                
+                // Create message with proper typing
+                const assistantMessage: AssistantMessageWithTools = {
+                  id: uuid(),
+                  role: 'assistant',
+                  content: typeof lastAssistantMessage.content === 'string' 
+                    ? lastAssistantMessage.content 
+                    : JSON.stringify(lastAssistantMessage.content),
+                };
+                
+                // Add tool invocations if present
+                if (tools.length > 0) {
+                  assistantMessage.toolInvocations = tools;
+                }
+
+                // Get the current messages and append the new message instead of overwriting
+                const currentMessages = await getMessagesByUserId(userId);
+                const updatedMessages = currentMessages.data ? 
+                  [...currentMessages.data, assistantMessage] : 
+                  [messageWithContent, assistantMessage];
+                
+                await saveMessages(userId, updatedMessages);
+              } catch (error: unknown) {
+                if (error instanceof Error) {
+                  console.error('Failed to save chat', error.message);
+                } else {
+                  console.error('Failed to save chat', error);
+                }
+              }
+            }
+          },
+        });
+
+        result.consumeStream();
+
+        result.mergeIntoDataStream(dataStream, {
+          sendReasoning: false
+          // We can't use suppressText as it's not available, 
+          // so we'll handle displaying/hiding text responses in the UI component instead
+        });
+      },
+      onError: (error: Error | unknown) => {
+        console.error("AI stream error:", error);
+        
+        if (error instanceof Error) {
+          console.error("Error details:", {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            cause: error.cause
+          });
+          return `Error: ${error.message}`;
+        } else {
+          console.error("Unknown error format:", typeof error);
+          return 'An unexpected error occurred';
+        }
+      },
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return new Response(error.message, { status: 500 });
+    }
+    return new Response('An error occurred while processing your request!', {
+      status: 500,
+    });
   }
 }
 
-// This is the main chat route that handles chat requests
-export async function POST(req: Request) {
-  try {
-    const { messages, id, userId, debug } = await req.json();
-    
-    // For debugging
-    console.log(`Chat API called with id: ${id}, userId: "${userId}", type: ${typeof userId}`);
-    
-    // Log debug info if available
-    if (debug) {
-      console.log('Client debug info:', JSON.stringify(debug, null, 2));
-    }
-    
-    console.log(`Processing ${messages.length} messages`);
-    
-    // Get or create a chat ID
-    let chatId = id;
-    
-    // If we have a userId, verify it exists and get or create their chat
-    if (userId) {
-      console.log(`Attempting to validate user ID: "${userId}"`);
-      // Verify the user exists before trying to create a chat for them
-      const userExists = await verifyUserId(userId);
-      
-      if (!userExists) {
-        console.error(`User ${userId} does not exist in the database`);
-        const response = NextResponse.json(
-          { error: 'Invalid user ID' },
-          { status: 400 }
-        );
-        // Add header to indicate auth error
-        response.headers.set('X-Error-Type', 'auth');
-        return response;
-      }
-      
-      chatId = await createOrGetUserChat(userId);
-      console.log(`Using chat ID ${chatId} for user ${userId}`);
-    } else if (!chatId) {
-      // If no userId and no chatId, we can't proceed properly
-      console.warn('No userId or chatId provided - chat persistence may be limited');
-    }
-    
-    // Convert messages to OpenAI format
-    const openaiMessages = [
-      {
-        role: "system", 
-        content: "You are a helpful AI assistant for an order management system. You can answer questions about orders, help analyze data, and provide general assistance with the system's features."
-      },
-      ...messages.map((m: Message) => ({
-        role: m.role as "user" | "assistant" | "system",
-        content: m.content
-      }))
-    ];
-    
-    // Call OpenAI API
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: openaiMessages,
-      temperature: 0.7,
-      max_tokens: 1024,
-      stream: true,
-    });
-    
-    // Create a stream for the response
-    // We need to manually handle streaming since we're not using vercel ai sdk's stream functions
-    const stream = new ReadableStream({
-      async start(controller) {
-        // Function to send a complete message
-        function sendMessage(chunk: string) {
-          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
-        }
-        
-        try {
-          let text = '';
-          
-          for await (const chunk of response) {
-            if (chunk.choices[0]?.delta?.content) {
-              const content = chunk.choices[0].delta.content;
-              text += content;
-              sendMessage(content);
-            }
-          }
-          
-          // Save the full conversation with the AI's response
-          if (chatId) {
-            // Add the AI response to messages
-            const updatedMessages = [...messages, {
-              id: `ai-${Date.now()}`,
-              role: 'assistant' as const,
-              content: text,
-              createdAt: new Date()
-            }];
-            
-            // Save to database
-            await saveChat({
-              id: chatId,
-              userId,
-              messages: updatedMessages
-            });
-            console.log(`Saved updated chat with ${updatedMessages.length} messages`);
-          }
-          
-          // End the stream
-          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
-          controller.close();
-        } catch (error) {
-          console.error('Error processing stream:', error);
-          controller.error(error);
-        }
-      }
-    });
-    
-    // Build and return the response
-    const headers = new Headers();
-    headers.set('Content-Type', 'text/event-stream');
-    headers.set('Cache-Control', 'no-cache');
-    headers.set('Connection', 'keep-alive');
-    
-    if (chatId) {
-      headers.set('X-Chat-ID', chatId);
-    }
-    
-    return new Response(stream, {
-      headers
-    });
-  } catch (error) {
-    console.error('Chat API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process chat request' },
-      { status: 500 }
-    );
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return new Response('Not Found', { status: 404 });
   }
-} 
+
+  const isUserAuthenticated = checkAuth();
+  if (!isUserAuthenticated) {
+    return new Response('Unauthorized00000', { status: 401 });
+  }
+
+  try {
+    const chat = await getChat(id);
+
+    if (chat?.data?.user !== pocketbase.authStore.model?.id) {
+      return new Response('Forbidden', { status: 403 });
+    }
+
+    const deletedChat = await deleteChat(id);
+
+    return Response.json(deletedChat, { status: 200 });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return new Response(error.message, { status: 500 });
+    }
+    return new Response('An error occurred while processing your request!', {
+      status: 500,
+    });
+  }
+}

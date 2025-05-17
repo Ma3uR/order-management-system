@@ -1,0 +1,547 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/shared/ui/table"
+import { Card, CardContent, CardHeader } from "@/app/components/shared/ui/card"
+import { format } from "date-fns"
+import { Input } from "@/app/components/shared/ui/input"
+import { Search, ArrowUpDown, Calendar, Filter, Trash2, AlertCircle, RefreshCw } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Button } from "@/app/components/shared/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/shared/ui/popover"
+import { Calendar as CalendarComponent } from "@/app/components/shared/ui/calendar"
+import type { DateRange } from "react-day-picker"
+import { cn } from "@/lib/utils"
+import pb, { authenticatedCall } from "@/app/lib/pocketbase"
+import { ExpensesResponse, ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/shared/ui/alert-dialog"
+import { deleteExpense } from "@/app/lib/services/expenses"
+import { toast } from "@/app/components/shared/ui/use-toast"
+import { EXPENSE_ADDED_EVENT } from "./expense-form-dialog"
+
+// Define an extended expense type to include the category info
+interface ExtendedExpense extends ExpensesResponse {
+  categoryInfo?: {
+    name: string;
+    color: string;
+  };
+}
+
+export function ExpensesTable() {
+  const [expenses, setExpenses] = useState<ExtendedExpense[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [categoriesMap, setCategories] = useState<{[key: string]: ExpensesCategoriesResponse}>({})
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "ascending" | "descending" } | null>(null)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
+  const [isFiltering, setIsFiltering] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
+  
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch categories first
+      const categoriesData = await authenticatedCall(async () => 
+        pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
+      );
+      
+      // Convert to a lookup object for easy reference
+      const categoriesMap: {[key: string]: ExpensesCategoriesResponse} = {};
+      categoriesData.forEach(category => {
+        categoriesMap[category.id] = category;
+      });
+      setCategories(categoriesMap);
+      
+      // Fetch expenses with expanded category relations
+      const expensesData = await authenticatedCall(async () => 
+        pb.collection('expenses').getFullList<ExpensesResponse>({
+          expand: 'category'
+        })
+      );
+      
+      // Enrich expenses with category info
+      const enrichedExpenses = expensesData.map(expense => {
+        const extendedExpense: ExtendedExpense = {...expense};
+        
+        // If using expand and the relation exists
+        if (expense.expand) {
+          const expObj = expense.expand as Record<string, unknown>;
+          if ('category' in expObj && expObj.category) {
+            const expandedCategory = expObj.category as ExpensesCategoriesResponse;
+            extendedExpense.categoryInfo = {
+              name: expandedCategory.name,
+              color: expandedCategory.color || '#CCCCCC'
+            };
+          }
+        }
+        // If the category ID exists in our map
+        else if (expense.category && categoriesMap[expense.category]) {
+          extendedExpense.categoryInfo = {
+            name: categoriesMap[expense.category].name,
+            color: categoriesMap[expense.category].color || '#CCCCCC'
+          };
+        }
+        // Fallback to "Uncategorized"
+        else {
+          extendedExpense.categoryInfo = {
+            name: "Uncategorized",
+            color: "#CCCCCC" // Light gray
+          };
+        }
+        
+        return extendedExpense;
+      });
+      
+      setExpenses(enrichedExpenses);
+      setLastRefreshed(new Date());
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "Error loading expenses",
+        description: "There was a problem loading your expenses.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+  
+  // Initial data load
+  useEffect(() => {
+    fetchData();
+  }, []);
+  
+  // Add refresh on visibility change (when user returns to the tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Only refresh if it's been more than 30 seconds since last refresh
+        const timeSinceLastRefresh = new Date().getTime() - lastRefreshed.getTime();
+        if (timeSinceLastRefresh > 30000) { // 30 seconds
+          fetchData();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Refresh data every 2 minutes
+    const intervalId = setInterval(() => {
+      if (!document.hidden) {
+        fetchData();
+      }
+    }, 120000); // 2 minutes
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(intervalId);
+    };
+  }, [lastRefreshed]);
+  
+  // Manual refresh button handler
+  const handleManualRefresh = () => {
+    fetchData();
+  };
+  
+  // Handle delete request
+  const handleDeleteRequest = (expenseId: string) => {
+    setExpenseToDelete(expenseId);
+    setDeleteDialogOpen(true);
+  };
+  
+  // Confirm and execute deletion
+  const confirmDelete = async () => {
+    if (expenseToDelete) {
+      setIsDeleting(true);
+      try {
+        const result = await deleteExpense(expenseToDelete);
+        
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        
+        // Success - refresh the expense list
+        await fetchData();
+        toast({
+          title: "Expense deleted",
+          description: "The expense has been successfully deleted."
+        });
+      } catch (error) {
+        console.error("Error deleting expense:", error);
+        toast({
+          title: "Delete failed",
+          description: error instanceof Error ? error.message : "Failed to delete expense",
+          variant: "destructive"
+        });
+      } finally {
+        setIsDeleting(false);
+        setDeleteDialogOpen(false);
+        setExpenseToDelete(null);
+      }
+    }
+  };
+  
+  // Sorting function
+  const sortedExpenses = [...expenses].sort((a, b) => {
+    if (!sortConfig) return 0
+
+    if (sortConfig.key === "date") {
+      return sortConfig.direction === "ascending"
+        ? new Date(a.date || "").getTime() - new Date(b.date || "").getTime()
+        : new Date(b.date || "").getTime() - new Date(a.date || "").getTime()
+    }
+
+    if (sortConfig.key === "amount") {
+      return sortConfig.direction === "ascending" ? (a.amount || 0) - (b.amount || 0) : (b.amount || 0) - (a.amount || 0)
+    }
+
+    return 0
+  })
+
+  // Filtering function
+  const filteredExpenses = sortedExpenses.filter((expense) => {
+    const matchesSearch =
+      (expense.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (expense.categoryInfo?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+
+    // Date range filtering
+    const expenseDate = expense.date ? new Date(expense.date) : null;
+    const matchesDateRange =
+      !dateRange || !dateRange.from || !dateRange.to || 
+      (expenseDate && expenseDate >= dateRange.from && expenseDate <= dateRange.to)
+
+    return matchesSearch && matchesDateRange
+  })
+
+  // Request sort
+  const requestSort = (key: string) => {
+    let direction: "ascending" | "descending" = "ascending"
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending"
+    }
+    setSortConfig({ key, direction })
+  }
+
+  // Clear filters
+  const clearFilters = () => {
+    setDateRange(undefined)
+    setSearchTerm("")
+    setSortConfig(null)
+    setIsFiltering(false)
+  }
+
+  // Add event listener for expense added event
+  useEffect(() => {
+    const handleExpenseAdded = () => {
+      // Refresh data when an expense is added
+      fetchData();
+      toast({
+        title: "Data refreshed",
+        description: "Expense list has been updated with new data.",
+      });
+    };
+
+    // Listen for the custom event
+    document.addEventListener(EXPENSE_ADDED_EVENT, handleExpenseAdded);
+    
+    return () => {
+      document.removeEventListener(EXPENSE_ADDED_EVENT, handleExpenseAdded);
+    };
+  }, []);
+
+  return (
+    <>
+      <Card className="shadow-md border-none bg-white dark:bg-gray-900 overflow-hidden">
+        <CardHeader className="bg-gray-100 dark:bg-gray-800 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <motion.div
+              className="flex items-center gap-2"
+              whileHover={{ scale: 1.01 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              <motion.div
+                className="bg-black dark:bg-white text-white dark:text-black p-2 rounded-full"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <Search className="h-5 w-5" />
+              </motion.div>
+              <h3 className="text-lg font-semibold">Recent Expenses</h3>
+              <motion.button
+                onClick={handleManualRefresh}
+                disabled={loading}
+                className={`ml-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed`}
+                whileHover={{ scale: 1.1, rotate: 180 }}
+                transition={{ duration: 0.5 }}
+                title="Refresh expenses"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </motion.button>
+            </motion.div>
+
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="relative w-full sm:w-auto sm:min-w-[200px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Input
+                    type="search"
+                    placeholder="Search expenses..."
+                    className="pl-8 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </motion.div>
+              </div>
+
+              <Popover open={isFiltering} onOpenChange={setIsFiltering}>
+                <PopoverTrigger asChild>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "border-gray-200 dark:border-gray-700 transition-all",
+                        dateRange && "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600",
+                      )}
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "LLL dd")
+                        )
+                      ) : (
+                        "Date Filter"
+                      )}
+                    </Button>
+                  </motion.div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <div className="p-3 border-b">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Filter by date</h4>
+                      <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs">
+                        Clear filters
+                      </Button>
+                    </div>
+                  </div>
+                  <CalendarComponent
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={1}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="rounded-md">
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin h-8 w-8 border-4 border-gray-300 rounded-full border-t-gray-800"></div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="cursor-pointer" onClick={() => requestSort("date")}>
+                      <div className="flex items-center gap-1">
+                        Date
+                        <ArrowUpDown className="h-3 w-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right cursor-pointer" onClick={() => requestSort("amount")}>
+                      <div className="flex items-center justify-end gap-1">
+                        Amount
+                        <ArrowUpDown className="h-3 w-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <AnimatePresence>
+                    {filteredExpenses.length > 0 ? (
+                      filteredExpenses.map((expense, index) => (
+                        <motion.tr
+                          key={expense.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ delay: index * 0.05, duration: 0.2 }}
+                          className="group"
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3 w-3 text-black dark:text-white opacity-70" />
+                              {expense.date ? format(new Date(expense.date), "yyyy-MM-dd") : "N/A"}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[300px] truncate" title={expense.description || ''}>
+                            <motion.div whileHover={{ x: 3 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
+                              {expense.description || '-'}
+                            </motion.div>
+                          </TableCell>
+                          <TableCell>
+                            {expense.categoryInfo ? (
+                              <motion.span
+                                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                style={{ 
+                                  backgroundColor: expense.categoryInfo.color,
+                                  color: getContrastColor(expense.categoryInfo.color)
+                                }}
+                                whileHover={{ scale: 1.05 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                              >
+                                {expense.categoryInfo.name}
+                              </motion.span>
+                            ) : (
+                              "-"
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            <motion.span
+                              className={cn(
+                                (expense.amount || 0) > 100
+                                  ? "text-black dark:text-white font-bold"
+                                  : "text-black dark:text-white",
+                                "transition-colors",
+                              )}
+                              whileHover={{ scale: 1.05 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                            >
+                              ${(expense.amount || 0).toFixed(2)}
+                            </motion.span>
+                          </TableCell>
+                          <TableCell>
+                            <motion.button
+                              className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
+                              whileHover={{ scale: 1.15 }}
+                              whileTap={{ scale: 0.95 }}
+                              title="Delete expense"
+                              onClick={() => handleDeleteRequest(expense.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </motion.button>
+                          </TableCell>
+                        </motion.tr>
+                      ))
+                    ) : (
+                      <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+                        <TableCell colSpan={5} className="h-32 text-center">
+                          <motion.div
+                            className="flex flex-col items-center justify-center text-muted-foreground"
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <Search className="h-8 w-8 mb-2 opacity-50" />
+                            <p>No expenses found</p>
+                            <p className="text-sm">Try adjusting your search or add a new expense</p>
+                            <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
+                              Clear filters
+                            </Button>
+                          </motion.div>
+                        </TableCell>
+                      </motion.tr>
+                    )}
+                  </AnimatePresence>
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Delete Expense
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this expense? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {isDeleting ? (
+                <span className="flex items-center gap-2">
+                  <motion.span
+                    className="h-4 w-4 rounded-full border-2 border-current border-t-transparent"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                  />
+                  Deleting...
+                </span>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
+
+// Helper function to determine text color based on background color
+function getContrastColor(hexColor: string): string {
+  // Default to black if no color provided
+  if (!hexColor) return '#000000';
+  
+  // Convert hex to RGB
+  let r = 0, g = 0, b = 0;
+  
+  // 3 digits
+  if (hexColor.length === 4) {
+    r = parseInt(hexColor[1] + hexColor[1], 16);
+    g = parseInt(hexColor[2] + hexColor[2], 16);
+    b = parseInt(hexColor[3] + hexColor[3], 16);
+  } 
+  // 6 digits
+  else if (hexColor.length === 7) {
+    r = parseInt(hexColor.substring(1, 3), 16);
+    g = parseInt(hexColor.substring(3, 5), 16);
+    b = parseInt(hexColor.substring(5, 7), 16);
+  }
+  
+  // Calculate brightness
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  
+  // Return black or white based on brightness
+  return brightness > 128 ? '#000000' : '#FFFFFF';
+}

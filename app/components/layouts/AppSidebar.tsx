@@ -12,7 +12,8 @@ import {
   ShoppingCart,
   Ban,
   Settings,
-  Bot
+  Bot,
+  Receipt
 } from 'lucide-react';
 
 export function AppSidebar() {
@@ -28,6 +29,11 @@ export function AppSidebar() {
       title: t('orders'),
       href: '/orders',
       icon: ShoppingCart
+    },
+    {
+      title: t('expenses'),
+      href: '/expenses',
+      icon: Receipt
     },
     {
       title: t('blacklist'),

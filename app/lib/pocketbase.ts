@@ -21,14 +21,42 @@ function initPocketBase() {
     
     pb = new PocketBase(getPocketBaseUrl());
     
-    // Enable cookie-based auth persistence for client-side usage
+    // Enable both cookie-based auth and localStorage persistence for client-side usage
     if (typeof window !== 'undefined') {
-        // We're on the client, restore auth if available in localStorage
+        // Enable cookie auth - This is essential for middleware to work
+        pb.autoCancellation(false);
+        pb.authStore.onChange(() => {
+            // When auth state changes, set the cookie for server-side use
+            document.cookie = pb.authStore.exportToCookie({ httpOnly: false });
+            
+            try {
+                if (pb.authStore.isValid) {
+                    // Also save to localStorage as a backup persistence strategy
+                    localStorage.setItem('pocketbase_auth', JSON.stringify({
+                        token: pb.authStore.token,
+                        model: pb.authStore.model
+                    }));
+                    console.log('Saved auth to localStorage and cookie:', {
+                        userId: pb.authStore.model?.id,
+                        isValid: pb.authStore.isValid
+                    });
+                } else {
+                    localStorage.removeItem('pocketbase_auth');
+                    console.log('Cleared auth (invalid)');
+                }
+            } catch (err) {
+                console.error('Error saving auth data:', err);
+            }
+        });
+        
         try {
+            // Try to load from localStorage if necessary
             const storedAuthData = localStorage.getItem('pocketbase_auth');
-            if (storedAuthData) {
+            if (storedAuthData && !pb.authStore.isValid) {
                 const authData = JSON.parse(storedAuthData);
                 pb.authStore.save(authData.token, authData.model);
+                // Ensure cookie is set
+                document.cookie = pb.authStore.exportToCookie({ httpOnly: false });
                 console.log('Restored auth from localStorage:', {
                     userId: authData.model?.id,
                     isValid: pb.authStore.isValid
@@ -36,31 +64,9 @@ function initPocketBase() {
             }
         } catch (err) {
             console.error('Error loading auth from local storage:', err);
-            // Clear potentially corrupted auth data
             localStorage.removeItem('pocketbase_auth');
             pb.authStore.clear();
         }
-        
-        // Save auth data when it changes
-        pb.authStore.onChange(() => {
-            try {
-                if (pb.authStore.isValid) {
-                    localStorage.setItem('pocketbase_auth', JSON.stringify({
-                        token: pb.authStore.token,
-                        model: pb.authStore.model
-                    }));
-                    console.log('Saved auth to localStorage:', {
-                        userId: pb.authStore.model?.id,
-                        isValid: pb.authStore.isValid
-                    });
-                } else {
-                    localStorage.removeItem('pocketbase_auth');
-                    console.log('Cleared auth from localStorage (invalid)');
-                }
-            } catch (err) {
-                console.error('Error saving auth to local storage:', err);
-            }
-        });
     }
     
     return pb;
@@ -93,10 +99,15 @@ export async function authenticateAdmin() {
     return authPromise;
 }
 
-// Helper to login a user and save to localStorage
+// Helper to login a user and save to localStorage and cookie
 export async function loginUser(email: string, password: string) {
     try {
         const authData = await pocketBase.collection('users').authWithPassword(email, password);
+        
+        // Ensure the cookie is set correctly
+        if (typeof window !== 'undefined') {
+            document.cookie = pocketBase.authStore.exportToCookie({ httpOnly: false });
+        }
         
         console.log('User authenticated:', {
             userId: authData.record.id,
@@ -121,6 +132,8 @@ export function logoutUser() {
     pocketBase.authStore.clear();
     if (typeof window !== 'undefined') {
         localStorage.removeItem('pocketbase_auth');
+        // Clear the cookie
+        document.cookie = "pb_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     }
 }
 
@@ -134,7 +147,12 @@ export function getCurrentUser() {
 
 // Helper to check if user is authenticated
 export function isAuthenticated() {
-    return pocketBase.authStore.isValid;
+  console.log('isAuthenticated check', {
+    isValid: pocketBase.authStore.isValid,
+    model: pocketBase.authStore.model,
+    token: pocketBase.authStore.token ? 'exists' : 'missing'
+  });
+  return pocketBase.authStore.isValid;
 }
 
 // Optional: Add a method to check if admin is authenticated
@@ -145,8 +163,11 @@ export function isAdminAuthenticated() {
 // Wrapper function for authenticated collection calls
 export async function authenticatedCall<T>(callback: () => Promise<T>): Promise<T> {
   try {
-    console.log('Attempting authentication with URL:', pocketBase.baseUrl);
-    await authenticateAdmin();
+    // Only attempt authentication if not already authenticated
+    if (!pocketBase.authStore.isValid) {
+      await authenticateAdmin();
+    }
+    
     return await callback();
   } catch (error) {
     if (error instanceof Error) {
@@ -205,7 +226,7 @@ export async function getDefaultStatus(): Promise<string> {
     })
   );
   
-  if (!statuses.length) {
+  if (!statuses) {
     throw new Error('No status options found');
   }
   
@@ -222,7 +243,8 @@ export async function createOrder(
   orderData: Partial<OrdersRecord>, 
   productInputs: ProductInput[]
 ): Promise<OrdersResponse> {
-  const defaultStatus = await getDefaultStatus();
+  //TODO: get default status from pocketbase
+  const defaultStatus = 'xbqw6zjruht03og'
   
   // Calculate totals from products
   const amount = productInputs.reduce((sum, p) => sum + (p.price * p.quantity), 0);
@@ -260,3 +282,15 @@ export default pocketBase;
 
 // Add this temporarily to verify the connection
 console.log('PocketBase URL:', pocketBase.baseUrl);
+
+// Collection Types
+export interface ExpensesRecord {
+  id: string;
+  created: string;
+  updated: string;
+  amount: number;
+  description: string;
+  date: string;
+  category?: string;
+  receipt?: string;
+}

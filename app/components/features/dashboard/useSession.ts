@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import pb, { getCurrentUser, isAuthenticated } from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
 
 interface User {
   id: string;
@@ -16,69 +16,86 @@ export function useSession() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // This effect runs once on component mount to initialize auth state
   useEffect(() => {
-    try {
-      // Get the current authenticated user from PocketBase
-      const authModel = getCurrentUser();
-      
-      // Log auth details
-      console.log('PocketBase auth state in useSession:', {
-        isValid: isAuthenticated(),
-        token: pb.authStore.token ? `${pb.authStore.token.substring(0, 10)}...` : null,
-        modelId: authModel?.id || null,
-        modelType: authModel?.type || null
-      });
-      
-      if (authModel) {
-        console.log(`Found authenticated user in useSession: ${authModel.id} (${typeof authModel.id})`);
+    async function initSession() {
+      try {
+        setIsLoading(true);
         
-        // Create a standardized user object
-        setUser({
-          id: authModel.id,
-          email: authModel.email,
-          name: authModel.name,
-          username: authModel.username,
-          avatar: authModel.avatar,
-        });
-      } else {
-        console.log('No authenticated user found in useSession');
-        setUser(null);
-      }
-      
-      // Subscribe to authentication changes
-      const unsubscribe = pb.authStore.onChange(() => {
-        const currentModel = pb.authStore.model;
-        console.log('Auth state changed in useSession:', {
-          isValid: pb.authStore.isValid,
-          hasModel: !!currentModel,
-          modelId: currentModel?.id || null
-        });
-        
-        if (currentModel) {
-          console.log(`Auth change in useSession: user ID is now ${currentModel.id} (${typeof currentModel.id})`);
+        // If we have a valid auth, use it
+        if (pb.authStore.isValid && pb.authStore.model) {
           setUser({
-            id: currentModel.id,
-            email: currentModel.email,
-            name: currentModel.name,
-            username: currentModel.username,
-            avatar: currentModel.avatar,
+            id: pb.authStore.model.id,
+            email: pb.authStore.model.email,
+            name: pb.authStore.model.name,
+            username: pb.authStore.model.username,
+            avatar: pb.authStore.model.avatar,
           });
         } else {
-          console.log('Auth change in useSession: no user authenticated');
-          setUser(null);
+          // No valid auth, try to refresh it
+          try {
+            if (pb.authStore.token) {
+              // Try to refresh token if we have one
+              await pb.collection('users').authRefresh();
+              
+              if (pb.authStore.isValid && pb.authStore.model) {
+                setUser({
+                  id: pb.authStore.model.id,
+                  email: pb.authStore.model.email,
+                  name: pb.authStore.model.name,
+                  username: pb.authStore.model.username,
+                  avatar: pb.authStore.model.avatar,
+                });
+                console.log('Set user after auth refresh:', pb.authStore.model.id);
+              } else {
+                console.log('Auth refresh completed but still not valid');
+                setUser(null);
+              }
+            } else {
+              console.log('No token to refresh');
+              setUser(null);
+            }
+          } catch (refreshError) {
+            console.error('Failed to refresh auth:', refreshError);
+            pb.authStore.clear();
+            setUser(null);
+          }
         }
-      });
-      
-      setIsLoading(false);
-      
-      return () => {
-        unsubscribe();
-      };
-    } catch (err) {
-      console.error('Session error in useSession:', err);
-      setError(err instanceof Error ? err : new Error('Unknown session error'));
-      setIsLoading(false);
+        
+        // Subscribe to auth changes
+        const unsubscribe = pb.authStore.onChange((token, model) => {
+          console.log('Auth state changed:', {
+            hasToken: !!token,
+            hasModel: !!model,
+            isValid: pb.authStore.isValid
+          });
+          
+          if (token && model && pb.authStore.isValid) {
+            setUser({
+              id: model.id,
+              email: model.email,
+              name: model.name,
+              username: model.username,
+              avatar: model.avatar,
+            });
+          } else {
+            setUser(null);
+          }
+        });
+        
+        setIsLoading(false);
+        return () => {
+          unsubscribe();
+        };
+      } catch (err) {
+        console.error('Session initialization error:', err);
+        setError(err instanceof Error ? err : new Error('Unknown error initializing session'));
+        setIsLoading(false);
+        setUser(null);
+      }
     }
+    
+    initSession();
   }, []);
 
   return {

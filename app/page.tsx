@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { auth } from '@/app/lib/auth'
 import { headers } from 'next/headers'
+import { cookies } from 'next/headers'
 
 export default async function Home() {
-  const session = await getServerSession(auth)
+  // Check for PocketBase auth cookie
+  const cookieStore = cookies()
+  const authCookie = cookieStore.get('pb_auth')
   
   // Get the accept-language header to determine default locale
   const headersList = headers()
@@ -19,7 +20,7 @@ export default async function Home() {
   const preferredLocale = isUkrainian ? 'ua' : 'en'
   
   // Redirect based on authentication status
-  if (session) {
+  if (authCookie) {
     redirect(`/${preferredLocale}/dashboard`)
   } else {
     redirect(`/${preferredLocale}/login`)

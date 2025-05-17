@@ -4,10 +4,11 @@
 
 export enum Collections {
 	BlacklistEntries = "blacklist_entries",
-	ChatMessages = "chat_messages",
 	Chats = "chats",
 	CurrencyOptions = "currency_options",
 	DeliveryOptions = "delivery_options",
+	Expenses = "expenses",
+	ExpensesCategories = "expenses_categories",
 	Orders = "orders",
 	PaymentOptions = "payment_options",
 	Sources = "sources",
@@ -48,13 +49,6 @@ export type BlacklistEntriesRecord = {
 	phoneNumber?: string
 }
 
-export type ChatMessagesRecord = {
-	user: RecordIdString
-	role: string
-	content: string
-	conversation_id: string
-}
-
 export type ChatsRecord<Tmessages = unknown> = {
 	messages?: null | Tmessages
 	user?: RecordIdString
@@ -74,6 +68,18 @@ export type DeliveryOptionsRecord = {
 	isDefault?: boolean
 }
 
+export type ExpensesRecord = {
+	amount?: number
+	description?: string
+	date?: IsoDateString
+	category?: RecordIdString
+}
+
+export type ExpensesCategoriesRecord = {
+	name: string
+	color?: string
+}
+
 export enum OrdersMergeStatusOptions {
 	"none" = "none",
 	"pending" = "pending",
@@ -86,11 +92,10 @@ export enum OrdersMergeSourceOptions {
 	"phone" = "phone",
 	"name" = "name",
 }
-
 export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown> = {
 	orderNumber: string
 	marketplaceIds?: string
-	source: string
+	source?: RecordIdString
 	deliveryMethod: RecordIdString
 	deliveryPostNumber?: string
 	phoneNumber: string
@@ -147,8 +152,7 @@ export type UsersRecord = {
 }
 
 // Response types include system fields and match responses from the PocketBase API
-export type BlacklistEntriesResponse = BlacklistEntriesRecord & BaseSystemFields
-export type ChatMessagesResponse<Texpand = unknown> = ChatMessagesRecord & BaseSystemFields<Texpand>
+export type BlacklistEntriesResponse = Required<BlacklistEntriesRecord> & BaseSystemFields
 export type ChatsResponse<Tmessages = unknown, Texpand = unknown> = Required<ChatsRecord<Tmessages>> & BaseSystemFields<Texpand>
 export type CurrencyResponse = CurrencyOptionsRecord & BaseSystemFields
 export type DeliveryOptionsResponse = DeliveryOptionsRecord & BaseSystemFields
@@ -158,15 +162,17 @@ export type SourcesResponse = SourcesRecord & BaseSystemFields
 export type StatusResponse = StatusOptionsRecord & BaseSystemFields
 export type UsersResponse = UsersRecord & AuthSystemFields
 export type SyncRecordsResponse = SyncRecordsRecord & BaseSystemFields
-
+export type ExpensesResponse = ExpensesRecord & BaseSystemFields
+export type ExpensesCategoriesResponse = ExpensesCategoriesRecord & BaseSystemFields
 // Types containing all Records and Responses, useful for creating typing helper functions
 
 export type CollectionRecords = {
 	blacklist_entries: BlacklistEntriesRecord
-	chat_messages: ChatMessagesRecord
 	chats: ChatsRecord
 	currency_options: CurrencyOptionsRecord
 	delivery_options: DeliveryOptionsRecord
+	expenses: ExpensesRecord
+	expenses_categories: ExpensesCategoriesRecord
 	orders: OrdersRecord
 	payment_options: PaymentOptionsRecord
 	sources: SourcesRecord
@@ -177,10 +183,11 @@ export type CollectionRecords = {
 
 export type CollectionResponses = {
 	blacklist_entries: BlacklistEntriesResponse
-	chat_messages: ChatMessagesResponse
 	chats: ChatsResponse
 	currency_options: CurrencyResponse
 	delivery_options: DeliveryOptionsResponse
+	expenses: ExpensesResponse
+	expenses_categories: ExpensesCategoriesResponse
 	orders: OrdersResponse
 	payment_options: PaymentMethodsResponse
 	sources: SourcesResponse

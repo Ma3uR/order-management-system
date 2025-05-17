@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 
 export default async function ChatIDPage({ params }: { params: { id: string, locale: string } }) {
   const { id } = params;
-  console.log(`Loading chat with ID: ${id}`);
   
   // Get the current user from cookies
   const cookieStore = cookies();
@@ -16,7 +15,6 @@ export default async function ChatIDPage({ params }: { params: { id: string, loc
       const authData = JSON.parse(decodeURIComponent(authCookie.value));
       if (authData.model && authData.model.id) {
         userId = authData.model.id;
-        console.log(`Found logged in user: ${userId}`);
       }
     } catch (error) {
       console.error('Error parsing auth cookie:', error);
@@ -25,7 +23,6 @@ export default async function ChatIDPage({ params }: { params: { id: string, loc
   
   try {
     const messages = await loadChat(id);
-    console.log(`Successfully loaded chat ${id} with ${messages.length} messages`);
     
     return (
       <div className="container mx-auto px-4 py-8">

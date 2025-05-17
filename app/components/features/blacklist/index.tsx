@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/app/components/features/dashboard/useSession';
 import { useTranslations } from 'next-intl';
 import { createBlackList, deleteBlackList, getBlackListPaginated } from '@/app/[locale]/blacklist/actions/black-list';
 import { BlacklistForm } from './BlacklistForm';
@@ -50,12 +50,7 @@ interface PaginationInfo {
 export default function BlacklistManagement() {
   const router = useRouter();
   const t = useTranslations('Blacklist');
-  const { status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push('/auth/signin');
-    },
-  });
+  const { isAuthenticated, isLoading: sessionLoading } = useSession();
 
   const [items, setItems] = useState<BlacklistEntriesResponse[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -102,18 +97,23 @@ export default function BlacklistManagement() {
   }, [pagination.perPage, t]);
 
   useEffect(() => {
-    console.log('Session status:', status);
-    if (status === 'authenticated') {
+    if (!sessionLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, sessionLoading, router]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
       console.log('Authenticated, fetching blacklist...');
       fetchBlacklist(pagination.page, debouncedSearch);
     }
-  }, [status, pagination.page, fetchBlacklist, debouncedSearch]);
+  }, [isAuthenticated, pagination.page, fetchBlacklist, debouncedSearch]);
 
   useEffect(() => {
-    if (status === 'authenticated' && !searchQuery) {
+    if (isAuthenticated && !searchQuery) {
       fetchBlacklist(pagination.page, '');
     }
-  }, [status, pagination.page, fetchBlacklist, searchQuery]);
+  }, [isAuthenticated, pagination.page, fetchBlacklist, searchQuery]);
 
   const handleAddItem = async (data: BlacklistFormData) => {
     try {
@@ -125,7 +125,7 @@ export default function BlacklistManagement() {
       }
 
       if (result.data) {
-        setItems(prev => [...prev, result.data]);
+        setItems(prev => [...prev, result.data as BlacklistEntriesResponse]);
         toast.success(t('addSuccess'), {
           duration: 4000,
           position: "top-right",
@@ -178,7 +178,7 @@ export default function BlacklistManagement() {
     setPagination(prev => ({ ...prev, page: 1 }));
   }, []);
 
-  if (status === 'loading' || isLoading) {
+  if (sessionLoading || isLoading) {
     return (
       <motion.div 
         className="flex items-center justify-center min-h-[200px]"

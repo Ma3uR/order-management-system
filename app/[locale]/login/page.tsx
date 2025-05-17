@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { loginUser } from '@/app/lib/pocketbase';
-import { signIn as nextAuthSignIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Card } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
@@ -16,30 +15,37 @@ import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
 import { Footer } from '@/app/components/layouts/footer';
 import AnimatedWordCycle from '@/app/components/shared/ui/animated-text-cycle';
 import { useTheme } from 'next-themes';
+import { useSession } from '@/app/components/features/dashboard/useSession';
 
-export default function LoginPage() {
+// Create a separate component that uses searchParams
+function LoginForm() {
   const t = useTranslations('Auth');
   const locale = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
-  const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const { isAuthenticated, isLoading } = useSession();
   const { theme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   
   // After hydration, we can access the theme
   useEffect(() => {
     setMounted(true);
   }, []);
   
-  // If user is already authenticated, redirect to dashboard
+  // If user is already authenticated, redirect to dashboard or callback URL
   useEffect(() => {
-    if (session) {
-      router.push(`/${locale}/dashboard`);
+    // Only redirect after loading is complete and we know user is authenticated
+    if (!isLoading && isAuthenticated) {
+      console.log('User authenticated, redirecting from login page');
+      const callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
+      router.push(callbackUrl);
+      router.refresh();
     }
-  }, [session, router, locale]);
+  }, [isAuthenticated, isLoading, router, searchParams, locale]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,28 +53,21 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      // Try direct PocketBase login first
-      const pocketBaseResult = await loginUser(email, password);
+      // Login with PocketBase
+      const result = await loginUser(email, password);
       
-      if (pocketBaseResult.success) {
-        // Also authenticate with next-auth for session compatibility
-        const nextAuthResult = await nextAuthSignIn('credentials', {
-          redirect: false,
-          email,
-          password,
-        });
+      if (result.success) {
+        // Navigate to dashboard or callback URL after successful login
+        console.log('Login successful, redirecting');
+        const callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
         
-        if (nextAuthResult?.error) {
-          console.warn('Next Auth login error after successful PocketBase login:', nextAuthResult.error);
-          // Continue anyway since PocketBase login succeeded
-        }
-        
-        // Navigate to dashboard after successful login
-        console.log('Login successful, redirecting to dashboard');
-        router.push(`/${locale}/dashboard`);
-        router.refresh();
+        // Force a short delay to ensure cookie is set properly before redirect
+        setTimeout(() => {
+          router.push(callbackUrl);
+          router.refresh();
+        }, 100);
       } else {
-        setError(pocketBaseResult.error || t('loginError'));
+        setError(result.error || t('loginError'));
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -91,6 +90,27 @@ export default function LoginPage() {
         <div className="absolute top-4 right-4 z-10"></div>
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-[calc(72rem+10rem)] h-[600px] bg-transparent"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // If already authenticated and still loading, show a loading indicator
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  // If already authenticated (but hasn't redirected yet), show a message
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">{t('alreadyAuthenticated')}</p>
+          <p className="text-sm text-muted-foreground">{t('redirecting')}...</p>
         </div>
       </div>
     );
@@ -210,5 +230,23 @@ export default function LoginPage() {
       {/* Footer */}
       <Footer />
     </div>
+  );
+}
+
+// Loading fallback for Suspense
+function LoginLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginForm />
+    </Suspense>
   );
 } 

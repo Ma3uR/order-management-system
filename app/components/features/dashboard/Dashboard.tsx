@@ -251,12 +251,16 @@ export default function Dashboard() {
             data={stats.trafficData}
             className="h-full"
           />
-          <AiChatBox />
           <MonthlyChart
             data={stats.monthlyData}
             labels={months}
-            className="lg:col-span-2"
+            className="h-full"
           />
+        </motion.div>
+
+        {/* AI Chat Box - Full Width (moved below charts) */}
+        <motion.div variants={itemVariants} className="h-[800px] relative">
+          <AiChatBox className="h-full w-full" />
         </motion.div>
       </motion.div>
     </div>
