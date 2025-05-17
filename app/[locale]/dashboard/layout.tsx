@@ -19,7 +19,6 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
 } from '@/app/components/shared/ui/breadcrumb';
-import { Footer } from '@/app/components/layouts/footer';
 import { Toaster } from "@/app/components/shared/ui/toaster";
 import { useSession } from "@/app/components/features/dashboard/useSession";
 
@@ -116,12 +115,9 @@ function DashboardLayoutContent({
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 px-2 py-2 sm:px-3 sm:py-3 md:p-4 overflow-y-auto">
+        <main className="flex-1 px-2 py-2 sm:px-3 sm:py-3 md:p-4">
           {children}
         </main>
-        <div className="shrink-0">
-          <Footer />
-        </div>
       </SidebarInset>
     </SidebarProvider>
   );

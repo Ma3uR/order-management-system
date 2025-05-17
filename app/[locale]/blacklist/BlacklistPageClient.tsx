@@ -17,7 +17,6 @@ import { motion } from 'framer-motion';
 import LanguageToggle from '@/app/components/shared/ui/LanguageSwitcher';
 import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
 import { useTranslations } from 'next-intl';
-import { Footer } from '@/app/components/layouts/footer';
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -94,9 +93,6 @@ export default function BlacklistPageClient({}: BlacklistPageClientProps) {
               </motion.div>
             </motion.div>
           </main>
-          <div className="shrink-0">
-            <Footer />
-          </div>
         </SidebarInset>
         <Toaster
           position="top-right"

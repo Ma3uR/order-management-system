@@ -43,7 +43,7 @@ export function OrderList({
   };
 
   return (
-    <div>
+    <>
       {/* Mobile view - Card layout */}
       <div className="grid grid-cols-1 gap-3 md:hidden">
         {orders.map((order) => (
@@ -133,119 +133,118 @@ export function OrderList({
       </div>
 
       {/* Desktop view - Table layout */}
-      <div className="hidden md:block rounded-md border border-border">
-        <div className="relative w-full overflow-auto">
-          <table className="w-full caption-bottom text-sm">
-            <thead className="[&_tr]:border-b">
-              <tr className="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  {translations.orderNumber}
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  {translations.fullName}
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  {translations.status}
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  {translations.amount}
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  {translations.createdAt}
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  {translations.actions}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="[&_tr:last-child]:border-0">
-              {orders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer"
-                  onClick={(e) => {
-                    if (!(e.target as HTMLElement).closest('button') && 
-                        !(e.target as HTMLElement).closest('select')) {
-                      onViewDetails(order);
-                    }
+      <table className="w-full hidden md:table border border-border rounded-md">
+        <thead className="bg-muted/50 sticky top-0 z-10">
+          <tr className="border-b border-border">
+            <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+              {translations.orderNumber}
+            </th>
+            <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+              {translations.fullName}
+            </th>
+            <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+              {translations.status}
+            </th>
+            <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+              {translations.amount}
+            </th>
+            <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+              {translations.createdAt}
+            </th>
+            <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+              {translations.actions}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order) => (
+            <tr
+              key={order.id}
+              className="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer"
+              onClick={(e) => {
+                if (!(e.target as HTMLElement).closest('button') && 
+                    !(e.target as HTMLElement).closest('select')) {
+                  onViewDetails(order);
+                }
+              }}
+            >
+              <td className="p-3 align-middle">{order.orderNumber}</td>
+              <td className="p-3 align-middle">{order.fullName}</td>
+              <td className="p-3 align-middle">
+                <StatusSelect
+                  status={order.status ? {
+                    id: order.status,
+                    name: statuses.find(s => s.id === order.status)?.name || '',
+                    color: statuses.find(s => s.id === order.status)?.color || '#000000'
+                  } : undefined}
+                  statuses={statuses}
+                  onStatusChange={async (statusId) => {
+                    if (!order) return;
+                    await onStatusChange(order.id, statusId);
                   }}
-                >
-                  <td className="p-4 align-middle">{order.orderNumber}</td>
-                  <td className="p-4 align-middle">{order.fullName}</td>
-                  <td className="p-4 align-middle">
-                    <StatusSelect
-                      status={order.status ? {
-                        id: order.status,
-                        name: statuses.find(s => s.id === order.status)?.name || '',
-                        color: statuses.find(s => s.id === order.status)?.color || '#000000'
-                      } : undefined}
-                      statuses={statuses}
-                      onStatusChange={async (statusId) => {
-                        if (!order) return;
-                        await onStatusChange(order.id, statusId);
-                      }}
-                      translateStatus={translateStatus}
-                      getContrastColor={UtilityService.getContrastColor}
-                    />
-                  </td>
-                  <td className="p-4 align-middle">
-                    {UtilityService.formatCurrency(Number(order.amount))}
-                  </td>
-                  <td className="p-4 align-middle">
-                    {new Date(order.created).toLocaleString()}
-                  </td>
-                  <td className="p-4 align-middle">
-                    <div className="flex items-center gap-2">
-                      {showRestore ? (
-                        <>
-                          <Button
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onRestoreOrder(order.id);
-                            }}
-                          >
-                            Restore
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(order.id);
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(order.id);
-                          }}
-                        >
-                          Archive
-                        </Button>
-                      )}
+                  translateStatus={translateStatus}
+                  getContrastColor={UtilityService.getContrastColor}
+                />
+              </td>
+              <td className="p-3 align-middle">
+                {UtilityService.formatCurrency(Number(order.amount))}
+              </td>
+              <td className="p-3 align-middle">
+                {new Date(order.created).toLocaleString()}
+              </td>
+              <td className="p-3 align-middle">
+                <div className="flex items-center gap-2">
+                  {showRestore ? (
+                    <>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onViewDetails(order);
+                          onRestoreOrder(order.id);
                         }}
                       >
-                        {translations.details}
+                        Restore
                       </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(order.id);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(order.id);
+                      }}
+                    >
+                      Archive
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewDetails(order);
+                    }}
+                  >
+                    {translations.details}
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 } 
