@@ -40,11 +40,29 @@ function LoginForm() {
     // Only redirect after loading is complete and we know user is authenticated
     if (!isLoading && isAuthenticated) {
       console.log('User authenticated, redirecting from login page');
-      const baseUrl = window.location.origin;
-      const callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
-      const fullUrl = baseUrl + callbackUrl;
-      router.push(fullUrl);
-      router.refresh();
+      
+      // Get the callback URL from the URL parameters
+      let callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
+      
+      // SIMPLIFIED APPROACH: Use router.push with either a relative path or absolute path
+      if (callbackUrl.startsWith('http')) {
+        // Absolute URL - ensure it's for our own domain in production
+        const currentHost = window.location.host;
+        if (currentHost !== 'localhost' && callbackUrl.includes('localhost')) {
+          // Replace localhost with current host in production
+          try {
+            const urlObj = new URL(callbackUrl);
+            // Extract the path part without the domain
+            callbackUrl = urlObj.pathname;
+          } catch (e) {
+            console.error('Error parsing callback URL:', e);
+            callbackUrl = `/${locale}/dashboard`;
+          }
+        }
+      }
+      
+      // Now callbackUrl is either a relative path or a safe absolute URL
+      router.push(callbackUrl);
     }
   }, [isAuthenticated, isLoading, router, searchParams, locale]);
 
@@ -60,14 +78,31 @@ function LoginForm() {
       if (result.success) {
         // Navigate to dashboard or callback URL after successful login
         console.log('Login successful, redirecting');
-        const baseUrl = window.location.origin;
-        const callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
-        const fullUrl = baseUrl + callbackUrl;
+        
+        // Get the callback URL from the URL parameters
+        let callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
+        
+        // SIMPLIFIED APPROACH: Use router.push with either a relative path or absolute path
+        if (callbackUrl.startsWith('http')) {
+          // Absolute URL - ensure it's for our own domain in production
+          const currentHost = window.location.host;
+          if (currentHost !== 'localhost' && callbackUrl.includes('localhost')) {
+            // Replace localhost with current host in production
+            try {
+              const urlObj = new URL(callbackUrl);
+              // Extract the path part without the domain
+              callbackUrl = urlObj.pathname;
+            } catch (e) {
+              console.error('Error parsing callback URL:', e);
+              callbackUrl = `/${locale}/dashboard`;
+            }
+          }
+        }
         
         // Force a short delay to ensure cookie is set properly before redirect
         setTimeout(() => {
-          router.push(fullUrl);
-          router.refresh();
+          // Now callbackUrl is either a relative path or a safe absolute URL
+          router.push(callbackUrl);
         }, 100);
       } else {
         setError(result.error || t('loginError'));
