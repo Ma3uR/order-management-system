@@ -9,24 +9,43 @@ const getPocketBaseUrl = () => {
     if (typeof window !== 'undefined') {
         // Use environment variable in development, window.location.origin in production
         const isDevelopment = window.location.hostname === 'localhost';
+        
         if (!isDevelopment) {
-            // For production, get the API URL from the environment or derive from current origin
-            const productionUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL;
-            if (productionUrl) return productionUrl;
+            // For production, log the current URL for debugging
+            console.log("Current origin for PocketBase connection:", window.location.origin);
             
-            // If no explicit URL is provided, use the current origin but check for specific domains
-            // (don't use window.location.origin directly to avoid including app subdomain for API)
-            const originDomain = window.location.origin;
-            console.log("Using origin domain for PocketBase URL:", originDomain);
-            return originDomain;
+            // In production, always use the environment variable for PocketBase
+            // This should be the correct PocketBase URL, not the app URL
+            const pocketBaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL;
+            
+            if (pocketBaseUrl) {
+                // Make sure URL has protocol
+                let finalUrl = pocketBaseUrl;
+                if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                    finalUrl = `http://${finalUrl}`;
+                }
+                console.log("Using configured PocketBase URL:", finalUrl);
+                return finalUrl;
+            }
+            
+            // If no URL is configured, log an error but still try with origin
+            console.error("No PocketBase URL configured for production!");
+            return window.location.origin;
         }
     }
 
-    // Fallback to environment variable
+    // For development or server-side rendering
     const url = process.env.NEXT_PUBLIC_POCKETBASE_URL;
-    if (!url?.startsWith('http://') && !url?.startsWith('https://')) {
+    if (!url) {
+        console.error("No PocketBase URL configured in environment variables!");
+        return 'http://localhost:8090'; // Default fallback for local development
+    }
+    
+    // Ensure URL has protocol
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
         return `http://${url}`;
     }
+    
     return url;
 };
 
