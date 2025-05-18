@@ -40,8 +40,10 @@ function LoginForm() {
     // Only redirect after loading is complete and we know user is authenticated
     if (!isLoading && isAuthenticated) {
       console.log('User authenticated, redirecting from login page');
+      const baseUrl = window.location.origin;
       const callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
-      router.push(callbackUrl);
+      const fullUrl = baseUrl + callbackUrl;
+      router.push(fullUrl);
       router.refresh();
     }
   }, [isAuthenticated, isLoading, router, searchParams, locale]);
@@ -58,11 +60,13 @@ function LoginForm() {
       if (result.success) {
         // Navigate to dashboard or callback URL after successful login
         console.log('Login successful, redirecting');
+        const baseUrl = window.location.origin;
         const callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
+        const fullUrl = baseUrl + callbackUrl;
         
         // Force a short delay to ensure cookie is set properly before redirect
         setTimeout(() => {
-          router.push(callbackUrl);
+          router.push(fullUrl);
           router.refresh();
         }, 100);
       } else {

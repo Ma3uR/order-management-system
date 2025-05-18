@@ -22,6 +22,11 @@ export function useSession() {
       try {
         setIsLoading(true);
         
+        // If we're running in the browser, log some diagnostic info
+        if (typeof window !== 'undefined') {
+          console.log('Session initialization on:', window.location.origin);
+        }
+        
         // If we have a valid auth, use it
         if (pb.authStore.isValid && pb.authStore.model) {
           setUser({
@@ -49,6 +54,7 @@ export function useSession() {
                 console.log('Set user after auth refresh:', pb.authStore.model.id);
               } else {
                 console.log('Auth refresh completed but still not valid');
+                pb.authStore.clear();
                 setUser(null);
               }
             } else {

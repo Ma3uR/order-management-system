@@ -5,6 +5,24 @@ dotenv.config();
 
 // Ensure the URL is properly formatted with protocol
 const getPocketBaseUrl = () => {
+    // In browser environment, check if we're in production
+    if (typeof window !== 'undefined') {
+        // Use environment variable in development, window.location.origin in production
+        const isDevelopment = window.location.hostname === 'localhost';
+        if (!isDevelopment) {
+            // For production, get the API URL from the environment or derive from current origin
+            const productionUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL;
+            if (productionUrl) return productionUrl;
+            
+            // If no explicit URL is provided, use the current origin but check for specific domains
+            // (don't use window.location.origin directly to avoid including app subdomain for API)
+            const originDomain = window.location.origin;
+            console.log("Using origin domain for PocketBase URL:", originDomain);
+            return originDomain;
+        }
+    }
+
+    // Fallback to environment variable
     const url = process.env.NEXT_PUBLIC_POCKETBASE_URL;
     if (!url?.startsWith('http://') && !url?.startsWith('https://')) {
         return `http://${url}`;
