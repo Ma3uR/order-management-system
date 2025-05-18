@@ -11,9 +11,31 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always'
 });
 
+// Helper function to ensure we never redirect to localhost in production
+function getSafeRedirectUrl(url: string, currentHost: string): string {
+  // If we're in production and the URL contains localhost, replace it with the current host
+  if (currentHost !== 'localhost' && url.includes('localhost')) {
+    // Parse the URL to extract path
+    try {
+      const urlObj = new URL(url);
+      const locale = urlObj.pathname.split('/')[1] || defaultLocale;
+      const path = urlObj.pathname.replace(/^\/[^/]+/, ''); // Remove locale prefix
+      
+      // Rebuild URL with current host
+      return `${currentHost.startsWith('http') ? currentHost : `https://${currentHost}`}/${locale}${path}`;
+    } catch (e) {
+      console.error('Error parsing URL:', e);
+      // Fallback to dashboard
+      return `${currentHost.startsWith('http') ? currentHost : `https://${currentHost}`}/${defaultLocale}/dashboard`;
+    }
+  }
+  return url;
+}
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const cookies = request.cookies;
+  const currentHost = request.headers.get('host') || '';
 
   // Get PocketBase auth cookie
   const authCookie = cookies.get('pb_auth');
@@ -76,8 +98,14 @@ export function middleware(request: NextRequest) {
   // If path requires auth but no auth cookie exists, redirect to login
   if (requiresAuth && !authCookie) {
     console.log('Auth required but no cookie found, redirecting to login');
+    
+    // Simple approach - always redirect to login with a relative callbackUrl
     const loginUrl = new URL(`/${locale}/login`, request.url);
-    loginUrl.searchParams.set('callbackUrl', request.url);
+    
+    // Use getSafeRedirectUrl to ensure we don't redirect to localhost in production
+    const safeCallbackUrl = getSafeRedirectUrl(request.url, currentHost);
+    loginUrl.searchParams.set('callbackUrl', safeCallbackUrl);
+    
     return NextResponse.redirect(loginUrl);
   }
   
