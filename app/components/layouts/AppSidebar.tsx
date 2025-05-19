@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { 
   Sidebar, 
   SidebarHeader, 
@@ -18,36 +18,37 @@ import {
 
 export function AppSidebar() {
   const t = useTranslations('Dashboard');
+  const locale = useLocale();
 
   const navItems = [
     {
       title: t('dashboard'),
-      href: '/dashboard',
+      href: `/${locale}/dashboard`,
       icon: LayoutDashboard
     },
     {
       title: t('orders'),
-      href: '/orders',
+      href: `/${locale}/orders`,
       icon: ShoppingCart
     },
     {
       title: t('expenses'),
-      href: '/expenses',
+      href: `/${locale}/expenses`,
       icon: Receipt
     },
     {
       title: t('blacklist'),
-      href: '/blacklist',
+      href: `/${locale}/blacklist`,
       icon: Ban
     },
     {
       title: t('aiAssistant'),
-      href: '/ai-chat',
+      href: `/${locale}/ai-chat`,
       icon: Bot
     },
     {
       title: t('settings'),
-      href: '/settings',
+      href: `/${locale}/settings`,
       icon: Settings
     }
   ];
