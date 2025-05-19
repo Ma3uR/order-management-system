@@ -35,7 +35,6 @@ export function middleware(request: NextRequest) {
   if (requiresAuth && !authCookie) {
     console.log('Auth required but no cookie found, redirecting to login');
     const loginUrl = new URL(`/${locale}/login`, request.url);
-    loginUrl.searchParams.set('callbackUrl', request.url);
     return NextResponse.redirect(loginUrl);
   }
   
