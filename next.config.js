@@ -1,5 +1,6 @@
 import createNextIntlPlugin from 'next-intl/plugin';
 
+// Create a basic next-intl plugin with no custom options
 const withNextIntl = createNextIntlPlugin();
 
 /** @type {import('next').NextConfig} */
