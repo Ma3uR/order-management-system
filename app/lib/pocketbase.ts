@@ -52,6 +52,45 @@ const getPocketBaseUrl = () => {
 // Create a singleton instance
 let pb: PocketBase;
 
+// Safe localStorage functions that work in both browser and server contexts
+const safeLocalStorage = {
+  setItem: (key: string, value: string) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(key, value);
+        return true;
+      } catch (err) {
+        console.error('[PocketBase] Error accessing localStorage:', err);
+        return false;
+      }
+    }
+    return false;
+  },
+  getItem: (key: string) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch (err) {
+        console.error('[PocketBase] Error accessing localStorage:', err);
+        return null;
+      }
+    }
+    return null;
+  },
+  removeItem: (key: string) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.removeItem(key);
+        return true;
+      } catch (err) {
+        console.error('[PocketBase] Error accessing localStorage:', err);
+        return false;
+      }
+    }
+    return false;
+  }
+};
+
 // Initialize the PocketBase client
 function initPocketBase() {
     if (pb) return pb;
@@ -71,7 +110,7 @@ function initPocketBase() {
             if (pb.authStore.isValid) {
                 try {
                     // Save to localStorage only (no cookies)
-                    localStorage.setItem('pocketbase_auth', JSON.stringify({
+                    safeLocalStorage.setItem('pocketbase_auth', JSON.stringify({
                         token: pb.authStore.token,
                         model: pb.authStore.model
                     }));
@@ -83,7 +122,7 @@ function initPocketBase() {
                     console.error('[PocketBase] Error saving auth data:', err);
                 }
             } else {
-                localStorage.removeItem('pocketbase_auth');
+                safeLocalStorage.removeItem('pocketbase_auth');
                 console.log('[PocketBase] Auth changed: Cleared invalid auth state');
             }
         });
@@ -91,7 +130,7 @@ function initPocketBase() {
     
     // Try to restore auth from localStorage if needed
     try {
-        const storedAuthData = localStorage.getItem('pocketbase_auth');
+        const storedAuthData = safeLocalStorage.getItem('pocketbase_auth');
         if (storedAuthData && !pb.authStore.isValid) {
             const authData = JSON.parse(storedAuthData);
             console.log('[PocketBase] Found stored auth data, attempting to restore');
@@ -106,13 +145,13 @@ function initPocketBase() {
                 });
             } else {
                 console.log('[PocketBase] Restored auth is not valid, clearing');
-                localStorage.removeItem('pocketbase_auth');
+                safeLocalStorage.removeItem('pocketbase_auth');
                 pb.authStore.clear();
             }
         }
     } catch (err) {
         console.error('[PocketBase] Error loading auth from local storage:', err);
-        localStorage.removeItem('pocketbase_auth');
+        safeLocalStorage.removeItem('pocketbase_auth');
         pb.authStore.clear();
     }
     
@@ -163,7 +202,7 @@ export async function loginUser(email: string, password: string) {
     // Save auth data to localStorage only
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('pocketbase_auth', JSON.stringify({
+        safeLocalStorage.setItem('pocketbase_auth', JSON.stringify({
           token: pocketBase.authStore.token,
           model: pocketBase.authStore.model
         }));
@@ -204,7 +243,7 @@ export function logoutUser() {
         // Browser-only operations
         if (typeof window !== 'undefined') {
             // Clear localStorage
-            localStorage.removeItem('pocketbase_auth');
+            safeLocalStorage.removeItem('pocketbase_auth');
             console.log('[PocketBase] Auth cleared from localStorage');
             
             // Force a redirect to login to ensure all state is reset
@@ -216,7 +255,7 @@ export function logoutUser() {
         
         // Last resort - if there's an error, try a very basic logout
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('pocketbase_auth');
+            safeLocalStorage.removeItem('pocketbase_auth');
             window.location.href = '/login';
         }
     }
