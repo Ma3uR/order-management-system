@@ -138,30 +138,54 @@ export async function authenticateAdmin() {
 
 // Helper to login a user and save to localStorage and cookie
 export async function loginUser(email: string, password: string) {
-    try {
-        const authData = await pocketBase.collection('users').authWithPassword(email, password);
-        
-        // Ensure the cookie is set correctly
-        if (typeof window !== 'undefined') {
-            document.cookie = pocketBase.authStore.exportToCookie({ httpOnly: false });
-        }
-        
-        console.log('User authenticated:', {
-            userId: authData.record.id,
-            email: authData.record.email
-        });
-        
-        return {
-            success: true,
-            user: authData.record
-        };
-    } catch (error) {
-        console.error('Login error:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-        };
+  try {
+    console.log('[PocketBase] Login attempt for:', email);
+    
+    // Log pre-login state
+    console.log('[PocketBase] Auth state before login:', {
+      isValid: pocketBase.authStore.isValid,
+      hasToken: !!pocketBase.authStore.token,
+      baseUrl: pocketBase.baseUrl
+    });
+    
+    const authData = await pocketBase.collection('users').authWithPassword(email, password);
+    
+    // Ensure the cookie is set correctly
+    if (typeof window !== 'undefined') {
+      const cookieValue = pocketBase.authStore.exportToCookie({ httpOnly: false });
+      document.cookie = cookieValue;
+      console.log('[PocketBase] Cookie set:', cookieValue.split('=')[0] + '=[REDACTED]');
+      
+      // Also ensure localStorage is set
+      try {
+        localStorage.setItem('pocketbase_auth', JSON.stringify({
+          token: pocketBase.authStore.token,
+          model: pocketBase.authStore.model
+        }));
+        console.log('[PocketBase] Auth data saved to localStorage');
+      } catch (storageError) {
+        console.error('[PocketBase] Failed to save to localStorage:', storageError);
+      }
     }
+    
+    console.log('[PocketBase] User authenticated:', {
+      userId: authData.record.id,
+      email: authData.record.email,
+      isValid: pocketBase.authStore.isValid,
+      hasToken: !!pocketBase.authStore.token
+    });
+    
+    return {
+      success: true,
+      user: authData.record
+    };
+  } catch (error) {
+    console.error('[PocketBase] Login error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 }
 
 // Helper to logout a user
