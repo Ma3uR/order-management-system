@@ -220,6 +220,12 @@ function LoginForm() {
   
   // If already authenticated (but hasn't redirected yet), show a message
   if (isAuthenticated) {
+    // Debug cookie state
+    if (typeof window !== 'undefined') {
+      console.log('[LoginPage] Debug cookies on authenticated state:',
+        document.cookie.split(';').map(c => c.trim().split('=')[0]));
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
