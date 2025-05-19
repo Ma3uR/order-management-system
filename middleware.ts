@@ -5,11 +5,13 @@ import type { NextRequest } from 'next/server'
 const locales = ['en', 'ua']
 const defaultLocale = 'en'
 
-// Create next-intl middleware
+// Create next-intl middleware with explicit configuration
 const nextIntlMiddleware = createMiddleware({
   locales,
   defaultLocale,
-  localePrefix: 'always'
+  localePrefix: 'always',
+  // Enable locale detection
+  localeDetection: true
 });
 
 export function middleware(request: NextRequest) {
@@ -21,15 +23,27 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Special case for the root path: redirect to default locale
+  if (pathname === '/' || pathname === '') {
+    const url = new URL(`/${defaultLocale}`, request.url);
+    return NextResponse.redirect(url);
+  }
+
   // Check if path starts with a locale
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   )
 
-  if (!pathnameHasLocale) {
-    // Redirect to default locale if no locale is present
-    const url = new URL(`/${defaultLocale}${pathname}`, request.url)
-    return NextResponse.redirect(url)
+  // Exclude API routes and static assets from locale redirects
+  const isApiRoute = pathname.startsWith('/api/');
+  const isNextAsset = pathname.startsWith('/_next/') || 
+                      pathname.includes('.') ||
+                      pathname === '/favicon.ico';
+
+  if (!pathnameHasLocale && !isApiRoute && !isNextAsset) {
+    // Redirect to default locale if no locale is present and it's not an API route or static asset
+    const url = new URL(`/${defaultLocale}${pathname}`, request.url);
+    return NextResponse.redirect(url);
   }
 
   // For language switcher: handle paths that have double locales
@@ -49,13 +63,12 @@ export function middleware(request: NextRequest) {
   return nextIntlMiddleware(request)
 }
 
+// Updated config to match all routes properly
 export const config = {
   matcher: [
-    // Match all paths except those starting with:
-    // - api (API routes)
-    // - _next/static (static files)
-    // - _next/image (image optimization files)
-    // - favicon.ico (favicon file)
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+    // Match all routes except Next.js internals
+    '/((?!api/|_next/|_vercel|.*\\..*$).*)',
+    // Also match root
+    '/'
+  ]
 }

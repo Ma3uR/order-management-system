@@ -1,95 +1,151 @@
 'use client';
 
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from "recharts";
 import { motion } from "framer-motion";
-import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
 
 interface TrafficChannelProps {
-  data: {
+  data: Array<{
     name: string;
     value: number;
     color: string;
-  }[];
+    rawValue?: number;
+    sourceId?: string;
+  }>;
   className?: string;
 }
 
-export function TrafficChannel({ data, className }: TrafficChannelProps) {
-  const t = useTranslations('Dashboard');
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
-  const CustomLegend = ({ payload }: { payload: { name: string; value: number; color: string; }[] }) => {
+// Custom tooltip component with proper TypeScript types
+const CustomTooltip = ({ active, payload }: { 
+  active?: boolean; 
+  payload?: Array<{ payload: Record<string, unknown> }> 
+}) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
     return (
-      <div className="flex flex-wrap justify-center gap-4 pt-4">
-        {payload.map((entry, index) => (
-          <div key={`legend-${index}`} className="flex items-center gap-2">
-            <div
-              className="h-3 w-3 rounded-sm"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              {entry.value} ({data[index].value.toFixed(1)}%)
-            </span>
-          </div>
-        ))}
+      <div className="bg-white dark:bg-gray-800 p-2 shadow-md rounded-md border border-gray-200 dark:border-gray-700">
+        <p className="font-medium">{String(data.name)}</p>
+        <p>Value: {Number(data.value).toFixed(1)}%</p>
+        {typeof data.rawValue === 'number' && (
+          <p>Raw amount: {Number(data.rawValue).toFixed(2)}</p>
+        )}
+        {typeof data.sourceId === 'string' && (
+          <p className="text-xs text-gray-500">ID: {data.sourceId}</p>
+        )}
       </div>
     );
+  }
+  return null;
+};
+
+// Custom active shape for better visualization
+// Note: We have to use 'any' here because recharts has incompatible type expectations
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const renderActiveShape = (props: any) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 6}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+    </g>
+  );
+};
+
+// Custom label renderer with improved positioning
+// Note: We have to use any for compatibility with recharts
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const renderCustomizedLabel = (props: any) => {
+  const { cx, cy, midAngle, outerRadius, percent, name } = props;
+  
+  // Calculate the positioning of the label to prevent overlap
+  const RADIAN = Math.PI / 180;
+  const radius = outerRadius + 30; // Position labels further out
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
+  // Only show labels for items with more than 5% to prevent clutter
+  if (percent < 0.05) return null;
+  
+  // Different positioning based on which side of the chart
+  const textAnchor = x > cx ? 'start' : 'end';
+  
+  return (
+    <text 
+      x={x} 
+      y={y} 
+      fill="currentColor" // Use currentColor to respect theme
+      className="text-xs" 
+      textAnchor={textAnchor}
+      dominantBaseline="central"
+    >
+      {`${name} (${(percent * 100).toFixed(1)}%)`}
+    </text>
+  );
+};
+
+export const TrafficChannel: React.FC<TrafficChannelProps> = ({ data, className }) => {
+  const t = useTranslations('Dashboard');
+  const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onPieEnter = (_: any, index: number) => {
+    setActiveIndex(index);
   };
 
+  const onPieLeave = () => {
+    setActiveIndex(undefined);
+  };
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.5 }}
       className={className}
     >
-      <Card className="h-full bg-white/50 dark:bg-black/90 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-base font-medium">
-            {t('trafficChannel')}
-          </CardTitle>
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-md font-medium">{t('trafficSources')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
-            {data.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {data.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.color}
-                        stroke={isDark ? '#1f2937' : '#ffffff'}
-                        strokeWidth={2}
-                      />
-                    ))}
-                  </Pie>
-                  <Legend
-                    content={<CustomLegend payload={data} />}
-                    verticalAlign="bottom"
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('noTrafficData')}
-                </p>
-              </div>
-            )}
+          <div className="h-[270px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  label={renderCustomizedLabel}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  activeIndex={activeIndex}
+                  activeShape={renderActiveShape}
+                  onMouseEnter={onPieEnter}
+                  onMouseLeave={onPieLeave}
+                  animationDuration={750}
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
     </motion.div>
   );
-} 
+}; 

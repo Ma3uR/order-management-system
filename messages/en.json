@@ -4,6 +4,7 @@
     "totalRevenue": "Total Revenue",
     "monthlySales": "Monthly Sales",
     "trafficChannel": "Traffic Channel", 
+    "trafficSources": "Traffic Sources",
     "noTrafficData": "No traffic data available",
     "statistics": "Statistics",
     "aiChat": "AI Chat",
@@ -41,6 +42,7 @@
   },
   "Orders": {
     "title": "Orders",
+    "orders": "Orders",
     "addOrder": "Add Order",
     "editOrder": "Edit Order",
     "filterOrders": "Filter Orders",
@@ -48,6 +50,10 @@
     "mergeNotification": {
       "title": "Potential order merge detected",
       "description": "We found orders that might be from the same customer.",
+      "phoneMatch": "Orders with matching phone numbers",
+      "nameMatch": "Orders with matching customer names",
+      "confirmButton": "Merge Orders",
+      "rejectButton": "Keep Separate",
       "merge": "Merge Orders",
       "ignore": "Ignore"
     },
@@ -78,6 +84,8 @@
     "deliveryPostNumber": "Delivery Post Number",
     "phoneNumber": "Phone Number",
     "products": "Products",
+    "productName": "Product Name",
+    "quantity": "Quantity",
     "numberOfItems": "Number of Items",
     "paymentMethod": "Payment Method",
     "selectStatus": "Select Status",
@@ -140,7 +148,10 @@
     "mergeRejectionError": "Failed to update orders",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "allSources": "All Sources"
+    "allSources": "All Sources",
+    "actionsAndStatistics": "Actions & Statistics",
+    "details": "Order Details",
+    "product": "Product"
   },
   "Blacklist": {
     "title": "Blacklist",
