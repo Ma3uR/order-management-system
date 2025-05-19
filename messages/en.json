@@ -310,6 +310,7 @@
     "loginError": "Invalid email or password",
     "alreadyAuthenticated": "You are already signed in",
     "redirecting": "Redirecting to dashboard",
+    "goToDashboard": "Go to Dashboard",
     "orderManagement": "Order Management",
     "automateWorkflows": "Automate Workflows",
     "streamlineOrders": "Streamline Orders",
