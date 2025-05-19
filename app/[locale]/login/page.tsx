@@ -62,7 +62,42 @@ function LoginForm() {
       // To avoid infinite redirect loops, only attempt redirect once
       if (!redirectAttempted) {
         setRedirectAttempted(true);
-        const dashboardUrl = `/${locale}/dashboard`;
+        
+        // Get the current origin
+        const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+        console.log('[LoginPage] Current origin:', currentOrigin);
+        
+        // Check if there's a callback URL in the query parameters
+        let dashboardUrl = `/${locale}/dashboard`;
+        
+        if (typeof window !== 'undefined') {
+          // Parse the URL to check for callback parameter
+          const urlParams = new URLSearchParams(window.location.search);
+          const callbackUrl = urlParams.get('callbackUrl');
+          
+          if (callbackUrl) {
+            console.log('[LoginPage] Found callback URL:', callbackUrl);
+            
+            try {
+              // Parse the callback URL to check its origin
+              const callbackUrlObj = new URL(callbackUrl);
+              
+              // Only use callback if it's from the same origin or doesn't contain localhost
+              if (callbackUrlObj.origin === currentOrigin || 
+                  (!callbackUrlObj.origin.includes('localhost') && !currentOrigin.includes('localhost'))) {
+                console.log('[LoginPage] Using callback URL path:', callbackUrlObj.pathname);
+                dashboardUrl = callbackUrlObj.pathname + callbackUrlObj.search;
+              } else {
+                console.log('[LoginPage] Ignoring callback URL with different origin');
+              }
+            } catch (e) {
+              console.error('[LoginPage] Invalid callback URL:', e);
+            }
+          }
+        }
+        
+        // Log the final redirect URL
+        console.log('[LoginPage] Final redirect URL:', dashboardUrl);
         
         // Try Next.js router first
         console.log('[LoginPage] Attempting router.push to:', dashboardUrl);
