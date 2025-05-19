@@ -15,8 +15,23 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const cookies = request.cookies;
 
-  // Get PocketBase auth cookie
-  const authCookie = cookies.get('pb_auth');
+  // Check for auth with multiple possible cookie names
+  // PocketBase might use different cookie names in different environments
+  const pbAuthCookie = cookies.get('pb_auth');
+  const alternativeAuthCookie = cookies.get('PocketBase_auth');
+  const authCookie = pbAuthCookie || alternativeAuthCookie;
+  
+  // Log all cookies for debugging
+  console.log('Middleware cookies:', Array.from(cookies.getAll()).map(c => `${c.name}`));
+  console.log('Middleware auth check:', {
+    pathname,
+    hasAuth: !!authCookie,
+    hasPbAuth: !!pbAuthCookie, 
+    hasAltAuth: !!alternativeAuthCookie,
+    cookieName: authCookie?.name,
+    url: request.url,
+    origin: request.nextUrl.origin
+  });
   
   // Define protected paths that require authentication
   const protectedPaths = [
@@ -75,27 +90,31 @@ export function middleware(request: NextRequest) {
 
   // If path requires auth but no auth cookie exists, redirect to login
   if (requiresAuth && !authCookie) {
-    console.log('Auth required but no cookie found, redirecting to login');
+    console.log('Auth required but no cookie found for path:', pathname);
+    
     // Create the login URL without callback initially
     const loginUrl = new URL(`/${locale}/login`, request.url);
     
     // Only add callback if it's from the same domain (not a cross-domain redirect)
     const requestOrigin = request.nextUrl.origin;
+    
     // Don't set callback if URL contains localhost but we're on a different domain
     if (!request.url.includes('localhost') || requestOrigin.includes('localhost')) {
-      console.log('Setting callback URL to:', request.url);
       loginUrl.searchParams.set('callbackUrl', request.url);
     } else {
       console.log('Avoiding cross-domain callback URL');
     }
     
+    console.log('Redirecting to login:', loginUrl.toString());
     return NextResponse.redirect(loginUrl);
   }
   
   // If already authenticated and trying to access login page, redirect to dashboard
   if (isPublicPath && authCookie) {
-    console.log('Already authenticated, redirecting to dashboard');
-    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+    console.log('Already authenticated on login page, redirecting to dashboard for path:', pathname);
+    // Clone the URL and override the pathname to keep the same origin
+    const dashboardUrl = new URL(`/${locale}/dashboard`, request.url);
+    return NextResponse.redirect(dashboardUrl);
   }
   
   // Run next-intl middleware after our custom logic

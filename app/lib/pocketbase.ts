@@ -56,15 +56,29 @@ let pb: PocketBase;
 function initPocketBase() {
     if (pb) return pb;
     
-    pb = new PocketBase(getPocketBaseUrl());
+    const pocketBaseUrl = getPocketBaseUrl();
+    console.log('[PocketBase] Initializing with URL:', pocketBaseUrl);
+    
+    pb = new PocketBase(pocketBaseUrl);
     
     // Enable both cookie-based auth and localStorage persistence for client-side usage
     if (typeof window !== 'undefined') {
         // Enable cookie auth - This is essential for middleware to work
         pb.autoCancellation(false);
+        
+        // Log the cookie name that PocketBase is using
+        try {
+            const cookieValue = pb.authStore.exportToCookie({ httpOnly: false });
+            console.log('[PocketBase] Cookie name used by PocketBase:', cookieValue.split('=')[0]);
+        } catch (err) {
+            console.error('[PocketBase] Error checking cookie name:', err);
+        }
+        
         pb.authStore.onChange(() => {
             // When auth state changes, set the cookie for server-side use
-            document.cookie = pb.authStore.exportToCookie({ httpOnly: false });
+            const cookieValue = pb.authStore.exportToCookie({ httpOnly: false });
+            document.cookie = cookieValue;
+            console.log('[PocketBase] Auth state changed, cookie set:', cookieValue.split('=')[0]);
             
             try {
                 if (pb.authStore.isValid) {
@@ -73,16 +87,16 @@ function initPocketBase() {
                         token: pb.authStore.token,
                         model: pb.authStore.model
                     }));
-                    console.log('Saved auth to localStorage and cookie:', {
+                    console.log('[PocketBase] Saved auth to localStorage and cookie:', {
                         userId: pb.authStore.model?.id,
                         isValid: pb.authStore.isValid
                     });
                 } else {
                     localStorage.removeItem('pocketbase_auth');
-                    console.log('Cleared auth (invalid)');
+                    console.log('[PocketBase] Cleared auth (invalid)');
                 }
             } catch (err) {
-                console.error('Error saving auth data:', err);
+                console.error('[PocketBase] Error saving auth data:', err);
             }
         });
         
@@ -190,11 +204,58 @@ export async function loginUser(email: string, password: string) {
 
 // Helper to logout a user
 export function logoutUser() {
-    pocketBase.authStore.clear();
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem('pocketbase_auth');
-        // Clear the cookie
-        document.cookie = "pb_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    console.log('[PocketBase] Logout initiated, clearing auth state');
+    
+    try {
+        // Clear the PocketBase auth store first
+        pocketBase.authStore.clear();
+        
+        // Browser-only operations
+        if (typeof window !== 'undefined') {
+            // Clear localStorage
+            localStorage.removeItem('pocketbase_auth');
+            
+            // Get the currently used cookie name
+            const cookieName = getPocketBaseCookieName();
+            console.log('[PocketBase] Clearing cookies with name:', cookieName);
+            
+            // Clear ALL potential cookie names with various paths and domains
+            const cookieNames = ['pb_auth', 'PocketBase_auth', cookieName];
+            const paths = ['/', '/en', '/ua', '/en/', '/ua/', ''];
+            const domain = window.location.hostname;
+            
+            // Clear cookies with all possible combinations
+            cookieNames.forEach(name => {
+                paths.forEach(path => {
+                    // Clear with path only
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path};`;
+                    
+                    // Clear with domain and path
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=${path};`;
+                    
+                    // Try also with the www subdomain removed
+                    if (domain.startsWith('www.')) {
+                        const rootDomain = domain.substring(4);
+                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${rootDomain}; path=${path};`;
+                    }
+                });
+            });
+            
+            console.log('[PocketBase] Auth cookies cleared');
+            debugAuthState(); // Log the current auth state after clearing
+            
+            // Force a reload to ensure all state is reset
+            console.log('[PocketBase] Reloading page after logout to reset all state');
+            window.location.href = `/${window.location.pathname.split('/')[1] || 'en'}/login`;
+        }
+    } catch (err) {
+        console.error('[PocketBase] Error during logout:', err);
+        
+        // Last resort - if there's an error, try a very basic logout
+        if (typeof window !== 'undefined') {
+            document.cookie = "pb_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            window.location.href = '/login';
+        }
     }
 }
 
@@ -354,4 +415,43 @@ export interface ExpensesRecord {
   date: string;
   category?: string;
   receipt?: string;
+}
+
+// Get the cookie name used by PocketBase
+export function getPocketBaseCookieName() {
+    try {
+        // Create a dummy cookie value to extract the correct name
+        const cookieValue = pocketBase.authStore.exportToCookie({ httpOnly: false });
+        const cookieName = cookieValue.split('=')[0];
+        console.log('[PocketBase] Cookie name used by PocketBase:', cookieName);
+        return cookieName;
+    } catch (err) {
+        console.error('[PocketBase] Error getting cookie name:', err);
+        return 'pb_auth'; // Default fallback
+    }
+}
+
+// Add a helper for console logging auth state
+export function debugAuthState() {
+    if (typeof window === 'undefined') return null;
+    
+    const cookieName = getPocketBaseCookieName();
+    const cookies = document.cookie.split(';').map(c => c.trim());
+    const authCookie = cookies.find(c => c.startsWith(`${cookieName}=`));
+    
+    // Get cookies by searching document.cookie
+    console.log('[PocketBase] Debug Auth State:', {
+        isValid: pocketBase.authStore.isValid,
+        hasToken: !!pocketBase.authStore.token,
+        cookieName: cookieName,
+        hasCookieInDocument: !!authCookie,
+        tokenLength: pocketBase.authStore.token?.length,
+        modelId: pocketBase.authStore.model?.id,
+    });
+    
+    return {
+        isValid: pocketBase.authStore.isValid,
+        cookieName,
+        hasCookie: !!authCookie
+    };
 }
