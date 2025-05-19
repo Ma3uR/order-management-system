@@ -13,7 +13,6 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
-          // Ensure secure cookies and proper CORS behavior
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -23,17 +22,7 @@ const nextConfig = {
         ],
       },
     ];
-  },
-  
-  // Ensure BASE_PATH is empty by default, should be configured in deployment if needed
-  // basePath: '',
-  
-  // Don't use base URL by default (avoid localhost in production)
-  // assetPrefix: '',
-  
-  experimental: {
-    // Any experimental features
   }
-}
+};
 
 export default withNextIntl(nextConfig);

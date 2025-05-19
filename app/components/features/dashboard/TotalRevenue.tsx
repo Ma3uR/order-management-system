@@ -20,6 +20,10 @@ export function TotalRevenue({ value, change, data, className }: TotalRevenuePro
   const t = useTranslations('Dashboard');
   const chartData = data.map((value) => ({ value }));
 
+  // Format the change value safely
+  const safeChangeValue = change?.value || '0%';
+  const isPositive = change?.positive ?? true;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -38,13 +42,13 @@ export function TotalRevenue({ value, change, data, className }: TotalRevenuePro
             <div>
               <div className="text-2xl font-bold">{value}</div>
               <div className="flex items-center gap-1">
-                {change.positive ? (
+                {isPositive ? (
                   <ArrowUp className="h-4 w-4 text-green-500" />
                 ) : (
                   <ArrowDown className="h-4 w-4 text-red-500" />
                 )}
-                <span className={change.positive ? "text-green-500" : "text-red-500"}>
-                  {change.value}
+                <span className={isPositive ? "text-green-500" : "text-red-500"}>
+                  {safeChangeValue}
                 </span>
               </div>
             </div>
@@ -54,7 +58,7 @@ export function TotalRevenue({ value, change, data, className }: TotalRevenuePro
                   <Line
                     type="monotone"
                     dataKey="value"
-                    stroke={change.positive ? "#10B981" : "#EF4444"}
+                    stroke={isPositive ? "#10B981" : "#EF4444"}
                     strokeWidth={2}
                     dot={false}
                   />

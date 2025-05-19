@@ -3,6 +3,45 @@ import { OrdersResponse, OrdersRecord, OrdersMergeStatusOptions, OrdersMergeSour
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+// Safe localStorage functions that work in both browser and server contexts
+const safeLocalStorage = {
+  setItem: (key: string, value: string) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(key, value);
+        return true;
+      } catch (err) {
+        console.error('[PocketBase] Error accessing localStorage:', err);
+        return false;
+      }
+    }
+    return false;
+  },
+  getItem: (key: string) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch (err) {
+        console.error('[PocketBase] Error accessing localStorage:', err);
+        return null;
+      }
+    }
+    return null;
+  },
+  removeItem: (key: string) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.removeItem(key);
+        return true;
+      } catch (err) {
+        console.error('[PocketBase] Error accessing localStorage:', err);
+        return false;
+      }
+    }
+    return false;
+  }
+};
+
 // Ensure the URL is properly formatted with protocol
 const getPocketBaseUrl = () => {
     // In browser environment, check if we're in production
@@ -51,45 +90,6 @@ const getPocketBaseUrl = () => {
 
 // Create a singleton instance
 let pb: PocketBase;
-
-// Safe localStorage functions that work in both browser and server contexts
-const safeLocalStorage = {
-  setItem: (key: string, value: string) => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.setItem(key, value);
-        return true;
-      } catch (err) {
-        console.error('[PocketBase] Error accessing localStorage:', err);
-        return false;
-      }
-    }
-    return false;
-  },
-  getItem: (key: string) => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        return window.localStorage.getItem(key);
-      } catch (err) {
-        console.error('[PocketBase] Error accessing localStorage:', err);
-        return null;
-      }
-    }
-    return null;
-  },
-  removeItem: (key: string) => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.removeItem(key);
-        return true;
-      } catch (err) {
-        console.error('[PocketBase] Error accessing localStorage:', err);
-        return false;
-      }
-    }
-    return false;
-  }
-};
 
 // Initialize the PocketBase client
 function initPocketBase() {
@@ -400,6 +400,9 @@ export async function createOrder(
     pocketBase.collection('orders').create<OrdersResponse>(completeOrderData)
   );
 }
+
+// Export these utilities for use in other modules
+export { safeLocalStorage };
 
 // Export default PocketBase instance
 export default pocketBase;
