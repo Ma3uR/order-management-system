@@ -342,6 +342,7 @@
     "forgotPassword": "Forgot Password?"
   },
   "Navigation": {
+    "backToDashboard": "Back to Dashboard",
     "dashboard": "Dashboard",
     "orders": "Orders",
     "settings": "Settings",
