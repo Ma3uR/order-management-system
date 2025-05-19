@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { loginUser } from '@/app/lib/pocketbase';
-import { redirect, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Card } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
@@ -167,7 +167,45 @@ function LoginForm() {
   
   // If already authenticated (but hasn't redirected yet), show a message
   if (isAuthenticated) {
-    return redirect(`/${locale}/dashboard`);
+    // Debug cookie state
+    if (typeof window !== 'undefined') {
+      console.log('[LoginPage] Debug cookies on authenticated state:',
+        document.cookie.split(';').map(c => c.trim().split('=')[0]));
+    }
+    
+    // Use the manual redirect function instead of server-side redirect
+    // This ensures we use client-side navigation which won't cause an infinite loop
+    // Add this function since we're using it here
+    const manualRedirect = () => {
+      console.log('[LoginPage] Manual redirect initiated');
+      const dashboardUrl = `/${locale}/dashboard`;
+      
+      // Always use direct navigation as it's more reliable
+      if (typeof window !== 'undefined') {
+        window.location.href = dashboardUrl;
+      }
+    };
+    
+    // Execute the redirect immediately
+    setTimeout(manualRedirect, 0);
+    
+    // Return a loading state while redirecting
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">{t('alreadyAuthenticated')}</p>
+          <p className="text-sm text-muted-foreground">{t('redirecting')}</p>
+          <div className="mt-4">
+            <button 
+              onClick={manualRedirect}
+              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+            >
+              {t('goToDashboard')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
