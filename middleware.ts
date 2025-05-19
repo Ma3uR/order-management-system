@@ -76,8 +76,19 @@ export function middleware(request: NextRequest) {
   // If path requires auth but no auth cookie exists, redirect to login
   if (requiresAuth && !authCookie) {
     console.log('Auth required but no cookie found, redirecting to login');
-    // SIMPLE APPROACH: Just redirect to login with no callback URL
+    // Create the login URL without callback initially
     const loginUrl = new URL(`/${locale}/login`, request.url);
+    
+    // Only add callback if it's from the same domain (not a cross-domain redirect)
+    const requestOrigin = request.nextUrl.origin;
+    // Don't set callback if URL contains localhost but we're on a different domain
+    if (!request.url.includes('localhost') || requestOrigin.includes('localhost')) {
+      console.log('Setting callback URL to:', request.url);
+      loginUrl.searchParams.set('callbackUrl', request.url);
+    } else {
+      console.log('Avoiding cross-domain callback URL');
+    }
+    
     return NextResponse.redirect(loginUrl);
   }
   
