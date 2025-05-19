@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { loginUser } from '@/app/lib/pocketbase';
-import { useRouter } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Card } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
@@ -173,27 +173,6 @@ function LoginForm() {
   const currentTheme = mounted ? (resolvedTheme || theme) : undefined;
   const isDarkTheme = currentTheme === 'dark';
 
-  // Debug render
-  console.log('[LoginPage] Rendering with state:', { 
-    isAuthenticated, 
-    isLoading, 
-    mounted, 
-    redirectAttempted 
-  });
-
-  // Add this immediately after your existing redirect effect
-  // This effect forces a manual redirect on click of the Go to Dashboard button
-  const manualRedirect = () => {
-    console.log('[LoginPage] Manual redirect initiated');
-    const dashboardUrl = `/${locale}/dashboard`;
-    
-    // Always use direct navigation for the button click
-    // as it's more reliable than router.push
-    if (typeof window !== 'undefined') {
-      window.location.href = dashboardUrl;
-    }
-  };
-
   if (!mounted) {
     // Render a placeholder with matching structure to avoid layout shift
     return (
@@ -220,28 +199,7 @@ function LoginForm() {
   
   // If already authenticated (but hasn't redirected yet), show a message
   if (isAuthenticated) {
-    // Debug cookie state
-    if (typeof window !== 'undefined') {
-      console.log('[LoginPage] Debug cookies on authenticated state:',
-        document.cookie.split(';').map(c => c.trim().split('=')[0]));
-    }
-    
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg">{t('alreadyAuthenticated')}</p>
-          <p className="text-sm text-muted-foreground">{t('redirecting')}</p>
-          <div className="mt-4">
-            <button 
-              onClick={manualRedirect}
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-            >
-              {t('goToDashboard')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return redirect(`/${locale}/dashboard`);
   }
 
   return (
