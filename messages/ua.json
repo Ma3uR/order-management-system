@@ -317,21 +317,19 @@
   },
   "Auth": {
     "welcome": "Ласкаво просимо",
-    "loginSubtitle": "Увійдіть до свого облікового запису, щоб продовжити",
+    "loginSubtitle": "Увійдіть, щоб отримати доступ до вашого облікового запису",
     "emailLabel": "Електронна пошта",
-    "emailPlaceholder": "Введіть свою електронну пошту",
+    "emailPlaceholder": "Введіть вашу електронну пошту",
     "passwordLabel": "Пароль",
-    "passwordPlaceholder": "••••••••",
-    "login": "Увійти",
-    "loggingIn": "Вхід...",
-    "forgotPassword": "Забули пароль?",
+    "passwordPlaceholder": "Введіть ваш пароль",
+    "loginButton": "Увійти",
     "loginError": "Невірна електронна пошта або пароль",
-    "authRequired": "Необхідна автентифікація",
-    "loginToAccess": "Будь ласка, увійдіть, щоб отримати доступ до цієї сторінки",
+    "alreadyAuthenticated": "Ви вже увійшли в систему",
+    "redirecting": "Перенаправлення на панель управління",
     "orderManagement": "Управління замовленнями",
-    "automateWorkflows": "Автоматизуйте робочі процеси",
-    "streamlineOrders": "Спростіть обробку замовлень",
-    "boostEfficiency": "Підвищіть ефективність"
+    "automateWorkflows": "Автоматизація робочих процесів",
+    "streamlineOrders": "Оптимізація замовлень",
+    "boostEfficiency": "Підвищення ефективності"
   },
   "Navigation": {
     "backToDashboard": "Повернутися до панелі керування"

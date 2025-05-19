@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { loginUser } from '@/app/lib/pocketbase';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Card } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
@@ -25,7 +25,6 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading } = useSession();
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -35,36 +34,14 @@ function LoginForm() {
     setMounted(true);
   }, []);
   
-  // If user is already authenticated, redirect to dashboard or callback URL
+  // If user is already authenticated, redirect to dashboard
   useEffect(() => {
     // Only redirect after loading is complete and we know user is authenticated
     if (!isLoading && isAuthenticated) {
-      console.log('User authenticated, redirecting from login page');
-      
-      // Get the callback URL from the URL parameters
-      let callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
-      
-      // SIMPLIFIED APPROACH: Use router.push with either a relative path or absolute path
-      if (callbackUrl.startsWith('http')) {
-        // Absolute URL - ensure it's for our own domain in production
-        const currentHost = window.location.host;
-        if (currentHost !== 'localhost' && callbackUrl.includes('localhost')) {
-          // Replace localhost with current host in production
-          try {
-            const urlObj = new URL(callbackUrl);
-            // Extract the path part without the domain
-            callbackUrl = urlObj.pathname;
-          } catch (e) {
-            console.error('Error parsing callback URL:', e);
-            callbackUrl = `/${locale}/dashboard`;
-          }
-        }
-      }
-      
-      // Now callbackUrl is either a relative path or a safe absolute URL
-      router.push(callbackUrl);
+      console.log('User authenticated, redirecting to dashboard');
+      router.push(`/${locale}/dashboard`);
     }
-  }, [isAuthenticated, isLoading, router, searchParams, locale]);
+  }, [isAuthenticated, isLoading, router, locale]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,33 +53,12 @@ function LoginForm() {
       const result = await loginUser(email, password);
       
       if (result.success) {
-        // Navigate to dashboard or callback URL after successful login
-        console.log('Login successful, redirecting');
-        
-        // Get the callback URL from the URL parameters
-        let callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
-        
-        // SIMPLIFIED APPROACH: Use router.push with either a relative path or absolute path
-        if (callbackUrl.startsWith('http')) {
-          // Absolute URL - ensure it's for our own domain in production
-          const currentHost = window.location.host;
-          if (currentHost !== 'localhost' && callbackUrl.includes('localhost')) {
-            // Replace localhost with current host in production
-            try {
-              const urlObj = new URL(callbackUrl);
-              // Extract the path part without the domain
-              callbackUrl = urlObj.pathname;
-            } catch (e) {
-              console.error('Error parsing callback URL:', e);
-              callbackUrl = `/${locale}/dashboard`;
-            }
-          }
-        }
+        // Navigate to dashboard after successful login
+        console.log('Login successful, redirecting to dashboard');
         
         // Force a short delay to ensure cookie is set properly before redirect
         setTimeout(() => {
-          // Now callbackUrl is either a relative path or a safe absolute URL
-          router.push(callbackUrl);
+          router.push(`/${locale}/dashboard`);
         }, 100);
       } else {
         setError(result.error || t('loginError'));
@@ -148,7 +104,7 @@ function LoginForm() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-lg">{t('alreadyAuthenticated')}</p>
-          <p className="text-sm text-muted-foreground">{t('redirecting')}...</p>
+          <p className="text-sm text-muted-foreground">{t('redirecting')}</p>
         </div>
       </div>
     );
