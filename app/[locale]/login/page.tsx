@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { loginUser } from '@/app/lib/pocketbase';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import { loginUser } from '@/app/lib/pocketbase';
 import { Card } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
@@ -14,84 +13,30 @@ import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
 import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
 import AnimatedWordCycle from '@/app/components/shared/ui/animated-text-cycle';
 import { useTheme } from 'next-themes';
-import { useSession } from '@/app/components/features/dashboard/useSession';
+import { useAuth } from '@/app/hooks/useAuth';
 
-// Add these debug functions at the top after imports
-
-// Debug helper to log and inspect all session information
-function logSessionState(isAuthenticated: boolean, isLoading: boolean, message: string) {
-  console.log(`[LoginPage] ${message}:`, {
-    isAuthenticated,
-    isLoading,
-    pathname: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
-    href: typeof window !== 'undefined' ? window.location.href : 'SSR',
-    hydrated: typeof window !== 'undefined',
-    timestamp: new Date().toISOString()
-  });
-}
-
-// Create a separate component that uses searchParams
-function LoginForm() {
+export default function LoginPage() {
   const t = useTranslations('Auth');
   const locale = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuthState } = useSession();
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [redirectAttempted, setRedirectAttempted] = useState(false);
+  
+  // Check if user is already authenticated, redirect to dashboard if they are
+  const { isAuthenticated, isLoading } = useAuth({ 
+    required: false, 
+    redirectTo: '/dashboard',
+    redirectIfFound: true 
+  });
   
   // After hydration, we can access the theme
   useEffect(() => {
     setMounted(true);
     console.log('[LoginPage] Component mounted');
   }, []);
-  
-  // If user is already authenticated, redirect to dashboard
-  useEffect(() => {
-    // Track state for debugging
-    logSessionState(isAuthenticated, isLoading, 'Redirect effect triggered');
-    
-    // Only redirect after loading is complete and we know user is authenticated
-    if (!isLoading && isAuthenticated) {
-      console.log('[LoginPage] User authenticated, attempting redirect to dashboard');
-      
-      // To avoid infinite redirect loops, only attempt redirect once
-      if (!redirectAttempted) {
-        setRedirectAttempted(true);
-        
-        // Get the dashboard URL
-        const dashboardUrl = `/${locale}/dashboard`;
-        console.log('[LoginPage] Final redirect URL:', dashboardUrl);
-        
-        // Try Next.js router first
-        console.log('[LoginPage] Attempting router.push to:', dashboardUrl);
-        router.push(dashboardUrl);
-        
-        // Force an auth state check after attempting redirect
-        setTimeout(() => {
-          console.log('[LoginPage] Verifying auth state after redirect attempt');
-          checkAuthState();
-        }, 300);
-        
-        // Fallback to direct navigation after a delay
-        console.log('[LoginPage] Setting up fallback redirect');
-        setTimeout(() => {
-          // Double check we're still on login page before hard redirect
-          if (typeof window !== 'undefined' && 
-              window.location.pathname.includes('/login')) {
-            console.log('[LoginPage] Router.push failed, using direct location change');
-            window.location.href = dashboardUrl;
-          }
-        }, 1000);
-      } else {
-        console.log('[LoginPage] Redirect already attempted, waiting...');
-      }
-    }
-  }, [isAuthenticated, isLoading, router, locale, redirectAttempted, checkAuthState]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,33 +50,15 @@ function LoginForm() {
       
       if (result.success) {
         // Navigate to dashboard after successful login
-        console.log('[LoginPage] Login successful, preparing redirect to dashboard');
-        
-        // Reset redirect attempted on successful login
-        setRedirectAttempted(false);
-        
-        // Force a short delay to ensure cookie is set properly before redirect
-        setTimeout(() => {
-          const dashboardUrl = `/${locale}/dashboard`;
-          console.log('[LoginPage] Executing redirect to:', dashboardUrl);
-          router.push(dashboardUrl);
-          
-          // Fallback redirect
-          setTimeout(() => {
-            if (typeof window !== 'undefined' && 
-                window.location.pathname.includes('/login')) {
-              console.log('[LoginPage] Using fallback direct redirect');
-              window.location.href = dashboardUrl;
-            }
-          }, 1000);
-        }, 100);
+        console.log('[LoginPage] Login successful, redirecting to dashboard');
+        window.location.href = `/${locale}/dashboard`;
       } else {
         console.log('[LoginPage] Login failed:', result.error);
         setError(result.error || t('loginError'));
       }
     } catch (err) {
       console.error('[LoginPage] Login error:', err);
-      setError(err instanceof Error ? err.message : t('loginError'));
+      setError(err instanceof Error ? err.message : t('loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -155,41 +82,18 @@ function LoginForm() {
     );
   }
 
-  // If already authenticated and still loading, show a loading indicator
+  // If loading authentication state, show a loading indicator
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="ml-2">Loading authentication state...</p>
+        <p className="ml-2">{t('redirecting')}</p>
       </div>
     );
   }
   
   // If already authenticated (but hasn't redirected yet), show a message
   if (isAuthenticated) {
-    // Debug cookie state
-    if (typeof window !== 'undefined') {
-      console.log('[LoginPage] Debug cookies on authenticated state:',
-        document.cookie.split(';').map(c => c.trim().split('=')[0]));
-    }
-    
-    // Use the manual redirect function instead of server-side redirect
-    // This ensures we use client-side navigation which won't cause an infinite loop
-    // Add this function since we're using it here
-    const manualRedirect = () => {
-      console.log('[LoginPage] Manual redirect initiated');
-      const dashboardUrl = `/${locale}/dashboard`;
-      
-      // Always use direct navigation as it's more reliable
-      if (typeof window !== 'undefined') {
-        window.location.href = dashboardUrl;
-      }
-    };
-    
-    // Execute the redirect immediately
-    setTimeout(manualRedirect, 0);
-    
-    // Return a loading state while redirecting
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -197,7 +101,7 @@ function LoginForm() {
           <p className="text-sm text-muted-foreground">{t('redirecting')}</p>
           <div className="mt-4">
             <button 
-              onClick={manualRedirect}
+              onClick={() => window.location.href = `/${locale}/dashboard`}
               className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
             >
               {t('goToDashboard')}
@@ -319,23 +223,5 @@ function LoginForm() {
         </Card>
       </div>
     </div>
-  );
-}
-
-// Loading fallback for Suspense
-function LoginLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    </div>
-  );
-}
-
-// Main component with Suspense boundary
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<LoginLoading />}>
-      <LoginForm />
-    </Suspense>
   );
 } 

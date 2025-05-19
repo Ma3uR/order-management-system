@@ -1,76 +1,132 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useSession } from '@/app/components/features/dashboard/useSession';
+import { useEffect, useState } from 'react';
+import { isAuthenticated } from '@/app/lib/pocketbase';
 import { useLocale } from 'next-intl';
+import PocketBase from 'pocketbase';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-export function useAuth({ required = true, redirectTo = '/login' } = {}) {
-  const { user, isLoading, isAuthenticated } = useSession();
-  const router = useRouter();
-  const pathname = usePathname();
+// Get PocketBase instance directly rather than importing a named export
+let pb: PocketBase;
+if (typeof window !== 'undefined') {
+  // Only initialize in browser environment
+  const getPocketBaseUrl = () => {
+    const url = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'http://localhost:8090';
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return `http://${url}`;
+    }
+    return url;
+  };
+  
+  pb = new PocketBase(getPocketBaseUrl());
+  
+  // Try to restore auth from localStorage if needed
+  try {
+    const storedAuthData = localStorage.getItem('pocketbase_auth');
+    if (storedAuthData) {
+      const authData = JSON.parse(storedAuthData);
+      pb.authStore.save(authData.token, authData.model);
+    }
+  } catch (err) {
+    console.error('[useAuth] Error loading auth from localStorage:', err);
+  }
+}
+
+export type UseAuthProps = {
+  required?: boolean;
+  redirectTo?: string;
+  redirectIfFound?: boolean;
+};
+
+/**
+ * A custom hook for client-side authentication handling that replaces middleware
+ * @param required Whether authentication is required (defaults to false)
+ * @param redirectTo Where to redirect if not authenticated (defaults to '')
+ * @param redirectIfFound Whether to redirect if authenticated (defaults to false)
+ */
+export function useAuth({
+  required = false,
+  redirectTo = '',
+  redirectIfFound = false,
+}: UseAuthProps = {}) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(typeof window !== 'undefined' ? pb?.authStore?.model : null);
   const locale = useLocale();
 
   useEffect(() => {
-    // Log auth state on each effect run
-    console.log('[useAuth] Auth check on:', pathname, {
-      required,
-      isLoading,
-      isAuthenticated,
-      hasUser: !!user,
-      effectTriggered: Date.now()
-    });
-    
-    // Only run this effect after initial loading is complete
-    if (isLoading) {
-      console.log('[useAuth] Still loading, skipping redirect check');
+    if (typeof window === 'undefined') {
+      // Skip on server
+      setIsLoading(false);
       return;
     }
+    
+    if (!pb.authStore.isValid) {
+      // Clear any stale data
+      if (pb.authStore.model) {
+        pb.authStore.clear();
+      }
+    }
 
-    // If authentication is required but the user is not authenticated
-    if (required && !isAuthenticated) {
-      // Simple direct navigation to login page without callback
-      const localizedLoginPath = `/${locale}${redirectTo}`;
-      console.log(`[useAuth] Auth required but not authenticated, redirecting to ${localizedLoginPath}`);
+    // Subscribe to auth store changes
+    pb.authStore.onChange(() => {
+      setUser(pb.authStore.model);
+    });
+
+    // Check current auth state
+    const checkAuth = async () => {
+      setIsLoading(true);
       
-      // Set a flag in sessionStorage to prevent potential redirect loops
-      if (typeof window !== 'undefined') {
-        // Check if we've already attempted this redirect recently
-        const lastRedirect = sessionStorage.getItem('last_auth_redirect');
-        const now = Date.now();
+      try {
+        const isUserAuthenticated = isAuthenticated();
+        console.log('[useAuth] Authentication check:', isUserAuthenticated);
         
-        if (lastRedirect) {
-          const timeSinceLastRedirect = now - parseInt(lastRedirect, 10);
-          // If we redirected less than 2 seconds ago, don't redirect again
-          if (timeSinceLastRedirect < 2000) {
-            console.log('[useAuth] Preventing redirect loop, last redirect was', 
-              timeSinceLastRedirect, 'ms ago');
+        // Prevent redirect loops by checking sessionStorage
+        const lastRedirect = sessionStorage.getItem('lastAuthRedirect');
+        const now = Date.now();
+        const redirectRecently = lastRedirect && now - parseInt(lastRedirect) < 5000;
+
+        if (!redirectRecently) {
+          if (required && !isUserAuthenticated) {
+            console.log('[useAuth] Auth required but user not authenticated, redirecting to login');
+            sessionStorage.setItem('lastAuthRedirect', now.toString());
+            
+            // Redirect to login with locale
+            window.location.href = `/${locale}/login`;
+            return;
+          }
+
+          if (redirectIfFound && isUserAuthenticated && redirectTo) {
+            console.log('[useAuth] User authenticated and redirectIfFound is true, redirecting to', redirectTo);
+            sessionStorage.setItem('lastAuthRedirect', now.toString());
+            
+            // Append locale to redirect path if it doesn't already include it
+            const localizedRedirect = redirectTo.startsWith('/') && !redirectTo.startsWith(`/${locale}`) 
+              ? `/${locale}${redirectTo}` 
+              : redirectTo;
+              
+            window.location.href = localizedRedirect;
             return;
           }
         }
-        
-        // Update last redirect timestamp
-        sessionStorage.setItem('last_auth_redirect', now.toString());
+      } catch (error) {
+        console.error('[useAuth] Error checking authentication:', error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      // Execute redirect
-      router.push(localizedLoginPath);
-      
-      // Fallback to direct navigation if router push doesn't work
-      setTimeout(() => {
-        if (typeof window !== 'undefined' && 
-            window.location.pathname === pathname && 
-            required && !isAuthenticated) {
-          console.log('[useAuth] Using fallback direct navigation');
-          window.location.href = localizedLoginPath;
-        }
-      }, 500);
-    } else if (!required && isAuthenticated) {
-      console.log('[useAuth] User authenticated on non-required page');
-    } else {
-      console.log('[useAuth] No redirect needed', { required, isAuthenticated });
-    }
-  }, [isAuthenticated, isLoading, required, redirectTo, router, pathname, locale, user]);
+    };
 
-  return { user, isLoading, isAuthenticated };
+    checkAuth();
+
+    // Cleanup
+    return () => {
+      // Nothing to clean up
+    };
+  }, [required, redirectIfFound, redirectTo, locale]);
+
+  return {
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+  };
 } 
