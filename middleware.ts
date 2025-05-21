@@ -63,12 +63,12 @@ export function middleware(request: NextRequest) {
   return nextIntlMiddleware(request)
 }
 
-// Updated config to match all routes properly
+// Updated matcher configuration for better coverage, especially in production
 export const config = {
   matcher: [
-    // Match all routes except Next.js internals
-    '/((?!api/|_next/|_vercel|.*\\..*$).*)',
-    // Also match root
+    // Match all paths that don't start with excluded patterns
+    '/((?!_next|api|favicon.ico|.*\\..*).*)',
+    // Also match root path
     '/'
   ]
 }
