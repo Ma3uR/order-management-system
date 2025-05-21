@@ -1,7 +1,4 @@
-import createNextIntlPlugin from 'next-intl/plugin';
-
-// Create a basic next-intl plugin with no custom options
-const withNextIntl = createNextIntlPlugin();
+// Removed next-intl plugin wrapper to rely on manual message loading in layouts
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -26,4 +23,4 @@ const nextConfig = {
   }
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;
