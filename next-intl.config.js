@@ -1,5 +1,6 @@
-module.exports = {
+export default {
   locales: ['en', 'ua'],
   defaultLocale: 'en',
-  localePrefix: 'always'
+  // This will load messages from the messages directory
+  localeDetection: true
 };
