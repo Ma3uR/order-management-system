@@ -35,3 +35,15 @@ export async function fetcher(url: string) {
   
   return res.json();
 }
+
+/**
+ * Format a number as currency (UAH)
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('uk-UA', {
+    style: 'currency',
+    currency: 'UAH',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
