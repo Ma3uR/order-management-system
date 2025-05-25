@@ -15,10 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { clearUserChat } from '@/app/lib/chat-store';
 import { useSession } from './useSession';
-import { Weather } from './ai-tools-components/wheater';
-import { OrderTool } from './ai-tools-components/orders';
-import { type AiOrder } from './ai-tools-components/orders/order-list';
-import { ProductsTool } from './ai-tools-components/products';
+import { FinancialBalanceTool } from './ai-tools-components/finances/financial-balance-tool';
 import { AiToolRenderer } from './ai-tools-renderer';
 
 interface AiChatBoxProps {
@@ -132,119 +129,23 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
             );
           }
           
-          // For backward compatibility, keep the existing renderers
-          
-          // Handle weather tool
-          if (toolName === 'displayWeather' && 'result' in typedToolInvocation) {
-            const result = typedToolInvocation.result as {
-              location: string;
-              temperature: number;
-              weather: string;
-              humidity?: number;
-              windSpeed?: number;
-            };
-            
+          // Special case for tools that don't have a result property
+          // but still need to render an interactive component
+          if (toolName === 'calculateBalance' && !('result' in typedToolInvocation)) {
             return (
-              <Weather 
+              <FinancialBalanceTool 
                 key={toolCallId}
-                location={result.location}
-                temperature={result.temperature}
-                weather={result.weather}
               />
             );
           }
           
-          // Handle order display tools
-          if (toolName === 'getLastOrder' && 'result' in typedToolInvocation) {
-            const result = typedToolInvocation.result;
-            
-            // Format 1: Result contains orders array
-            if (result && typeof result === 'object' && 'orders' in result && Array.isArray(result.orders)) {
-              return (
-                <OrderTool 
-                  key={toolCallId}
-                  orders={result.orders as AiOrder[]}
-                />
-              );
-            }
-            
-            // Format 2: Result is a single order object directly
-            if (result && typeof result === 'object' && ('id' in result || 'orderNumber' in result)) {
-              return (
-                <OrderTool 
-                  key={toolCallId}
-                  orders={[result as AiOrder]}
-                />
-              );
-            }
-          }
-          
-          if (toolName === 'getOrderByPhone' && 'result' in typedToolInvocation) {
-            const result = typedToolInvocation.result;
-            
-            // Format 1: Result contains orders array
-            if (result && typeof result === 'object' && 'orders' in result && Array.isArray(result.orders)) {
-              return (
-                <OrderTool 
-                  key={toolCallId}
-                  orders={result.orders as AiOrder[]}
-                />
-              );
-            }
-            
-            // Format 2: Result is a single order object directly
-            if (result && typeof result === 'object' && ('id' in result || 'orderNumber' in result)) {
-              return (
-                <OrderTool 
-                  key={toolCallId}
-                  orders={[result as AiOrder]}
-                />
-              );
-            }
-          }
-          
-          if (toolName === 'getOrderById' && 'result' in typedToolInvocation) {
-            const result = typedToolInvocation.result;
-            
-            // Format 1: Result contains a single order property
-            if (result && typeof result === 'object' && 'order' in result && result.order) {
-              return (
-                <OrderTool 
-                  key={toolCallId}
-                  orders={[result.order as AiOrder]}
-                />
-              );
-            }
-            
-            // Format 2: Result is a single order object directly
-            if (result && typeof result === 'object' && ('id' in result || 'orderNumber' in result)) {
-              return (
-                <OrderTool 
-                  key={toolCallId}
-                  orders={[result as AiOrder]}
-                />
-              );
-            }
-          }
-
-          // Handle products being assembled tool
-          if (toolName === 'getProductsBeingAssembled' && 'result' in typedToolInvocation) {
-            const result = typedToolInvocation.result as {
-              products: Array<{ name: string, quantity: number }>;
-              ordersCount?: number;
-              productsCount?: number;
-            };
-            
-            if (result && Array.isArray(result.products)) {
-              return (
-                <ProductsTool 
-                  key={toolCallId}
-                  products={result.products}
-                  ordersCount={result.ordersCount || 0}
-                />
-              );
-            }
-          }
+          // For any other tool without a result, just show the tool name
+          return (
+            <div key={toolCallId} className="text-sm bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+              <p>Tool executed: <strong>{toolName}</strong></p>
+              <p className="text-xs text-gray-500">No result data available</p>
+            </div>
+          );
         } else {
           // Handle loading states
           return (
