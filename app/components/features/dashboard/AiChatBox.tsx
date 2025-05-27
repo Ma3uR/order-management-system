@@ -15,7 +15,6 @@ import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { clearUserChat } from '@/app/lib/chat-store';
 import { useSession } from './useSession';
-import { FinancialBalanceTool } from './ai-tools-components/finances/financial-balance-tool';
 import { AiToolRenderer } from './ai-tools-renderer';
 
 interface AiChatBoxProps {
@@ -128,16 +127,7 @@ function renderToolInvocations(toolInvocations: ToolInvocation[]): React.ReactNo
               />
             );
           }
-          
-          // Special case for tools that don't have a result property
-          // but still need to render an interactive component
-          if (toolName === 'calculateBalance' && !('result' in typedToolInvocation)) {
-            return (
-              <FinancialBalanceTool 
-                key={toolCallId}
-              />
-            );
-          }
+
           
           // For any other tool without a result, just show the tool name
           return (

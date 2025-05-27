@@ -50,7 +50,9 @@
     "redirecting": "Redirecting to login...",
     "welcome": "Welcome to the Order Management System",
     "reports": "Reports",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "noOrderDataForDownload": "No order data for download",
+    "noSalaryDataAvailable": "No salary data available"
   },
   "Orders": {
     "title": "Orders",
