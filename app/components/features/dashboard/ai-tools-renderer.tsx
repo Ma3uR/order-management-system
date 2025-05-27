@@ -1,9 +1,18 @@
 import React from "react";
 import { OrderTool } from "./ai-tools-components/orders";
-import { ProductsTool } from "./ai-tools-components/products";
+import { ProductsTool } from "./ai-tools-components/products/assembled";
 import { type AiOrder } from "./ai-tools-components/orders/order-list";
-import { type Product } from "./ai-tools-components/products/product-collection";
+import { type Product } from "./ai-tools-components/products/assembled/product-collection";
 import { FinancialBalanceDisplay } from "./ai-tools-components/finances/financial-balance-display";
+import { SalaryCalculationDisplay } from "./ai-tools-components/finances/salary-calculation-display";
+import { PopularityTool } from "./ai-tools-components/products/popularity/index";
+import { AverageOrderValueTool } from "./ai-tools-components/products/avarage-order-value/index";
+
+// Define product type for popularity tool
+type PopularityProduct = {
+  name: string;
+  count: number;
+};
 
 // Define the BalanceData type to match what FinancialBalanceDisplay expects
 type BalanceData = {
@@ -14,6 +23,32 @@ type BalanceData = {
   netBalance: number;
   incomeBreakdown: Array<{ source: string, amount: number }>;
   expensesBreakdown: Array<{ category: string, amount: number }>;
+};
+
+// Add a type definition for OrderWithSalary
+interface OrderWithSalary {
+  id?: string;
+  orderNumber?: string;
+  source: string;
+  customerName?: string;
+  fullName?: string;
+  total?: number;
+  amount?: number;
+  salary?: number;
+  date?: string;
+  createdAt?: string;
+}
+
+// Add a type definition for SalaryData that matches the component's expected type
+type SalaryData = {
+  periodStart: string;
+  periodEnd: string;
+  totalSalary: number;
+  salaryBreakdown: Array<{ source: string, commission: number, orderCount: number }>;
+  orderCount: number;
+  totalOrderValue: number;
+  totalProductionCosts: number;
+  orders?: OrderWithSalary[];
 };
 
 // Define types for possible tool results
@@ -63,6 +98,81 @@ export function AiToolRenderer({ tool, result }: ToolRendererProps) {
       <FinancialBalanceDisplay 
         balanceData={result.balanceData as BalanceData} 
         isLoading={Boolean(result.isLoading)}
+      />
+    );
+  }
+
+  // Salary calculations display logic
+  if (tool === "salaryCalculator" && "salaryData" in result) {
+    return (
+      <SalaryCalculationDisplay 
+        salaryData={result.salaryData as SalaryData} 
+        isLoading={Boolean(result.isLoading)} 
+      />
+    );
+  }
+
+  // Product popularity display logic
+  if (tool === "productPopularity" && "products" in result && "type" in result) {
+    return (
+      <PopularityTool 
+        products={result.products as PopularityProduct[]} 
+        period={result.period as { start: string; end: string }} 
+        type={result.type as 'most' | 'least'} 
+        isLoading={Boolean(result.isLoading)} 
+      />
+    );
+  }
+
+  // Average order value display logic
+  if (tool === "averageOrderValue" && "averageValue" in result) {
+    return (
+      <AverageOrderValueTool 
+        averageValue={result.averageValue as number} 
+        ordersCount={result.ordersCount as number} 
+        totalAmount={result.totalAmount as number} 
+        period={result.period as { start: string; end: string }} 
+        source={result.source as string} 
+        isLoading={Boolean(result.isLoading)} 
+      />
+    );
+  }
+  
+  
+  // Direct salary data display (no salaryData wrapper)
+  if (tool === "salaryCalculator" && 
+      "totalSalary" in result && 
+      "salaryBreakdown" in result) {
+    
+    // Log the result to see what's available
+    console.log("Salary Calculator Data:", result);
+    
+    // Transform the salaryBreakdown to match expected format
+    const transformedData = {
+      ...result, // Keep all original properties
+      salaryBreakdown: (result.salaryBreakdown as Array<{
+        source: string;
+        orderValue: number;
+        productionCost: number;
+        salary: number;
+        percentage: number;
+      }>).map(item => ({
+        source: item.source,
+        commission: item.percentage || item.salary,
+        orderCount: Math.round(item.orderValue / ((result.totalOrderValue as number) / (result.orderCount as number))) || 0
+      }))
+    } as SalaryData;
+    
+    // Ensure the orders are passed along if they exist
+    if ("orders" in result && Array.isArray(result.orders)) {
+      console.log(`Found ${result.orders.length} orders in the result`);
+      transformedData.orders = result.orders as OrderWithSalary[];
+    }
+    
+    return (
+      <SalaryCalculationDisplay 
+        salaryData={transformedData} 
+        isLoading={false}
       />
     );
   }

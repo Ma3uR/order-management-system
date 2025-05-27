@@ -4,7 +4,7 @@ import {
   smoothStream,
   streamText,
 } from 'ai';
-import { ChatsRecord } from '@/pocketbase-types';
+import { ChatsRecord } from '@/app/types/pocketbase-types';
 import {
   deleteChat,
   getChat,
@@ -55,22 +55,6 @@ type PostRequestBody = z.infer<typeof postRequestBodySchema>;
 
 export const maxDuration = 60;
 
-// Custom system prompt that emphasizes using displayWeather tool
-const customSystemPrompt = (params: { selectedChatModel: string }) => {
-  const basePrompt = systemPrompt(params);
-  return `${basePrompt}
-  
-IMPORTANT INSTRUCTION ABOUT TOOLS:
-- When a user asks about weather for ANY city or location, you MUST use the displayWeather tool, not the text-based getWeatherInformation tool.
-- Never respond with text about weather - always use the displayWeather tool to show visual weather information.
-- Even if the user doesn't explicitly ask for a visual display, still use the displayWeather tool for any weather-related queries.
-
-IMPORTANT ORDER TOOL INSTRUCTIONS:
-- When a user asks about "last order" or wants to "see the last order", ALWAYS use the getLastOrder tool.
-- Do NOT respond with text about orders - use the getLastOrder tool to show the visual order component.
-- The phrase "last order" is a direct trigger to call the getLastOrder tool, without exception.
-`;
-};
 
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
@@ -99,7 +83,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { userId, message, selectedChatModel } = requestBody;
+    const { userId, message } = requestBody;
 
     if (!pocketbase.authStore.isValid) {
       await authenticateAdmin();  // Use your existing admin auth function
@@ -180,15 +164,10 @@ export async function POST(request: Request) {
     });
 
     return createDataStreamResponse({
-      execute: (dataStream) => {
-        // Add a debugging message to trace execution
-        console.log('Processing message with tools enabled...');
-        console.log('Using tools:', Object.keys(tools));
-        console.log('Stream protocol should be set to "data" in the client to properly receive tool invocations');
-        
+      execute: (dataStream) => {        
         const result = streamText({
           model: myProvider.languageModel('gpt-3.5-turbo'),
-          system: customSystemPrompt({ selectedChatModel }),
+          system: systemPrompt(),
           messages: fixedMessages, 
           maxSteps: 5, // Allow up to 5 tool calls in a single conversation turn
           experimental_transform: smoothStream({ chunking: 'word' }),
@@ -255,8 +234,6 @@ export async function POST(request: Request) {
 
         result.mergeIntoDataStream(dataStream, {
           sendReasoning: false
-          // We can't use suppressText as it's not available, 
-          // so we'll handle displaying/hiding text responses in the UI component instead
         });
       },
       onError: (error: Error | unknown) => {

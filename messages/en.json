@@ -50,7 +50,21 @@
     "redirecting": "Redirecting to login...",
     "welcome": "Welcome to the Order Management System",
     "reports": "Reports",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "noOrderDataForDownload": "No order data for download",
+    "noSalaryDataAvailable": "No salary data available",
+    "popularProducts": {
+      "mostPopular": "Most Popular Products",
+      "leastPopular": "Least Popular Products",
+      "noData": "No product data available",
+      "itemsSold": "items sold"
+    },
+    "averageOrderValue": {
+      "title": "Average Order Value",
+      "perOrder": "per order",
+      "totalOrders": "Total Orders",
+      "totalAmount": "Total Amount"
+    }
   },
   "Orders": {
     "title": "Orders",

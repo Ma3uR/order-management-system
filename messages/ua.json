@@ -52,7 +52,28 @@
     "redirecting": "Перенаправлення на сторінку входу...",
     "welcome": "Ласкаво просимо до системи управління замовленнями",
     "reports": "Звіти",
-    "logout": "Вийти"
+    "logout": "Вийти",
+    "totalSalary": "Загальна зарплата",
+    "totalOrderValue": "Загальна вартість замовлень",
+    "orderCount": "Кількість замовлень",
+    "totalProductionCosts": "Загальна собівартість",
+    "profitMargin": "Маржа прибутку",
+    "salaryBreakdown": "Розподіл зарплати",
+    "salaryCalculation": "Розрахунок зарплати",
+    "noOrderDataForDownload": "Немає даних замовлень для завантаження",
+    "noSalaryDataAvailable": "Дані про зарплату відсутні",
+    "popularProducts": {
+      "mostPopular": "Найпопулярніші товари",
+      "leastPopular": "Найменш популярні товари",
+      "noData": "Немає даних про популярність товарів",
+      "itemsSold": "продано"
+    },
+    "averageOrderValue": {
+      "title": "Середній чек",
+      "perOrder": "на замовлення",
+      "totalOrders": "Всього замовлень",
+      "totalAmount": "Загальна сума"
+    }
   },
   "Orders": {
     "title": "Замовлення",
