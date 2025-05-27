@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ProductsTool } from "./products/index"
+import { ProductsTool } from "./products/assembled/index"
 import { Button } from "@/app/components/shared/ui/button"
 
 export function TestProductsTool() {

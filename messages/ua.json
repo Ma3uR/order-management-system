@@ -61,7 +61,19 @@
     "salaryBreakdown": "Розподіл зарплати",
     "salaryCalculation": "Розрахунок зарплати",
     "noOrderDataForDownload": "Немає даних замовлень для завантаження",
-    "noSalaryDataAvailable": "Дані про зарплату відсутні"
+    "noSalaryDataAvailable": "Дані про зарплату відсутні",
+    "popularProducts": {
+      "mostPopular": "Найпопулярніші товари",
+      "leastPopular": "Найменш популярні товари",
+      "noData": "Немає даних про популярність товарів",
+      "itemsSold": "продано"
+    },
+    "averageOrderValue": {
+      "title": "Середній чек",
+      "perOrder": "на замовлення",
+      "totalOrders": "Всього замовлень",
+      "totalAmount": "Загальна сума"
+    }
   },
   "Orders": {
     "title": "Замовлення",

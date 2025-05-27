@@ -4,7 +4,7 @@ import {
   smoothStream,
   streamText,
 } from 'ai';
-import { ChatsRecord } from '@/pocketbase-types';
+import { ChatsRecord } from '@/app/types/pocketbase-types';
 import {
   deleteChat,
   getChat,

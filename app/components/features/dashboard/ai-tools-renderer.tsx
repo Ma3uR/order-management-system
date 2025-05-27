@@ -1,10 +1,18 @@
 import React from "react";
 import { OrderTool } from "./ai-tools-components/orders";
-import { ProductsTool } from "./ai-tools-components/products";
+import { ProductsTool } from "./ai-tools-components/products/assembled";
 import { type AiOrder } from "./ai-tools-components/orders/order-list";
-import { type Product } from "./ai-tools-components/products/product-collection";
+import { type Product } from "./ai-tools-components/products/assembled/product-collection";
 import { FinancialBalanceDisplay } from "./ai-tools-components/finances/financial-balance-display";
 import { SalaryCalculationDisplay } from "./ai-tools-components/finances/salary-calculation-display";
+import { PopularityTool } from "./ai-tools-components/products/popularity/index";
+import { AverageOrderValueTool } from "./ai-tools-components/products/avarage-order-value/index";
+
+// Define product type for popularity tool
+type PopularityProduct = {
+  name: string;
+  count: number;
+};
 
 // Define the BalanceData type to match what FinancialBalanceDisplay expects
 type BalanceData = {
@@ -103,6 +111,33 @@ export function AiToolRenderer({ tool, result }: ToolRendererProps) {
       />
     );
   }
+
+  // Product popularity display logic
+  if (tool === "productPopularity" && "products" in result && "type" in result) {
+    return (
+      <PopularityTool 
+        products={result.products as PopularityProduct[]} 
+        period={result.period as { start: string; end: string }} 
+        type={result.type as 'most' | 'least'} 
+        isLoading={Boolean(result.isLoading)} 
+      />
+    );
+  }
+
+  // Average order value display logic
+  if (tool === "averageOrderValue" && "averageValue" in result) {
+    return (
+      <AverageOrderValueTool 
+        averageValue={result.averageValue as number} 
+        ordersCount={result.ordersCount as number} 
+        totalAmount={result.totalAmount as number} 
+        period={result.period as { start: string; end: string }} 
+        source={result.source as string} 
+        isLoading={Boolean(result.isLoading)} 
+      />
+    );
+  }
+  
   
   // Direct salary data display (no salaryData wrapper)
   if (tool === "salaryCalculator" && 
