@@ -7,6 +7,15 @@ const productSchema = z.object({
   price: z.number().min(0, "Price must be non-negative"),
 });
 
+// Define a schema for Nova Poshta invoice data
+const invoiceDataSchema = z.object({
+  Ref: z.string(),
+  CostOnSite: z.union([z.string(), z.number()]).optional(),
+  EstimatedDeliveryDate: z.string().optional(),
+  IntDocNumber: z.string(),
+  TypeDocument: z.string().optional(),
+}).passthrough(); // Allow additional properties
+
 export const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
   marketplaceIds: z.string().optional(),
@@ -28,6 +37,7 @@ export const orderSchema = z.object({
   mergeSource: z.nativeEnum(OrdersMergeSourceOptions),
   archived: z.boolean().optional(),
   productionCost: z.number().min(0, "Production cost must be non-negative").optional(),
+  invoice_data: z.union([invoiceDataSchema, z.null()]).optional(),
 }) satisfies z.ZodType<OrdersRecord>;
 
 export type OrderFormData = z.infer<typeof orderSchema>;

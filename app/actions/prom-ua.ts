@@ -426,6 +426,10 @@ async function processOrder(promOrder: PromOrderResponse) {
     .filter(Boolean)
     .join(' ') || 'Unknown';
 
+  // Calculate total amount from products if order price is 1
+  const totalProductsAmount = promOrder.products.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+  const orderAmount = parseFloat(promOrder.price) === 1 ? totalProductsAmount : parseFloat(promOrder.price);
+
   const orderData = {
     source: 'gfzk8nxfokgu9ku',
     orderNumber: promOrder.id.toString(),
@@ -438,7 +442,7 @@ async function processOrder(promOrder: PromOrderResponse) {
       price: parseFloat(item.price)
     })),
     numberOfItems: promOrder.products.reduce((sum, item) => sum + item.quantity, 0),
-    amount: parseFloat(promOrder.price),
+    amount: orderAmount,
     paymentMethod: paymentMethod.pbRecordId,
     deliveryMethod: deliveryMethod.pbRecordId,
     status: defaultStatus,

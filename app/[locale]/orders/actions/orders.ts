@@ -43,9 +43,15 @@ export const getOrders = async () => {
 
 export const getOrder = async (id: string)=>{
     try {
-        const order = await authenticatedCall(() => pb.collection('orders').getOne(id));
+        const order = await authenticatedCall(() => pb.collection('orders').getOne(id, {
+            expand: 'status,source,currency'
+        }));
+        
+        
         const validatedOrder = validatePocketbaseResponse({
             ...order,
+            // Preserve original invoice_data if it exists
+            invoice_data: order.invoice_data,
             mergeSource: order.mergeSource === '' ? undefined : order.mergeSource,
             mergeStatus: order.mergeStatus === '' ? undefined : order.mergeStatus,
             products: order.products?.map((p: ProductItem) => ({
@@ -53,6 +59,8 @@ export const getOrder = async (id: string)=>{
                 title: p.title || 'Untitled Product'
             }))
         }, orderSchema);
+        
+        
         return { error: undefined, data: validatedOrder };
     } catch (error: unknown) {
         if (error instanceof Error) {
@@ -196,4 +204,60 @@ export const syncRozetkaOrders = async () => {
         console.error('Error syncing Rozetka orders:', error);
         return { error: 'Unknown error in syncRozetkaOrders', data: undefined };
     }
+}
+
+/**
+ * Updates the invoice reference and data for an order
+ * @param orderId The ID of the order to update
+ * @param invoiceRef The invoice reference to set (or null to clear it)
+ * @param invoiceData The complete invoice data object from Nova Poshta (or null to clear it)
+ * @returns The updated order record
+ */
+export async function updateOrderInvoice(
+  orderId: string, 
+  invoiceData: {
+    Ref?: string;
+    CostOnSite?: string;
+    EstimatedDeliveryDate?: string;
+    IntDocNumber?: string;
+    TypeDocument?: string;
+  } | null = null
+) {
+  try {
+    if (!orderId) {
+      throw new Error("Order ID is required");
+    }
+
+    // Prepare the update data object
+    const updateData: Record<string, unknown> = {};
+    
+    // If invoice data is provided, store it in the invoice_data field
+    if (invoiceData) {
+      updateData.invoice_data = invoiceData;
+      // Extract the invoice reference from the data if available
+      if (invoiceData.Ref) {
+        updateData.invoice_ref = invoiceData.Ref;
+      }
+    } else {
+      // If clearing the invoice data, also clear the invoice reference
+      updateData.invoice_data = null;
+      updateData.invoice_ref = null;
+    }
+    
+    // Update the order record with the new invoice reference and data
+    const updatedOrder = await pb.collection(Collections.Orders).update(orderId, updateData);
+    
+    return {
+      success: true,
+      data: updatedOrder,
+      error: null
+    };
+  } catch (error) {
+    console.error("Failed to update order invoice reference:", error);
+    return {
+      success: false,
+      data: null,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
 }
