@@ -28,16 +28,15 @@ export const statusSchema = z.object({
   name: z.string()
     .min(2, "Status name must be at least 2 characters")
     .max(50, "Status name must be less than 50 characters")
-    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s]+$/, "Only letters, numbers and cyrillic characters are allowed"),
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, forward slashes and periods are allowed"),
   color: z.string()
     .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Invalid color format"),
   priority: z.number()
     .int()
     .min(1, "Priority must be at least 1")
     .max(99, "Priority must be less than 99"),
-  epicentrCode: z.string().optional(),
-  rozetkaCode: z.string().optional(),
-  promuaCode: z.string().optional()
+  marketplace_code: z.number().optional(),
+  source: z.string().optional()
 }) satisfies z.ZodType<StatusOptionsRecord>;
 
 // Payment method validation schema
@@ -56,7 +55,7 @@ export const deliveryMethodSchema = z.object({
   name: z.string()
     .min(2, "Delivery method name must be at least 2 characters")
     .max(120, "Delivery method name must be less than 50 characters")
-    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-(),/]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, commas and forward slashes are allowed"),
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, commas and forward slashes are allowed"),
   rozetkaId: z.number().optional(),
   promId: z.number().optional(),
   isDefault: z.boolean().optional()

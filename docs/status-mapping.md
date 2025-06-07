@@ -1,40 +1,40 @@
-# 📊 Status Mapping Documentation
+# 📊 Документація з картування статусів
 
-## Overview
-This document outlines the comprehensive status mapping between marketplace-specific statuses and internal application statuses for the Order Management System.
-
----
-
-## 🎯 Internal App Status Structure
-
-### Current Statuses (Existing)
-| Priority | Status Name | Description | Color |
-|----------|-------------|-------------|-------|
-| 1 | **Нове замовлення** | New order received | 🟦 Blue |
-| 2 | **Обробляється менеджером** | Being processed by manager | 🟨 Yellow |
-| 3 | **Комплектується** | Being assembled/packed | 🟧 Orange |
-| 4 | **Заплановано передачу перевізнику** | Planned transfer to carrier | 🟪 Purple |
-| 5 | **Доставляється** | Being delivered | 🟩 Green |
-| 6 | **Скасовано** | Cancelled | 🟥 Red |
-
-### New Statuses (To Be Added)
-| Priority | Status Name | Description | Color |
-|----------|-------------|-------------|-------|
-| 7 | **Виконано** | Completed/Fulfilled | ✅ Dark Green |
-| 8 | **Оплачено** | Paid | 💰 Gold |
-| 9 | **Доставлено** | Delivered | 📦 Teal |
-| 10 | **Прострочено** | Overdue | ⏰ Brown |
-| 11 | **Помилка доставки** | Delivery error | ❌ Dark Red |
-| 12 | **Повернено** | Returned | 🔄 Gray |
-| 13 | **Запит на повернення** | Return request | 🔃 Light Gray |
+## Огляд
+Цей документ описує комплексне картування між статусами специфічними для маркетплейсів та внутрішніми статусами додатку для Системи управління замовленнями.
 
 ---
 
-## 🛍️ Marketplace Status Mappings
+## 🎯 Структура внутрішніх статусів додатку
 
-### 🔵 PromUa Status Mapping
+### Поточні статуси (Існуючі)
+| Пріоритет | Назва статусу | Опис | Колір |
+|----------|-------------|-------------|-------|
+| 1 | **Нове замовлення** | Нове замовлення отримано | 🟦 Синій |
+| 2 | **Обробляється менеджером** | Обробляється менеджером | 🟨 Жовтий |
+| 3 | **Комплектується** | Збирається/пакується | 🟧 Помаранчевий |
+| 4 | **Заплановано передачу перевізнику** | Заплановано передачу перевізнику | 🟪 Фіолетовий |
+| 5 | **Доставляється** | Доставляється | 🟩 Зелений |
+| 6 | **Скасовано** | Скасовано | 🟥 Червоний |
 
-| Marketplace Status | → | Internal App Status |
+### Нові статуси (Для додавання)
+| Пріоритет | Назва статусу | Опис | Колір |
+|----------|-------------|-------------|-------|
+| 7 | **Виконано** | Завершено/Виконано | ✅ Темно-зелений |
+| 8 | **Оплачено** | Оплачено | 💰 Золотий |
+| 9 | **Доставлено** | Доставлено | 📦 Бірюзовий |
+| 10 | **Прострочено** | Прострочено | ⏰ Коричневий |
+| 11 | **Помилка доставки** | Помилка доставки | ❌ Темно-червоний |
+| 12 | **Повернено** | Повернено | 🔄 Сірий |
+| 13 | **Запит на повернення** | Запит на повернення | 🔃 Світло-сірий |
+
+---
+
+## 🛍️ Картування статусів маркетплейсів
+
+### 🔵 Картування статусів PromUa
+
+| Статус маркетплейсу | → | Внутрішній статус додатку |
 |-------------------|---|---------------------|
 | `Новый` | → | **Нове замовлення** |
 | `Принят` | → | **Обробляється менеджером** |
@@ -46,9 +46,9 @@ This document outlines the comprehensive status mapping between marketplace-spec
 
 ---
 
-### 🔴 Rozetka Status Mapping
+### 🔴 Картування статусів Rozetka
 
-| Marketplace Status | → | Internal App Status |
+| Статус маркетплейсу | → | Внутрішній статус додатку |
 |-------------------|---|---------------------|
 | `Нове замовлення` | → | **Нове замовлення** |
 | `Комплектується. Дані підтверджені` | → | **Комплектується** |
@@ -73,9 +73,9 @@ This document outlines the comprehensive status mapping between marketplace-spec
 
 ---
 
-### 🟢 Epicentr Status Mapping
+### 🟢 Картування статусів Epicentr
 
-| Marketplace Status | → | Internal App Status |
+| Статус маркетплейсу | → | Внутрішній статус додатку |
 |-------------------|---|---------------------|
 | `Новий` | → | **Нове замовлення** |
 | `Підтверджено продавцем` | → | **Обробляється менеджером** |
@@ -93,71 +93,71 @@ This document outlines the comprehensive status mapping between marketplace-spec
 
 ---
 
-## 🔄 Order Processing Flow
+## 🔄 Потік обробки замовлень
 
 ```mermaid
 graph TD
-    A[📥 New Order] --> B[👨‍💼 Manager Processing]
-    B --> C[📦 Assembly]
-    C --> D[🚚 Carrier Planning]
-    D --> E[🚛 In Transit]
-    E --> F[📍 Delivered]
-    F --> G[✅ Completed]
+    A[📥 Нове замовлення] --> B[👨‍💼 Обробка менеджером]
+    B --> C[📦 Комплектація]
+    C --> D[🚚 Планування передачі перевізнику]
+    D --> E[🚛 В дорозі]
+    E --> F[📍 Доставлено]
+    F --> G[✅ Завершено]
     
-    B --> H[💰 Paid]
-    E --> I[⏰ Overdue]
-    E --> J[❌ Delivery Error]
-    F --> K[🔄 Return Request]
-    K --> L[🔃 Returned]
+    B --> H[💰 Оплачено]
+    E --> I[⏰ Прострочено]
+    E --> J[❌ Помилка доставки]
+    F --> K[🔄 Запит на повернення]
+    K --> L[🔃 Повернено]
     
-    A --> M[🚫 Cancelled]
+    A --> M[🚫 Скасовано]
     B --> M
     C --> M
     D --> M
 ```
 
-### 📋 Status Flow Description
+### 📋 Опис потоку статусів
 
-1. **📥 Start**: All marketplace orders enter as **"Нове замовлення"**
-2. **👨‍💼 Manager Processing**: Orders move to **"Обробляється менеджером"** when manager starts processing
-3. **📦 Assembly**: Confirmed orders move to **"Комплектується"** when products are being prepared
-4. **🚚 Carrier Planning**: Assembled orders move to **"Заплановано передачу перевізнику"** when ready for shipment
-5. **🚛 In Transit**: Orders move to **"Доставляється"** when handed to delivery service
-6. **📍 Delivered**: Orders move to **"Доставлено"** when successfully delivered to customer
-7. **✅ Completed**: Orders move to **"Виконано"** when fully processed and customer satisfied
+1. **📥 Початок**: Всі замовлення з маркетплейсів надходять як **"Нове замовлення"**
+2. **👨‍💼 Обробка менеджером**: Замовлення переходять до **"Обробляється менеджером"** коли менеджер починає обробку
+3. **📦 Комплектація**: Підтверджені замовлення переходять до **"Комплектується"** коли товари готуються
+4. **🚚 Планування передачі перевізнику**: Скомплектовані замовлення переходять до **"Заплановано передачу перевізнику"** коли готові до відправки
+5. **🚛 В дорозі**: Замовлення переходять до **"Доставляється"** коли передані службі доставки
+6. **📍 Доставлено**: Замовлення переходять до **"Доставлено"** коли успішно доставлені клієнту
+7. **✅ Завершено**: Замовлення переходять до **"Виконано"** коли повністю оброблені та клієнт задоволений
 
-### 🔀 Alternative Flows
+### 🔀 Альтернативні потоки
 
-- **💰 Payment Track**: Orders can be marked as **"Оплачено"** when payment is confirmed
-- **⏰ Delays**: Orders can be marked as **"Прострочено"** when delayed beyond expected delivery
-- **❌ Delivery Issues**: Orders can be marked as **"Помилка доставки"** when delivery problems occur
-- **🔄 Returns**: Orders can be marked as **"Запит на повернення"** or **"Повернено"** for return processes
-- **🚫 Cancellations**: Orders can be marked as **"Скасовано"** at any stage for various reasons
-
----
-
-## 🚀 Implementation Notes
-
-> **Important**: When implementing the new statuses, ensure all marketplace API mappings are configured correctly in the `StatusMapping` component.
-
-### Required Actions:
-- [ ] Add 7 new internal statuses to the database
-- [ ] Configure marketplace code mappings for each status
-- [ ] Update status priority order (1-13)
-- [ ] Test status synchronization with all marketplaces
-- [ ] Update UI components to handle new statuses
-
-### Marketplace API Codes:
-Each internal status needs to be mapped to the corresponding marketplace API codes:
-- **PromUa**: Uses string-based status codes
-- **Rozetka**: Uses numeric status IDs  
-- **Epicentr**: Uses string-based status identifiers
+- **💰 Трек оплати**: Замовлення можуть бути позначені як **"Оплачено"** коли оплата підтверджена
+- **⏰ Затримки**: Замовлення можуть бути позначені як **"Прострочено"** коли затримані понад очікуваний час доставки
+- **❌ Проблеми з доставкою**: Замовлення можуть бути позначені як **"Помилка доставки"** коли виникають проблеми з доставкою
+- **🔄 Повернення**: Замовлення можуть бути позначені як **"Запит на повернення"** або **"Повернено"** для процесів повернення
+- **🚫 Скасування**: Замовлення можуть бути позначені як **"Скасовано"** на будь-якому етапі з різних причин
 
 ---
 
-## 📈 Status Priority Order
+## 🚀 Примітки щодо впровадження
 
-| Priority | Status |
+> **Важливо**: При впровадженні нових статусів переконайтеся, що всі картування API маркетплейсів налаштовані правильно в компоненті `StatusMapping`.
+
+### Необхідні дії:
+- [ ] Додати 7 нових внутрішніх статусів до бази даних
+- [ ] Налаштувати картування кодів маркетплейсів для кожного статусу
+- [ ] Оновити порядок пріоритетів статусів (1-13)
+- [ ] Протестувати синхронізацію статусів з усіма маркетплейсами
+- [ ] Оновити UI компоненти для обробки нових статусів
+
+### Коди API маркетплейсів:
+Кожний внутрішній статус потрібно замапити на відповідні коди API маркетплейсів:
+- **PromUa**: Використовує строкові коди статусів
+- **Rozetka**: Використовує числові ID статусів  
+- **Epicentr**: Використовує строкові ідентифікатори статусів
+
+---
+
+## 📈 Порядок пріоритетів статусів
+
+| Пріоритет | Статус |
 |----------|--------|
 | 1 | Нове замовлення |
 | 2 | Обробляється менеджером |
@@ -175,5 +175,5 @@ Each internal status needs to be mapped to the corresponding marketplace API cod
 
 ---
 
-*Last updated: [Current Date]*
-*Version: 1.0*
+*Останнє оновлення: [Поточна дата]*
+*Версія: 1.0*

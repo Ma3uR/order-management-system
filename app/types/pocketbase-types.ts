@@ -132,9 +132,8 @@ export type StatusOptionsRecord = {
 	name: string
 	color: string
 	priority: number
-	epicentrCode?: string
-	rozetkaCode?: string
-	promuaCode?: string
+	marketplace_code?: number
+	source?: RecordIdString
 }
 
 export type SyncRecordsRecord = {

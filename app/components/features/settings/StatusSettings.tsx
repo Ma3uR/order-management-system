@@ -1,13 +1,13 @@
 "use client";
 
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { SettingsForm } from "./SettingsForm";
 import { statusSchema, type StatusFormData } from "@/app/lib/validations/settings";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/app/components/shared/ui/card";
 import { Button } from "@/app/components/shared/ui/button";
-import { Trash2, Pencil, GripVertical, Settings, X } from "lucide-react";
+import { Trash2, Pencil, GripVertical, Search } from "lucide-react";
+import { Input } from "@/app/components/shared/ui/input";
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -36,7 +36,14 @@ import { ControllerRenderProps } from "react-hook-form";
 import { motion } from "framer-motion";
 import { createStatus, deleteStatus, getAllStatuses, updateStatus } from "@/app/[locale]/settings/actions/statuses";
 import { StatusResponse } from "@/app/types/pocketbase-types";
-import { StatusMapping } from "./StatusMapping";
+
+// Source IDs and mappings
+const MARKETPLACE_SOURCES = {
+  EPICENTR: 'pj9sejm9vqtu8xq',
+  PROM_UA: 'gfzk8nxfokgu9ku',
+  ROZETKA: '4tvf116a5aitwmb'
+};
+
 type TranslationKeys = {
   priority: string;
   statusName: string;
@@ -69,7 +76,6 @@ interface SortableItemProps {
   onEdit: (status: StatusResponse | null) => void;
   onDelete: (id: string) => void;
   onSave: (status: StatusResponse, data: StatusFormData) => void;
-  onSettings: (status: StatusResponse) => void;
 }
 
 function ColorPicker({ 
@@ -128,7 +134,7 @@ function ColorPicker({
   );
 }
 
-function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettings }: SortableItemProps) {
+function SortableItem({ status, editingId, t, onEdit, onDelete, onSave }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -226,6 +232,11 @@ function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettin
             style={{ backgroundColor: status.color }}
           />
           <span className="text-sm font-medium truncate">{status.name}</span>
+          {status.marketplace_code && (
+            <span className="text-xs text-muted-foreground">
+              ({status.marketplace_code})
+            </span>
+          )}
         </div>
       </div>
       
@@ -242,16 +253,6 @@ function SortableItem({ status, editingId, t, onEdit, onDelete, onSave, onSettin
         >
           <Pencil className="h-3.5 w-3.5" />
           <span className="sr-only">Edit</span>
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onSettings(status)}
-          className="h-7 w-7 flex-shrink-0"
-        >
-          <Settings className="h-3.5 w-3.5" />
-          <span className="sr-only">Settings</span>
         </Button>
         
         <Button
@@ -282,8 +283,9 @@ export function StatusSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [statuses, setStatuses] = useState<StatusResponse[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState<string | null>(null);
   const [addingNew, setAddingNew] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -291,6 +293,33 @@ export function StatusSettings() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Tab configuration
+  const tabs = [
+    { name: "App", color: "#6366F1", key: 'app', sourceId: null },
+    { name: "Rozetka", color: "#EF4444", key: 'rozetka', sourceId: MARKETPLACE_SOURCES.ROZETKA },
+    { name: "Prom.ua", color: "#3B82F6", key: 'promua', sourceId: MARKETPLACE_SOURCES.PROM_UA },
+    { name: "Epicentr", color: "#10B981", key: 'epicentr', sourceId: MARKETPLACE_SOURCES.EPICENTR }
+  ];
+
+  // Filter statuses by active tab and search query
+  const filteredStatuses = useMemo(() => {
+    const currentTab = tabs[activeTab];
+    let tabStatuses = statuses.filter(status => {
+      if (currentTab.key === 'app') {
+        return !status.source || status.source === '';
+      }
+      return status.source === currentTab.sourceId;
+    });
+
+    if (searchQuery.trim()) {
+      tabStatuses = tabStatuses.filter(status => 
+        status.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return tabStatuses.sort((a, b) => a.priority - b.priority);
+  }, [statuses, activeTab, searchQuery, tabs]);
 
   const fields: FormField[] = [
     { 
@@ -325,8 +354,7 @@ export function StatusSettings() {
       setIsLoading(true);
       const response = await getAllStatuses();
       if (response.error || !response.data) throw new Error(response.error || 'No data returned');
-      const sortedStatuses = [...response.data].sort((a, b) => a.priority - b.priority);
-      setStatuses(sortedStatuses);
+      setStatuses(response.data);
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(t('fetchError'), {
@@ -345,25 +373,37 @@ export function StatusSettings() {
   const onSubmit = async (data: StatusFormData) => {
     setIsLoading(true);
     try {
-      // Find the highest priority
-      const highestPriority = statuses.reduce((max, status) => 
+      const currentTab = tabs[activeTab];
+      const tabStatuses = statuses.filter(status => {
+        if (currentTab.key === 'app') {
+          return !status.source || status.source === '';
+        }
+        return status.source === currentTab.sourceId;
+      });
+
+      // Find the highest priority for the current tab
+      const highestPriority = tabStatuses.reduce((max, status) => 
         Math.max(max, status.priority), 0);
 
-      const hasDuplicatePriority = statuses.some(status => status.priority === data.priority);
+      const hasDuplicatePriority = tabStatuses.some(status => status.priority === data.priority);
       if (hasDuplicatePriority) {
         throw new Error(t('duplicatePriorityError'));
       }
 
-      // Create new status with next priority, overriding the form's priority
-      await createStatus({
+      // Create new status with source for current tab
+      const statusData = {
         ...data,
-        priority: highestPriority + 1
-      });
+        priority: highestPriority + 1,
+        source: currentTab.sourceId || undefined
+      };
+
+      await createStatus(statusData);
 
       toast.success(t('saveSuccess'), {
         description: t('statusSaveSuccess'),
       });
       
+      setAddingNew(false);
       fetchStatuses();
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -414,7 +454,15 @@ export function StatusSettings() {
 
   const handleSave = async (status: StatusResponse, data: StatusFormData) => {
     try {
-      const hasDuplicatePriority = statuses.some(s => 
+      const currentTab = tabs[activeTab];
+      const tabStatuses = statuses.filter(s => {
+        if (currentTab.key === 'app') {
+          return !s.source || s.source === '';
+        }
+        return s.source === currentTab.sourceId;
+      });
+
+      const hasDuplicatePriority = tabStatuses.some(s => 
         s.priority === data.priority && s.id !== status.id
       );
       if (hasDuplicatePriority) {
@@ -449,17 +497,23 @@ export function StatusSettings() {
     try {
       setIsLoading(true);
       
-      // Calculate new priorities for all items
-      const oldIndex = statuses.findIndex((item) => item.id === active.id);
-      const newIndex = statuses.findIndex((item) => item.id === over.id);
-      const reorderedItems = arrayMove(statuses, oldIndex, newIndex);
+      // Calculate new priorities for all items in current tab
+      const oldIndex = filteredStatuses.findIndex((item) => item.id === active.id);
+      const newIndex = filteredStatuses.findIndex((item) => item.id === over.id);
+      const reorderedItems = arrayMove(filteredStatuses, oldIndex, newIndex);
       
-      // Update local state first for immediate feedback
+      // Update priorities based on new order
       const updatedStatuses = reorderedItems.map((status, index) => ({
         ...status,
-        priority: index + 1  // Changed to use sequential numbers
+        priority: index + 1
       }));
-      setStatuses(updatedStatuses);
+
+      // Update local state first for immediate feedback
+      const newStatuses = statuses.map(status => {
+        const updated = updatedStatuses.find(u => u.id === status.id);
+        return updated || status;
+      });
+      setStatuses(newStatuses);
 
       // Update the backend one by one in sequence
       for (const status of updatedStatuses) {
@@ -489,36 +543,6 @@ export function StatusSettings() {
     }
   };
 
-  const handleSettingsClick = async (status: StatusResponse) => {
-    setIsSettingsOpen(status.id);
-  };
-
-  const handleMappingChange = async (mappings: Record<string, string>) => {
-    try {
-      const status = statuses.find(s => s.id === isSettingsOpen);
-      if (!status) return;
-
-      const response = await updateStatus(status.id, {
-        ...status,
-        epicentrCode: mappings.epicentr,
-        rozetkaCode: mappings.rozetka,
-        promuaCode: mappings.promua
-      });
-
-      if (response.error) throw new Error(response.error);
-
-      toast.success(t('saveSuccess'), {
-        description: t('statusUpdateSuccess'),
-      });
-
-      fetchStatuses();
-    } catch (error) {
-      toast.error(t('saveError'), {
-        description: error instanceof Error ? error.message : t('statusUpdateError'),
-      });
-    }
-  };
-
   return (
     <div className="space-y-4 w-full">
       <div className="flex flex-col gap-3 w-full">
@@ -529,10 +553,57 @@ export function StatusSettings() {
           </Button>
         </div>
         
+        {/* Tabs */}
+        <div className="relative overflow-hidden rounded-full bg-muted p-1 flex items-center">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.name}
+              className="text-xs font-semibold rounded-full w-full p-1 text-foreground z-20 transition-all whitespace-nowrap"
+              onClick={() => setActiveTab(index)}
+              style={{
+                color: activeTab === index ? 'white' : 'inherit',
+                fontWeight: activeTab === index ? 600 : 400
+              }}
+            >
+              {tab.name}
+            </button>
+          ))}
+          <div
+            className="absolute inset-0 z-10 p-1"
+            style={{
+              width: `${100 / tabs.length}%`,
+              transform: `translateX(${activeTab * 100}%)`,
+              transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          >
+            <div 
+              className="bg-accent rounded-full w-full h-full shadow-sm"
+              style={{
+                backgroundColor: tabs[activeTab].color,
+                opacity: 0.9
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <Input
+            placeholder="Search statuses..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-7 h-7 text-xs"
+          />
+        </div>
+        
         <Card className="w-full">
           <CardContent className="p-0">
-            <div className="mt-2 text-xs sm:text-sm text-muted-foreground px-2 py-2 border-b">
-              {t('dragToReorder')}
+            <div className="mt-2 text-xs sm:text-sm text-muted-foreground px-2 py-2 border-b flex items-center justify-between">
+              <span>{t('dragToReorder')}</span>
+              <span>
+                {filteredStatuses.length} status{filteredStatuses.length !== 1 ? 'es' : ''}
+              </span>
             </div>
             
             <div className="relative w-full">
@@ -542,15 +613,15 @@ export function StatusSettings() {
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
               >
-                <SortableContext items={statuses.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <SortableContext items={filteredStatuses.map(s => s.id)} strategy={verticalListSortingStrategy}>
                   <div className="divide-y w-full">
                     {addingNew && (
                       <div className="p-2 bg-muted/20">
                         <SettingsForm
-                          title={t('newStatus')}
+                          title={`${t('newStatus')} - ${tabs[activeTab].name}`}
                           schema={statusSchema}
                           onSubmit={onSubmit}
-                          defaultValues={{ name: '', color: '#000000', priority: statuses.length + 1 }}
+                          defaultValues={{ name: '', color: '#000000', priority: filteredStatuses.length + 1 }}
                           fields={fields}
                           className="space-y-2"
                           submitText={t('addStatus')}
@@ -560,18 +631,23 @@ export function StatusSettings() {
                       </div>
                     )}
                     
-                    {statuses.map((status) => (
-                      <SortableItem
-                        key={status.id}
-                        status={status}
-                        editingId={editingId}
-                        t={t}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onSave={handleSave}
-                        onSettings={handleSettingsClick}
-                      />
-                    ))}
+                    {filteredStatuses.length === 0 && !addingNew ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        {searchQuery ? 'No matching statuses found' : `No statuses in ${tabs[activeTab].name}`}
+                      </div>
+                    ) : (
+                      filteredStatuses.map((status) => (
+                        <SortableItem
+                          key={status.id}
+                          status={status}
+                          editingId={editingId}
+                          t={t}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                          onSave={handleSave}
+                        />
+                      ))
+                    )}
                   </div>
                 </SortableContext>
               </DndContext>
@@ -579,49 +655,6 @@ export function StatusSettings() {
           </CardContent>
         </Card>
       </div>
-
-      {isSettingsOpen && (
-        <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
-          onClick={() => setIsSettingsOpen(null)}
-        >
-          <div 
-            className="fixed left-[50%] top-[50%] z-50 w-[85%] max-w-xs sm:max-w-md md:max-w-lg translate-x-[-50%] translate-y-[-50%] gap-2 border bg-background shadow-lg duration-200 sm:rounded-lg max-h-[90vh] flex flex-col"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-2 border-b">
-              <div className="flex flex-col md:flex-row md:items-center gap-1">
-                <h2 className="text-base font-semibold truncate">Status Mapping</h2>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-muted rounded-md">
-                  <div 
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
-                    style={{ 
-                      backgroundColor: statuses.find(s => s.id === isSettingsOpen)?.color 
-                    }} 
-                  />
-                  <span className="text-xs font-medium truncate">
-                    {statuses.find(s => s.id === isSettingsOpen)?.name}
-                  </span>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSettingsOpen(null)}
-                className="h-7 w-7 flex-shrink-0"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <div className="p-2 overflow-y-auto">
-              <StatusMapping 
-                currentStatus={statuses.find(s => s.id === isSettingsOpen) as StatusResponse}
-                onChange={handleMappingChange}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
