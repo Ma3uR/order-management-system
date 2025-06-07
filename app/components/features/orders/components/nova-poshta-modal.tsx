@@ -210,6 +210,13 @@ export function NovaPoshtaModal({
   const [showFormatInfo, setShowFormatInfo] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   
+  // Add state for editable name fields in the create recipient modal
+  const [editableNames, setEditableNames] = useState({
+    firstName: "",
+    lastName: "",
+    middleName: ""
+  })
+  
   // Add a state to store sender contact person's phone
   const [senderPhone, setSenderPhone] = useState<string>("");
   
@@ -261,6 +268,18 @@ export function NovaPoshtaModal({
       }
     }
   }, [formData.senderContactRef, contactPersons]);
+
+  // Initialize editable names when confirmation dialog opens
+  useEffect(() => {
+    if (showConfirmation && formData.recipientName) {
+      const { firstName, middleName, lastName } = parseCustomerName(formData.recipientName);
+      setEditableNames({
+        firstName: firstName || "",
+        lastName: lastName || "",
+        middleName: middleName || ""
+      });
+    }
+  }, [showConfirmation, formData.recipientName]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -772,7 +791,8 @@ export function NovaPoshtaModal({
 
   // Create a new counterparty if one doesn't exist
   const handleCreateCounterparty = async () => {
-    const { firstName, middleName, lastName } = parseCustomerName(formData.recipientName);
+    // Use the editable names instead of parsing again
+    const { firstName, middleName, lastName } = editableNames;
     
     if (!lastName || !formData.recipientPhone) {
       toast.error("Recipient name and phone are required to create a new counterparty");
@@ -1966,27 +1986,45 @@ export function NovaPoshtaModal({
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="font-medium">Name</div>
-              {(() => {
-                const { lastName, firstName, middleName } = parseCustomerName(formData.recipientName);
-                const formattedName = formatCounterpartyName(lastName, firstName, middleName);
-                
-                return (
-                  <div className="text-sm">
-                    <div>{formattedName}</div>
-                    
-                    {(!lastName || !firstName || !middleName) && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {!lastName ? "Last name missing. " : ""}
-                        {!firstName ? "First name missing. " : ""}
-                        {!middleName ? "Middle name missing. " : ""}
-                        Please provide full name.
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="editLastName">Last Name *</Label>
+                  <Input
+                    id="editLastName"
+                    value={editableNames.lastName}
+                    onChange={(e) => setEditableNames(prev => ({ ...prev, lastName: e.target.value }))}
+                    placeholder="Enter last name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editFirstName">First Name *</Label>
+                  <Input
+                    id="editFirstName"
+                    value={editableNames.firstName}
+                    onChange={(e) => setEditableNames(prev => ({ ...prev, firstName: e.target.value }))}
+                    placeholder="Enter first name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editMiddleName">Middle Name *</Label>
+                  <Input
+                    id="editMiddleName"
+                    value={editableNames.middleName}
+                    onChange={(e) => setEditableNames(prev => ({ ...prev, middleName: e.target.value }))}
+                    placeholder="Enter middle name"
+                  />
+                </div>
+              </div>
+              
+              {(!editableNames.lastName || !editableNames.firstName || !editableNames.middleName) && (
+                <div className="text-red-500 text-xs">
+                  {!editableNames.lastName ? "Last name is required. " : ""}
+                  {!editableNames.firstName ? "First name is required. " : ""}
+                  {!editableNames.middleName ? "Middle name is required. " : ""}
+                </div>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -2012,7 +2050,7 @@ export function NovaPoshtaModal({
             </Button>
             <Button 
               onClick={handleCreateCounterparty}
-              disabled={creatingCounterparty || !parseCustomerName(formData.recipientName).middleName}
+              disabled={creatingCounterparty || !editableNames.lastName || !editableNames.firstName || !editableNames.middleName}
             >
               {creatingCounterparty && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Recipient
