@@ -92,7 +92,7 @@ export enum OrdersMergeSourceOptions {
 	"phone" = "phone",
 	"name" = "name",
 }
-export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown> = {
+export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown, Tinvoice_data = unknown> = {
 	orderNumber: string
 	marketplaceIds?: string
 	source?: RecordIdString
@@ -106,6 +106,7 @@ export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown> = {
 	status: RecordIdString
 	currency: RecordIdString
 	paymentMethod: RecordIdString
+	invoice_data?: null | Tinvoice_data
 	notes?: string
 	mergeStatus: OrdersMergeStatusOptions
 	mergedWithOrderId?: string

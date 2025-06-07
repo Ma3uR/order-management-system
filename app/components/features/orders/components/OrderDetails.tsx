@@ -16,6 +16,11 @@ import { Alert, AlertDescription } from "@/app/components/shared/ui/alert";
 import pb from '@/app/lib/pocketbase';
 import { Toaster, toast } from 'sonner';
 import { Dialog, DialogTitle, DialogHeader, DialogContent } from '@/app/components/shared/ui/dialog';
+import { NovaPoshtaModal } from './nova-poshta-modal';
+import { Truck, Trash2, FileText } from 'lucide-react';
+import { deleteInternetDocument } from '@/app/[locale]/orders/actions/nova-poshta';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 
 interface OrderDetailsProps {
   isOpen: boolean;
@@ -54,6 +59,16 @@ interface OrderDetailsProps {
   translateStatus: (status: string) => string;
 }
 
+// Define interface for the Nova Poshta invoice data
+interface NovaPoshtaInvoiceData {
+  Ref: string;
+  CostOnSite?: string | number;
+  EstimatedDeliveryDate?: string;
+  IntDocNumber: string;
+  TypeDocument?: string;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 export function OrderDetails({
   isOpen,
   onClose,
@@ -66,7 +81,9 @@ export function OrderDetails({
   const { deliveryMethods, paymentMethods, sources, statuses, isLoading } = useEntities();
   const [isBlacklisted] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeletingTtn, setIsDeletingTtn] = useState(false);
   const userActionRef = useRef<string | null>(null);
+  const [isNovaPoshtaModalOpen, setIsNovaPoshtaModalOpen] = useState(false);
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderSchema),
@@ -211,6 +228,204 @@ export function OrderDetails({
     }
   };
 
+  const handleTtnCreated = async (ttnNumber: string, documentRef: string, invoiceData: NovaPoshtaInvoiceData) => {
+    if (!order) return;
+    
+    try {
+        setIsUpdating(true);
+        userActionRef.current = order.id;
+        
+        console.log('TTN created with data:', {
+          ttnNumber,
+          documentRef,
+          invoiceData
+        });
+        
+        // Make sure we create a proper invoice_data object that matches the expected format
+        const updateData = {
+            ...order,
+            deliveryPostNumber: ttnNumber,
+            invoice_data: {
+              Ref: documentRef,
+              IntDocNumber: ttnNumber,
+              CostOnSite: invoiceData.CostOnSite,
+              EstimatedDeliveryDate: invoiceData.EstimatedDeliveryDate,
+              TypeDocument: invoiceData.TypeDocument || 'InternetDocument'
+            }
+        };
+        
+        console.log('Updating order with:', JSON.stringify(updateData, null, 2));
+        
+        await onUpdate(order.id, updateData);
+        toast.success("TTN number saved successfully");
+    } catch (error) {
+        toast.error("Failed to save TTN number", {
+            description: error instanceof Error ? error.message : "Please try again"
+        });
+    } finally {
+        setIsUpdating(false);
+        userActionRef.current = null;
+    }
+  };
+
+  const handleDeleteTtn = async () => {
+    if (!order || !order.invoice_data) return;
+    
+    try {
+        setIsDeletingTtn(true);
+        userActionRef.current = order.id;
+        
+        // Get the documentRef from the invoice_data
+        const invoice = order.invoice_data as NovaPoshtaInvoiceData;
+        const documentRef = invoice.Ref;
+        
+        // Call the server action to delete the TTN
+        const result = await deleteInternetDocument(documentRef);
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        // If the TTN was deleted successfully, update the order
+        const updateData = {
+            ...order,
+            deliveryPostNumber: '', // Clear the TTN number
+            invoice_data: null // Clear the invoice data
+        };
+        
+        await pb.collection('orders').update(order.id, updateData);
+        toast.success("TTN deleted successfully");
+    } catch (error) {
+        toast.error("Failed to delete TTN", {
+            description: error instanceof Error ? error.message : "Please try again"
+        });
+    } finally {
+        setIsDeletingTtn(false);
+        userActionRef.current = null;
+    }
+  };
+
+  const isNovaPoshtaDelivery = () => {
+    if (!order || !deliveryMethods) return false;
+    const method = deliveryMethods.find(m => m.id === order.deliveryMethod);
+    return method?.name === "Новая Почта" || method?.name === "Nova Poshta";
+  };
+
+  // Add console.log to check order data before modal opens
+  useEffect(() => {
+    if (order && isNovaPoshtaModalOpen) {
+      console.log('Order data for Nova Poshta Modal:', order, 'Order ID:', order.id);
+    }
+  }, [order, isNovaPoshtaModalOpen]);
+
+  // Add a function to render invoice details
+  const renderInvoiceDetails = () => {
+    console.log("Rendering invoice details, order:", order);
+    
+    if (!order) return null;
+
+    try {
+      // Handle different possible formats of invoice_data
+      let invoice;
+      
+      if (order.invoice_data) {
+        console.log("Invoice data exists:", order.invoice_data);
+        
+        // Check if it's a string (JSON string)
+        if (typeof order.invoice_data === 'string') {
+          try {
+            invoice = JSON.parse(order.invoice_data);
+            console.log("Parsed invoice data from string:", invoice);
+          } catch (e) {
+            console.error("Failed to parse invoice_data string:", e);
+            return null;
+          }
+        } else {
+          // It's already an object
+          invoice = order.invoice_data as NovaPoshtaInvoiceData;
+          console.log("Using invoice data as object:", invoice);
+        }
+      } else {
+        console.log("No invoice data found in order");
+        return null;
+      }
+      
+      // Safety check to ensure required properties exist
+      if (!invoice || !invoice.IntDocNumber) {
+        console.log("Invalid invoice data format, missing required properties");
+        return null;
+      }
+      
+      return (
+        <Card className="mt-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-md flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
+              Nova Poshta Invoice Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="font-semibold">TTN Number:</div>
+                <div>{invoice.IntDocNumber}</div>
+              </div>
+              <div>
+                <div className="font-semibold">Estimated Delivery:</div>
+                <div>{invoice.EstimatedDeliveryDate || 'N/A'}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="font-semibold">Cost:</div>
+                <div>{invoice.CostOnSite ? `${invoice.CostOnSite} UAH` : 'N/A'}</div>
+              </div>
+              <div>
+                <div className="font-semibold">Type:</div>
+                <div>{invoice.TypeDocument || 'InternetDocument'}</div>
+              </div>
+            </div>
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteTtn}
+                disabled={isDeletingTtn}
+                className="w-full"
+              >
+                {isDeletingTtn ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent mr-2"></div>
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Delete TTN
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    } catch (error) {
+      console.error("Error rendering invoice details:", error);
+      return null;
+    }
+  };
+
+  // Debug log for invoice_data
+  useEffect(() => {
+    if (order) {
+      console.log('Order object:', JSON.stringify(order, null, 2));
+      console.log('Has invoice_data?', order.hasOwnProperty('invoice_data'));
+      console.log('invoice_data:', order.invoice_data);
+      console.log('invoice_data type:', order.invoice_data ? typeof order.invoice_data : 'null/undefined');
+      
+      // Try to access nested properties safely
+      if (order.invoice_data && typeof order.invoice_data === 'object') {
+        console.log('invoice_data keys:', Object.keys(order.invoice_data));
+      }
+    }
+  }, [order]);
+
   if (isLoading || !order) return null;
 
   return (
@@ -346,9 +561,11 @@ export function OrderDetails({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{translations.deliveryPostNumber}</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -368,6 +585,11 @@ export function OrderDetails({
                       )}
                     />
                   </div>
+
+                  {/* Render Nova Poshta invoice details if available */}
+                  {order?.invoice_data ? (
+                    <>{renderInvoiceDetails()}</>
+                  ) : null}
 
                   <FormField
                     control={form.control}
@@ -490,6 +712,21 @@ export function OrderDetails({
                       </FormItem>
                     )}
                   />
+
+                  {/* Add Nova Poshta TTN button if delivery method is Nova Poshta */}
+                  {isNovaPoshtaDelivery() && (
+                    <div className="mt-2">
+                      <Button 
+                        type="button" 
+                        onClick={() => setIsNovaPoshtaModalOpen(true)}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        <Truck className="mr-2 h-4 w-4" />
+                        Create Nova Poshta TTN
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -513,6 +750,22 @@ export function OrderDetails({
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Nova Poshta Modal */}
+      {order && (
+        <NovaPoshtaModal
+          open={isNovaPoshtaModalOpen}
+          onOpenChange={setIsNovaPoshtaModalOpen}
+          order={{
+            id: order.id,
+            customerName: order.fullName,
+            customerPhone: order.phoneNumber,
+            customerEmail: '',
+            totalAmount: order.amount
+          }}
+          onTtnCreated={handleTtnCreated}
+        />
+      )}
     </>
   );
 } 
