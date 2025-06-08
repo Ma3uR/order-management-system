@@ -31,14 +31,14 @@ async function testStatusNames() {
         passingStatuses.push({ name: status.name, source: status.source });
       } else {
         // Find specific problematic characters
-        const problematicChars = [...status.name].filter(char => {
+        const problematicChars = Array.from(status.name).filter(char => {
           return !STATUS_NAME_REGEX.test(char);
         });
         
         failingStatuses.push({
           name: status.name,
           source: status.source,
-          reason: `Contains invalid characters: ${[...new Set(problematicChars)].map(c => `"${c}"`).join(', ')}`
+          reason: `Contains invalid characters: ${Array.from(new Set(problematicChars)).map(c => `"${c}"`).join(', ')}`
         });
       }
     });
@@ -83,7 +83,7 @@ async function testStatusNames() {
       // Find all unique problematic characters
       const allProblematicChars = new Set<string>();
       failingStatuses.forEach(status => {
-        [...status.name].forEach(char => {
+        Array.from(status.name).forEach(char => {
           if (!STATUS_NAME_REGEX.test(char)) {
             allProblematicChars.add(char);
           }
@@ -91,7 +91,7 @@ async function testStatusNames() {
       });
 
       console.log('🚨 Characters that need to be added to regex:');
-      [...allProblematicChars].forEach(char => {
+      Array.from(allProblematicChars).forEach(char => {
         console.log(`   • "${char}" (Unicode: \\u${char.codePointAt(0)?.toString(16).padStart(4, '0')})`);
       });
 
@@ -99,7 +99,7 @@ async function testStatusNames() {
       console.log('\n💡 **SUGGESTED REGEX UPDATE:**');
       console.log('Current: /^[a-zA-Z0-9\\u0400-\\u04FF\\s\\-()\/]+$/');
       
-      const additionalChars = [...allProblematicChars].map(char => {
+      const additionalChars = Array.from(allProblematicChars).map(char => {
         if (char === '.') return '\\.';
         if (char === ',') return ',';
         if (char === ':') return ':';

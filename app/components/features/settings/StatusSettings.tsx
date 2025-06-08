@@ -295,12 +295,12 @@ export function StatusSettings() {
   );
 
   // Tab configuration
-  const tabs = [
+  const tabs = useMemo(() => [
     { name: "App", color: "#6366F1", key: 'app', sourceId: null },
     { name: "Rozetka", color: "#EF4444", key: 'rozetka', sourceId: MARKETPLACE_SOURCES.ROZETKA },
     { name: "Prom.ua", color: "#3B82F6", key: 'promua', sourceId: MARKETPLACE_SOURCES.PROM_UA },
     { name: "Epicentr", color: "#10B981", key: 'epicentr', sourceId: MARKETPLACE_SOURCES.EPICENTR }
-  ];
+  ], []);
 
   // Filter statuses by active tab and search query
   const filteredStatuses = useMemo(() => {

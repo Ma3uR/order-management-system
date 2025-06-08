@@ -34,7 +34,7 @@ export interface NovaPoshtaWarehouse {
 export interface NovaPoshtaRequestParams {
   modelName: string;
   calledMethod: string;
-  methodProperties: Record<string, any>;
+  methodProperties: Record<string, unknown>;
 }
 
 export interface NovaPoshtaResponse<T> {
@@ -96,7 +96,7 @@ export interface NovaPoshtaCounterpartyCreationResponse {
   OwnershipFormDescription: string;
   EDRPOU: string;
   CounterpartyType: string;
-  ContactPerson: Array<any>;
+  ContactPerson: NovaPoshtaContactPerson[];
 }
 
 export interface NovaPoshtaContactPersonCreationParams {
@@ -105,6 +105,56 @@ export interface NovaPoshtaContactPersonCreationParams {
   lastName: string;
   middleName: string;
   phone: string;
+}
+
+export interface NovaPoshtaStreet {
+  Ref: string;
+  Description: string;
+  StreetsType: string;
+  StreetsTypeDescription: string;
+}
+
+export interface NovaPoshtaAddress {
+  Ref: string;
+  Description: string;
+  Flat: string;
+  CounterpartyRef: string;
+}
+
+export interface NovaPoshtaDocumentInfo {
+  Ref: string;
+  IntDocNumber: string;
+  CreatedDate: string;
+  Status: string;
+  StatusCode: string;
+  Weight: string;
+  Cost: string;
+  SenderFullName: string;
+  RecipientFullName: string;
+  CitySender: string;
+  CityRecipient: string;
+}
+
+export interface NovaPoshtaTrackingInfo {
+  Number: string;
+  Status: string;
+  StatusCode: string;
+  ActualDeliveryDate: string;
+  EstimatedDeliveryDate: string;
+  WarehouseRecipient: string;
+  WarehouseSender: string;
+}
+
+export interface NovaPoshtaDocumentListItem {
+  Ref: string;
+  IntDocNumber: string;
+  CreatedDate: string;
+  Status: string;
+  StatusCode: string;
+  Weight: string;
+  Cost: string;
+  SenderFullName: string;
+  RecipientFullName: string;
 }
 
 class NovaPoshtaService {
@@ -165,8 +215,8 @@ class NovaPoshtaService {
   /**
    * Search for streets in a settlement
    */
-  async searchStreets(settlementRef: string, streetName: string, limit = 20): Promise<any[]> {
-    const response = await this.makeRequest<any>({
+  async searchStreets(settlementRef: string, streetName: string, limit = 20): Promise<NovaPoshtaStreet[]> {
+    const response = await this.makeRequest<NovaPoshtaStreet>({
       modelName: 'AddressGeneral',
       calledMethod: 'searchSettlementStreets',
       methodProperties: {
@@ -205,8 +255,8 @@ class NovaPoshtaService {
   /**
    * Get counterparty addresses
    */
-  async getCounterpartyAddresses(counterpartyRef: string, counterpartyProperty = 'Sender'): Promise<any[]> {
-    const response = await this.makeRequest<any>({
+  async getCounterpartyAddresses(counterpartyRef: string, counterpartyProperty = 'Sender'): Promise<NovaPoshtaAddress[]> {
+    const response = await this.makeRequest<NovaPoshtaAddress>({
       modelName: 'CounterpartyGeneral',
       calledMethod: 'getCounterpartyAddresses',
       methodProperties: {
@@ -350,8 +400,8 @@ class NovaPoshtaService {
   /**
    * Get document list
    */
-  async getDocumentList(dateFrom: string, dateTo: string, page = 1): Promise<any[]> {
-    const response = await this.makeRequest<any>({
+  async getDocumentList(dateFrom: string, dateTo: string, page = 1): Promise<NovaPoshtaDocumentListItem[]> {
+    const response = await this.makeRequest<NovaPoshtaDocumentListItem>({
       modelName: 'InternetDocumentGeneral',
       calledMethod: 'getDocumentList',
       methodProperties: {
@@ -371,8 +421,8 @@ class NovaPoshtaService {
   /**
    * Get document info
    */
-  async getDocumentInfo(documentRef: string): Promise<any> {
-    const response = await this.makeRequest<any>({
+  async getDocumentInfo(documentRef: string): Promise<NovaPoshtaDocumentInfo> {
+    const response = await this.makeRequest<NovaPoshtaDocumentInfo>({
       modelName: 'InternetDocumentGeneral',
       calledMethod: 'getDocumentInfo',
       methodProperties: {
@@ -390,8 +440,8 @@ class NovaPoshtaService {
   /**
    * Track a document
    */
-  async trackDocument(documentNumber: string): Promise<any> {
-    const response = await this.makeRequest<any>({
+  async trackDocument(documentNumber: string): Promise<NovaPoshtaTrackingInfo> {
+    const response = await this.makeRequest<NovaPoshtaTrackingInfo>({
       modelName: 'TrackingDocument',
       calledMethod: 'getStatusDocuments',
       methodProperties: {
@@ -447,9 +497,9 @@ class NovaPoshtaService {
    * Deletes an existing Internet Document using its reference ID.
    */
   async deleteInternetDocument(documentRef: string): Promise<boolean> {
-    console.log('Deleting Internet Document with ref:', documentRef);
+    console.log('🗑️ Deleting Internet Document with ref:', documentRef);
     
-    const response = await this.makeRequest<any>({
+    const response = await this.makeRequest<{ Ref: string }>({
       modelName: 'InternetDocumentGeneral',
       calledMethod: 'delete',
       methodProperties: {
@@ -457,10 +507,10 @@ class NovaPoshtaService {
       },
     });
 
-    console.log('Delete Internet Document response:', response);
+    console.log('🗑️ Delete Internet Document response:', response);
 
     if (!response.success) {
-      console.error('Nova Poshta API error deleting Internet Document:', response.errors);
+      console.error('❌ Nova Poshta API error deleting Internet Document:', response.errors);
       throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
     }
 

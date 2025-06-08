@@ -267,11 +267,26 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       try {
         const orderToArchive = orders.find(o => o.id === orderId)!;
         await updateOrder(orderId, {
-          ...orderToArchive,
+          status: orderToArchive.status,
           source: orderToArchive.source || '',
+          fullName: orderToArchive.fullName,
+          phoneNumber: orderToArchive.phoneNumber,
+          orderNumber: orderToArchive.orderNumber,
+          deliveryMethod: orderToArchive.deliveryMethod,
           products: (orderToArchive.products || []) as Array<{ title: string; quantity: number; price: number }>,
+          numberOfItems: orderToArchive.numberOfItems,
+          amount: orderToArchive.amount,
+          currency: orderToArchive.currency,
+          paymentMethod: orderToArchive.paymentMethod,
+          notes: orderToArchive.notes,
+          mergeStatus: orderToArchive.mergeStatus,
+          mergedWithOrderId: orderToArchive.mergedWithOrderId,
           originalOrders: null,
-          archived: true
+          mergeSource: orderToArchive.mergeSource,
+          archived: true,
+          productionCost: orderToArchive.productionCost,
+          deliveryPostNumber: orderToArchive.deliveryPostNumber,
+          marketplaceIds: orderToArchive.marketplaceIds
         });
         setOrders(prev => prev.filter(order => order.id !== orderId));
         toast.success("Order archived successfully");
@@ -291,11 +306,26 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       try {
         const orderToRestore = orders.find(o => o.id === orderId)!;
         await updateOrder(orderId, {
-          ...orderToRestore,
+          status: orderToRestore.status,
           source: orderToRestore.source || '',
+          fullName: orderToRestore.fullName,
+          phoneNumber: orderToRestore.phoneNumber,
+          orderNumber: orderToRestore.orderNumber,
+          deliveryMethod: orderToRestore.deliveryMethod,
           products: (orderToRestore.products || []) as Array<{ title: string; quantity: number; price: number }>,
+          numberOfItems: orderToRestore.numberOfItems,
+          amount: orderToRestore.amount,
+          currency: orderToRestore.currency,
+          paymentMethod: orderToRestore.paymentMethod,
+          notes: orderToRestore.notes,
+          mergeStatus: orderToRestore.mergeStatus,
+          mergedWithOrderId: orderToRestore.mergedWithOrderId,
           originalOrders: null,
-          archived: false
+          mergeSource: orderToRestore.mergeSource,
+          archived: false,
+          productionCost: orderToRestore.productionCost,
+          deliveryPostNumber: orderToRestore.deliveryPostNumber,
+          marketplaceIds: orderToRestore.marketplaceIds
         });
         setOrders(prev => prev.map(order => 
           order.id === orderId ? { ...order, archived: false } : order
@@ -328,15 +358,15 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
       switch (order.source) {
         case 'pj9sejm9vqtu8xq': // Epicentr
-          marketplaceCode = status.epicentrCode;
+          marketplaceCode = status.marketplace_code;
           marketplaceUpdateFn = () => setEpicentrStatus(order.orderNumber, marketplaceCode!);
           break;
         case 'gfzk8nxfokgu9ku': // PromUa
-          marketplaceCode = status.promuaCode;
+          marketplaceCode = status.marketplace_code;
           marketplaceUpdateFn = () => setPromuaStatus(order.orderNumber, marketplaceCode!);
           break;
         case '4tvf116a5aitwmb': // Rozetka
-          marketplaceCode = status.rozetkaCode;
+          marketplaceCode = status.marketplace_code;
           marketplaceUpdateFn = () => setRozetkaStatus(order.orderNumber, marketplaceCode!);
           break;
       }
@@ -385,15 +415,26 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
       // Update local database
       const updatePayload = {
-        ...order,
-        source: order.source || '',
         status: statusId,
+        source: order.source || '',
+        fullName: order.fullName,
+        phoneNumber: order.phoneNumber,
+        orderNumber: order.orderNumber,
+        deliveryMethod: order.deliveryMethod,
         products: validProducts,
         numberOfItems: validProducts.reduce((sum, p) => sum + p.quantity, 0),
         amount: validProducts.reduce((sum, p) => sum + (p.quantity * p.price), 0),
-        originalOrders: Array.isArray(order.originalOrders) ? order.originalOrders : null,
+        currency: order.currency,
+        paymentMethod: order.paymentMethod,
+        notes: order.notes,
         mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none,
-        productionCost: order.productionCost || 0
+        mergedWithOrderId: order.mergedWithOrderId,
+        originalOrders: Array.isArray(order.originalOrders) ? order.originalOrders : null,
+        mergeSource: order.mergeSource,
+        archived: order.archived,
+        productionCost: order.productionCost || 0,
+        deliveryPostNumber: order.deliveryPostNumber,
+        marketplaceIds: order.marketplaceIds
       };
 
       const result = await updateOrder(orderId, updatePayload);
@@ -614,15 +655,17 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
 
   const handleMergeReject = async (orders: OrdersResponse[]) => {
     try {
-      await Promise.all(orders.map(order => 
-        updateOrder(order.id, {
-          ...order,
+      await Promise.all(orders.map(order => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { invoice_data, ...orderData } = order;
+        return updateOrder(order.id, {
+          ...orderData,
           source: order.source || '',
           products: (order.products || []) as Array<{ title: string; quantity: number; price: number }>,
           originalOrders: (order.originalOrders || []) as string[],
           mergeStatus: OrdersMergeStatusOptions.rejected
-        })
-      ))
+        });
+      }))
       setPotentialMerges([])
       toast.success(translations.mergeRejected)
     } catch (error) {
@@ -638,8 +681,10 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id: _id, ...primaryOrderData } = primaryOrder;
       
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { invoice_data: _primaryInvoice, ...primaryOrderDataClean } = primaryOrderData;
       const mergedOrder = {
-        ...primaryOrderData,  // Now contains all fields except ID
+        ...primaryOrderDataClean,  // Now contains all fields except ID and invoice_data
         source: primaryOrderData.source || '',
         ...resolvedConflicts,
         marketplaceIds: orders.map(o => o.marketplaceIds).filter(Boolean).join(','),
@@ -656,17 +701,19 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
       const newOrder = await createOrder(mergedOrder);
 
       // Update original orders with archive flag
-      await Promise.all(orders.map(order => 
-        updateOrder(order.id, {
-          ...order,
+      await Promise.all(orders.map(order => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { invoice_data, ...orderData } = order;
+        return updateOrder(order.id, {
+          ...orderData,
           source: order.source || '',
           products: (order.products as Array<{ title: string; quantity: number; price: number }>) || [],
           originalOrders: null,
           archived: true,
           mergeStatus: OrdersMergeStatusOptions.merged,
           mergedWithOrderId: newOrder.data?.id || ''
-        })
-      ));
+        });
+      }));
 
       setShowMergeDialog(false);
       setPotentialMerges([]);
@@ -1052,8 +1099,10 @@ export function OrdersManagement({ translations, initialOrders, itemsPerPage = 1
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           onSubmit={async (orderData: Partial<OrdersResponse>, productInputs) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { invoice_data, ...orderDataClean } = orderData;
             const formData: OrderFormData = {
-              ...orderData,
+              ...orderDataClean,
               status: orderData.status || '',
               orderNumber: orderData.orderNumber || '',
               source: orderData.source || '',

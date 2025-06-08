@@ -25,9 +25,9 @@ export function StatusMapping({ currentStatus, onChange }: StatusMappingProps) {
   const [marketplaceStatuses, setMarketplaceStatuses] = useState<MarketplaceStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [mappings, setMappings] = useState<Record<string, string>>({
-    epicentr: currentStatus.epicentrCode || '',
-    rozetka: currentStatus.rozetkaCode || '',
-    promua: currentStatus.promuaCode || ''
+    epicentr: currentStatus.marketplace_code || '',
+    rozetka: currentStatus.marketplace_code || '',
+    promua: currentStatus.marketplace_code || ''
   });
   const [isLoading, setIsLoading] = useState(false);
 

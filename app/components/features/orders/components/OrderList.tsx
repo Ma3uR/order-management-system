@@ -2,7 +2,6 @@ import { OrdersResponse, StatusResponse } from '@/app/types/pocketbase-types';
 import { Button } from "@/app/components/shared/ui/button";
 import { UtilityService } from '@/app/services/utilityService';
 import { StatusSelect } from "@/app/components/shared/ui/StatusSelect";
-import { useMemo } from 'react';
 
 interface OrderListProps {
   orders: OrdersResponse[];
