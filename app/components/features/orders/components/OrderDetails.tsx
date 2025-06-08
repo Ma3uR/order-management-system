@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { OrdersMergeSourceOptions, OrdersMergeStatusOptions, OrdersResponse } from '@/app/types/pocketbase-types';
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";
@@ -84,6 +84,28 @@ export function OrderDetails({
   const [isDeletingTtn, setIsDeletingTtn] = useState(false);
   const userActionRef = useRef<string | null>(null);
   const [isNovaPoshtaModalOpen, setIsNovaPoshtaModalOpen] = useState(false);
+
+  // Filter statuses based on order's source
+  const filteredStatuses = useMemo(() => {
+    if (!order || !statuses || statuses.length === 0) return statuses;
+    
+    // First, try to get statuses that match the order's source
+    const sourceSpecificStatuses = statuses.filter(status => status.source === order.source);
+    
+    // If we have source-specific statuses, use only those
+    if (sourceSpecificStatuses.length > 0) {
+      return sourceSpecificStatuses;
+    }
+    
+    // Fallback 1: try app-specific statuses (no source)
+    const appStatuses = statuses.filter(status => !status.source || status.source === '');
+    if (appStatuses.length > 0) {
+      return appStatuses;
+    }
+    
+    // Fallback 2: if nothing else works, return all statuses
+    return statuses;
+  }, [statuses, order]);
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderSchema),
@@ -507,10 +529,10 @@ export function OrderDetails({
                             <StatusSelect
                               status={field.value ? { 
                                 id: field.value,
-                                name: statuses.find(s => s.id === field.value)?.name || '',
-                                color: statuses.find(s => s.id === field.value)?.color || '#000000'
+                                name: filteredStatuses.find(s => s.id === field.value)?.name || '',
+                                color: filteredStatuses.find(s => s.id === field.value)?.color || '#000000'
                               } : undefined}
-                              statuses={statuses}
+                              statuses={filteredStatuses}
                               onStatusChange={(statusId) => {
                                 field.onChange(statusId);
                                 if (!order) return Promise.resolve();
@@ -761,7 +783,8 @@ export function OrderDetails({
             customerName: order.fullName,
             customerPhone: order.phoneNumber,
             customerEmail: '',
-            totalAmount: order.amount
+            totalAmount: order.amount,
+            deliveryPostNumber: order.deliveryPostNumber || ''
           }}
           onTtnCreated={handleTtnCreated}
         />

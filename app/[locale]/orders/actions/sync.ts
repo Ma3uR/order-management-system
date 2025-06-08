@@ -63,23 +63,19 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     throw new Error('No default currency found');
   }
 
-  let defaultStatus = '';
-  try {
-    const statuses = await authenticatedCall(async () => {
-      return await pb.collection('status_options').getList(1, 50, {
-        sort: '+priority',
-        limit: 1
-      });
+  // Get status by matching rozetkaOrder.status with marketplace_code
+  const statusResult = await authenticatedCall(async () => {
+    return await pb.collection('status_options').getList(1, 50, {
+      filter: `marketplace_code = "${rozetkaOrder.status}" && source = "4tvf116a5aitwmb"`,
+      sort: '+priority'
     });
-    
-    if (statuses.items.length > 0) {
-      defaultStatus = statuses.items[0].id;
-    } else {
-      console.warn('No statuses found, using fallback status');
-    }
-  } catch (error) {
-    console.warn('Failed to fetch statuses, using fallback status:', error);
+  });
+  
+  if (statusResult.items.length === 0) {
+    throw new Error(`No matching status found for Rozetka status code: ${rozetkaOrder.status}`);
   }
+  
+  const orderStatus = statusResult.items[0].id;
 
   const deliveryPostNumber = [
     rozetkaOrder.delivery?.place_street,
@@ -102,7 +98,7 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     amount: parseFloat(rozetkaOrder.amount || '0'),
     paymentMethod: (await mapPaymentMethod(rozetkaOrder.payment_method_id)).pbRecordId, 
     deliveryMethod: (await mapDeliveryMethod(rozetkaOrder.delivery.delivery_method_id)).pbRecordId,
-    status: defaultStatus,
+    status: orderStatus,
     currency: defaultCurrency.items[0].id,
     notes: rozetkaOrder.comment || '',
     deliveryPostNumber: deliveryPostNumber,

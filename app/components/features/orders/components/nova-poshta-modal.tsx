@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight, Loader2, Search, ChevronsUpDown, Info } from
 import { NovaPoshtaSettlement, NovaPoshtaWarehouse } from "@/app/lib/services/nova-poshta"
 import { toast } from "sonner"
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
-import { searchSettlements, getWarehouses, createInternetDocument, getCounterparties, getCounterpartyContactPersons, testRecipientSearch, createCounterparty, createContactPerson, deleteInternetDocument } from '@/app/[locale]/orders/actions/nova-poshta';
+import { searchSettlements, getWarehouses, createInternetDocument, getCounterparties, getCounterpartyContactPersons, createCounterparty, createContactPerson, deleteInternetDocument } from '@/app/[locale]/orders/actions/nova-poshta';
 import { cn } from "@/app/lib/utils"
 
 interface Order {
@@ -21,6 +21,7 @@ interface Order {
   customerPhone: string
   customerEmail: string
   totalAmount: number
+  deliveryPostNumber?: string
 }
 
 // Define a proper type for the Nova Poshta invoice data
@@ -675,21 +676,7 @@ export function NovaPoshtaModal({
       }
       
       if (result.data) {
-        console.log(`Found ${result.data.length} recipients for query "${searchQuery}"`);
         setRecipients(result.data);
-        
-        // If no recipients found, show a more helpful message and offer to create
-        if (result.data.length === 0) {
-          toast.info(`No recipients found for "${searchQuery}". You can create a new recipient.`);
-          // If we have the name and phone, offer to create a new counterparty
-          if (formData.recipientName && formData.recipientPhone) {
-            showCounterpartyConfirmation();
-          }
-        }
-      } else {
-        console.log(`No data returned for recipient search: "${searchQuery}"`);
-        setRecipients([]);
-        toast.warning("No recipient data returned from Nova Poshta API");
       }
     } catch (error) {
       console.error("Failed to fetch recipients:", error);
@@ -1327,6 +1314,22 @@ export function NovaPoshtaModal({
           </div>
         </div>
         
+        {/* Display delivery post number if available */}
+        {order.deliveryPostNumber && (
+          <div className="bg-muted/50 p-3 rounded-lg border border-muted">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium">Current Delivery Post Number:</span>
+              </div>
+              <span className="text-sm text-muted-foreground">{order.deliveryPostNumber}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              This order already has a delivery post number. Creating a new TTN will replace it.
+            </p>
+          </div>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="recipientContact">Recipient Contact Person {recipientContactPersons.length > 0 && "*"}</Label>
           <div className="relative" ref={recipientContactRef}>
@@ -1525,37 +1528,6 @@ export function NovaPoshtaModal({
               <p className="text-xs text-muted-foreground mt-1">Select a city first</p>
             )}
           </div>
-        </div>
-
-        {/* Debug Button - You can keep or remove this based on your needs */}
-        <div className="mt-4">
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={async () => {
-              if (recipientSearchValue.length >= 2) {
-                toast.info(`Testing direct API call with: "${recipientSearchValue}"`);
-                try {
-                  const result = await testRecipientSearch(recipientSearchValue);
-                  if (result.error) {
-                    toast.error(`API Error: ${result.error}`);
-                  } else if (result.data && result.data.length > 0) {
-                    toast.success(`Found ${result.data.length} recipients in direct API call`);
-                    setRecipients(result.data);
-                  } else {
-                    toast.warning("No recipients found in direct API call");
-                  }
-                } catch (error) {
-                  toast.error(`Test failed: ${error instanceof Error ? error.message : String(error)}`);
-                }
-              } else {
-                toast.warning("Please enter at least 2 characters to test search");
-              }
-            }}
-          >
-            Test API Directly
-          </Button>
         </div>
       </CardContent>
     </Card>

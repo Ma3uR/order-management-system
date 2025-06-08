@@ -401,23 +401,19 @@ async function processOrder(promOrder: PromOrderResponse) {
     throw new Error('No default currency found');
   }
 
-  let defaultStatus = '';
-  try {
-    const statuses = await authenticatedCall(async () => {
-      return await pb.collection('status_options').getList(1, 50, {
-        sort: '+priority',
-        limit: 1
-      });
+  // Get status by matching promOrder.status with marketplace_code
+  const statusResult = await authenticatedCall(async () => {
+    return await pb.collection('status_options').getList(1, 50, {
+      filter: `marketplace_code = "${promOrder.status}" && source = "gfzk8nxfokgu9ku"`,
+      sort: '+priority'
     });
-    
-    if (statuses.items.length > 0) {
-      defaultStatus = statuses.items[0].id;
-    } else {
-      console.warn('No statuses found, using fallback status');
-    }
-  } catch (error) {
-    console.warn('Failed to fetch statuses, using fallback status:', error);
+  });
+  
+  if (statusResult.items.length === 0) {
+    throw new Error(`No matching status found for Prom.ua status code: ${promOrder.status}`);
   }
+  
+  const orderStatus = statusResult.items[0].id;
   const paymentMethod = await mapPaymentMethod(promOrder.payment_option.id);
   const deliveryMethod = await mapDeliveryMethod(promOrder.delivery_option.id);
   const deliveryPostNumber = promOrder.delivery_address || '';
@@ -445,7 +441,7 @@ async function processOrder(promOrder: PromOrderResponse) {
     amount: orderAmount,
     paymentMethod: paymentMethod.pbRecordId,
     deliveryMethod: deliveryMethod.pbRecordId,
-    status: defaultStatus,
+    status: orderStatus,
     currency: defaultCurrency.items[0].id,
     notes: promOrder.client_notes || '',
     deliveryPostNumber: deliveryPostNumber,

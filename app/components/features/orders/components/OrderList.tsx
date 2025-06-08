@@ -2,6 +2,7 @@ import { OrdersResponse, StatusResponse } from '@/app/types/pocketbase-types';
 import { Button } from "@/app/components/shared/ui/button";
 import { UtilityService } from '@/app/services/utilityService';
 import { StatusSelect } from "@/app/components/shared/ui/StatusSelect";
+import { useMemo } from 'react';
 
 interface OrderListProps {
   orders: OrdersResponse[];
@@ -42,6 +43,19 @@ export function OrderList({
     }
   };
 
+  // Function to filter statuses based on order's source
+  const getFilteredStatusesForOrder = (order: OrdersResponse) => {
+    return statuses.filter(status => {
+      // Include statuses that belong to the same source as the order
+      if (status.source === order.source) return true;
+      
+      // Include app-specific statuses (no source or empty source)
+      if (!status.source || status.source === '') return true;
+      
+      return false;
+    });
+  };
+
   return (
     <>
       {/* Mobile view - Card layout */}
@@ -70,10 +84,10 @@ export function OrderList({
               <StatusSelect
                 status={order.status ? {
                   id: order.status,
-                  name: statuses.find(s => s.id === order.status)?.name || '',
-                  color: statuses.find(s => s.id === order.status)?.color || '#000000'
+                  name: getFilteredStatusesForOrder(order).find(s => s.id === order.status)?.name || '',
+                  color: getFilteredStatusesForOrder(order).find(s => s.id === order.status)?.color || '#000000'
                 } : undefined}
-                statuses={statuses}
+                statuses={getFilteredStatusesForOrder(order)}
                 onStatusChange={async (statusId) => {
                   if (!order) return;
                   await onStatusChange(order.id, statusId);
@@ -174,10 +188,10 @@ export function OrderList({
                 <StatusSelect
                   status={order.status ? {
                     id: order.status,
-                    name: statuses.find(s => s.id === order.status)?.name || '',
-                    color: statuses.find(s => s.id === order.status)?.color || '#000000'
+                    name: getFilteredStatusesForOrder(order).find(s => s.id === order.status)?.name || '',
+                    color: getFilteredStatusesForOrder(order).find(s => s.id === order.status)?.color || '#000000'
                   } : undefined}
-                  statuses={statuses}
+                  statuses={getFilteredStatusesForOrder(order)}
                   onStatusChange={async (statusId) => {
                     if (!order) return;
                     await onStatusChange(order.id, statusId);

@@ -132,7 +132,7 @@ export type StatusOptionsRecord = {
 	name: string
 	color: string
 	priority: number
-	marketplace_code?: number
+	marketplace_code?: string
 	source?: RecordIdString
 }
 

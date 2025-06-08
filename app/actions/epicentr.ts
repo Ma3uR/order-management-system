@@ -434,23 +434,20 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
     throw new Error('No default currency found');
   }
 
-  let defaultStatus = '';
-  try {
-    const statuses = await authenticatedCall(async () => {
-      return await pb.collection('status_options').getList(1, 50, {
-        sort: '+priority',
-        limit: 1
-      });
+ 
+  // Get status by matching epicentrOrder.statusCode with marketplace_code
+  const statusResult = await authenticatedCall(async () => {
+    return await pb.collection('status_options').getList(1, 50, {
+      filter: `marketplace_code = "${epicentrOrder.statusCode}" && source = "pj9sejm9vqtu8xq"`,
+      sort: '+priority'
     });
-    
-    if (statuses.items.length > 0) {
-      defaultStatus = statuses.items[0].id;
-    } else {
-      console.warn('No statuses found, using fallback status');
-    }
-  } catch (error) {
-    console.warn('Failed to fetch statuses, using fallback status:', error);
+  });
+  
+  if (statusResult.items.length === 0) {
+    throw new Error(`No matching status found for Epicentr status code: ${epicentrOrder.statusCode}`);
   }
+  
+  const orderStatus = statusResult.items[0].id;
 
   const defaultDeliveryMethod = await getDefaultDeliveryMethod();
   if (!defaultDeliveryMethod.data?.id) {
@@ -479,7 +476,7 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
     amount: epicentrOrder.subtotal,
     paymentMethod: mapPaymentProvider(epicentrOrder.address.shipment.paymentProvider),
     deliveryMethod: mapDeliveryProvider(epicentrOrder.address.shipment.provider),
-    status: defaultStatus,
+    status: orderStatus,
     currency: defaultCurrency.items[0].id,
     notes: epicentrOrder.comment || '',
     deliveryPostNumber: deliveryAddress.data?.officeAddress || 'Уточнюйте на сайті епіцентра',

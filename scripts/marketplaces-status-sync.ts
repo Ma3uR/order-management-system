@@ -42,13 +42,18 @@ async function syncEpicentrStatuses(): Promise<{ synced: number; failed: number 
     let synced = 0;
     let failed = 0;
 
+    console.log('📊 Epicentr statuses data:', JSON.stringify(statusResponse.data, null, 2));
+
     for (let i = 0; i < statusResponse.data.length; i++) {
       const status = statusResponse.data[i];
+      console.log(`🔍 Epicentr status ${i}:`, JSON.stringify(status, null, 2));
+      console.log(`📋 Epicentr status.id: "${status.id}", type: ${typeof status.id}`);
+      
       try {
-        // Check if status already exists
+        // Check if status already exists by marketplace_code OR by name (for duplicates)
         const existingStatus = await authenticatedCall(() =>
-          pb.collection('status_options').getList(1, 1, {
-            filter: `source = "${MARKETPLACE_SOURCES.EPICENTR}" && marketplace_code = "${status.id}"`
+          pb.collection('status_options').getList(1, 50, {
+            filter: `source = "${MARKETPLACE_SOURCES.EPICENTR}" && (marketplace_code = "${status.id}" || name = "${status.title.replace(/"/g, '\\"')}")`
           })
         );
 
@@ -66,14 +71,26 @@ async function syncEpicentrStatuses(): Promise<{ synced: number; failed: number 
           console.log(`✅ Created Epicentr status: ${status.title}`);
           synced++;
         } else {
-          // Update existing status
-          await authenticatedCall(() =>
-            pb.collection('status_options').update(existingStatus.items[0].id, {
-              name: status.title,
-              marketplace_code: status.id
-            })
-          );
-          console.log(`🔄 Updated Epicentr status: ${status.title}`);
+          // Update all existing duplicate statuses and remove extras
+          for (let j = 0; j < existingStatus.items.length; j++) {
+            const existingItem = existingStatus.items[j];
+            if (j === 0) {
+              // Update the first one
+              await authenticatedCall(() =>
+                pb.collection('status_options').update(existingItem.id, {
+                  name: status.title,
+                  marketplace_code: status.id
+                })
+              );
+              console.log(`🔄 Updated Epicentr status: ${status.title} (code: ${status.id})`);
+            } else {
+              // Delete duplicates
+              await authenticatedCall(() =>
+                pb.collection('status_options').delete(existingItem.id)
+              );
+              console.log(`🗑️ Removed duplicate Epicentr status: ${existingItem.name}`);
+            }
+          }
           synced++;
         }
       } catch (error) {
@@ -102,38 +119,57 @@ async function syncPromStatuses(): Promise<{ synced: number; failed: number }> {
     let synced = 0;
     let failed = 0;
 
+    console.log('📊 Prom.ua statuses data:', JSON.stringify(statusResponse.data, null, 2));
+
     for (let i = 0; i < statusResponse.data.length; i++) {
       const status = statusResponse.data[i];
+      console.log(`🔍 Prom.ua status ${i}:`, JSON.stringify(status, null, 2));
+      console.log(`📋 Prom.ua status.id: "${status.id}", type: ${typeof status.id}`);
+      
       try {
-        // Check if status already exists
+        // Check if status already exists by marketplace_code OR by name (for duplicates)  
+        // For Prom.ua, use title (Ukrainian) instead of name (English)
+        const statusName = (status as Record<string, unknown>).title as string || status.name;
         const existingStatus = await authenticatedCall(() =>
-          pb.collection('status_options').getList(1, 1, {
-            filter: `source = "${MARKETPLACE_SOURCES.PROM_UA}" && marketplace_code = ${status.id}`
+          pb.collection('status_options').getList(1, 50, {
+            filter: `source = "${MARKETPLACE_SOURCES.PROM_UA}" && (marketplace_code = ${status.id} || name = "${statusName.replace(/"/g, '\\"')}" || name = "${status.name.replace(/"/g, '\\"')}")`
           })
         );
 
         if (existingStatus.items.length === 0) {
-          // Create new status
+          // Create new status using Ukrainian title
           await authenticatedCall(() =>
             pb.collection('status_options').create({
-              name: status.name,
+              name: statusName,
               color: getColorForStatus(i),
               priority: i + 1,
-              marketplace_code: status.id,
+              marketplace_code: status.name,
               source: MARKETPLACE_SOURCES.PROM_UA
             })
           );
-          console.log(`✅ Created Prom.ua status: ${status.name}`);
+          console.log(`✅ Created Prom.ua status: ${statusName}`);
           synced++;
         } else {
-          // Update existing status
-          await authenticatedCall(() =>
-            pb.collection('status_options').update(existingStatus.items[0].id, {
-              name: status.name,
-              marketplace_code: status.id
-            })
-          );
-          console.log(`🔄 Updated Prom.ua status: ${status.name}`);
+          // Update all existing duplicate statuses and remove extras
+          for (let j = 0; j < existingStatus.items.length; j++) {
+            const existingItem = existingStatus.items[j];
+            if (j === 0) {
+              // Update the first one with Ukrainian title
+              await authenticatedCall(() =>
+                pb.collection('status_options').update(existingItem.id, {
+                  name: statusName,
+                  marketplace_code: status.id
+                })
+              );
+              console.log(`🔄 Updated Prom.ua status: ${statusName} (code: ${status.id})`);
+            } else {
+              // Delete duplicates
+              await authenticatedCall(() =>
+                pb.collection('status_options').delete(existingItem.id)
+              );
+              console.log(`🗑️ Removed duplicate Prom.ua status: ${existingItem.name}`);
+            }
+          }
           synced++;
         }
       } catch (error) {
@@ -162,13 +198,19 @@ async function syncRozetkaStatuses(): Promise<{ synced: number; failed: number }
     let synced = 0;
     let failed = 0;
 
+    console.log('📊 Rozetka statuses data:', JSON.stringify(statusResponse.data, null, 2));
+
     for (let i = 0; i < statusResponse.data.length; i++) {
       const status = statusResponse.data[i];
+      console.log(`🔍 Rozetka status ${i}:`, JSON.stringify(status, null, 2));
+      console.log(`📋 Rozetka status.id: "${status.id}", type: ${typeof status.id}`);
+      
       try {
-        // Check if status already exists
+        // Check if status already exists by marketplace_code OR by name (for duplicates)
+        const statusName = status.name || status.name_uk || `Status ${status.id}`;
         const existingStatus = await authenticatedCall(() =>
-          pb.collection('status_options').getList(1, 1, {
-            filter: `source = "${MARKETPLACE_SOURCES.ROZETKA}" && marketplace_code = ${status.id}`
+          pb.collection('status_options').getList(1, 50, {
+            filter: `source = "${MARKETPLACE_SOURCES.ROZETKA}" && (marketplace_code = ${status.id} || name = "${statusName.replace(/"/g, '\\"')}")`
           })
         );
 
@@ -176,24 +218,36 @@ async function syncRozetkaStatuses(): Promise<{ synced: number; failed: number }
           // Create new status
           await authenticatedCall(() =>
             pb.collection('status_options').create({
-              name: status.name || status.name_uk || `Status ${status.id}`,
+              name: statusName,
               color: getColorForStatus(i),
               priority: i + 1,
               marketplace_code: status.id,
               source: MARKETPLACE_SOURCES.ROZETKA
             })
           );
-          console.log(`✅ Created Rozetka status: ${status.name || status.name_uk}`);
+          console.log(`✅ Created Rozetka status: ${statusName}`);
           synced++;
         } else {
-          // Update existing status
-          await authenticatedCall(() =>
-            pb.collection('status_options').update(existingStatus.items[0].id, {
-              name: status.name || status.name_uk || `Status ${status.id}`,
-              marketplace_code: status.id
-            })
-          );
-          console.log(`🔄 Updated Rozetka status: ${status.name || status.name_uk}`);
+          // Update all existing duplicate statuses and remove extras
+          for (let j = 0; j < existingStatus.items.length; j++) {
+            const existingItem = existingStatus.items[j];
+            if (j === 0) {
+              // Update the first one
+              await authenticatedCall(() =>
+                pb.collection('status_options').update(existingItem.id, {
+                  name: statusName,
+                  marketplace_code: status.id
+                })
+              );
+              console.log(`🔄 Updated Rozetka status: ${statusName} (code: ${status.id})`);
+            } else {
+              // Delete duplicates
+              await authenticatedCall(() =>
+                pb.collection('status_options').delete(existingItem.id)
+              );
+              console.log(`🗑️ Removed duplicate Rozetka status: ${existingItem.name}`);
+            }
+          }
           synced++;
         }
       } catch (error) {

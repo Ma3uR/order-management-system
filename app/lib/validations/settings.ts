@@ -35,7 +35,7 @@ export const statusSchema = z.object({
     .int()
     .min(1, "Priority must be at least 1")
     .max(99, "Priority must be less than 99"),
-  marketplace_code: z.number().optional(),
+  marketplace_code: z.string().optional(),
   source: z.string().optional()
 }) satisfies z.ZodType<StatusOptionsRecord>;
 
