@@ -4,6 +4,7 @@ import { fetchOrders } from '@/app/lib/pocketbase';
 import { ErrorBoundaryClient } from '@/app/components/layouts/providers/ErrorBoundary';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
 import { getOrdersFromSourceText, getOrdersCombinedText } from './actions/translations';
+import { OrdersDashboard } from '@/app/components/features/orders/components/dashboard/orders-dashboard';
 
 // Add type definition before the component
 type ProductItem = {
@@ -119,7 +120,10 @@ export default async function OrdersPage() {
 
   return (
     <ErrorBoundaryClient>
-      <OrdersManagement 
+      <OrdersDashboard /> 
+
+
+      {/* <OrdersManagement 
         translations={translations} 
         initialOrders={orders.map(order => {
           // Parse products if they're a string
@@ -154,7 +158,7 @@ export default async function OrdersPage() {
             mergeStatus: order.mergeStatus || 'none'
           } as unknown as OrdersResponse;
         })} 
-      />
+      /> */}
     </ErrorBoundaryClient>
   );
 }

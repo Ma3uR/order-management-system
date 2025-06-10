@@ -214,7 +214,6 @@ export async function getCounterparties(counterpartyProperty: 'Sender' | 'Recipi
       methodProperties
     };
 
-    console.log('Nova Poshta API Request:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch('https://api.novaposhta.ua/v2.0/json/', {
       method: 'POST',
@@ -228,7 +227,6 @@ export async function getCounterparties(counterpartyProperty: 'Sender' | 'Recipi
     const result = await response.json();
     
     // Log the actual response data
-    console.log('Nova Poshta API Response:', JSON.stringify(result, null, 2));
     
     if (!result.success) {
       return { error: result.errors.join(', ') };
