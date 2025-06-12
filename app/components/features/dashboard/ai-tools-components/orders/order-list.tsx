@@ -104,15 +104,15 @@ export function OrderList({ orders, isLoading = false }: OrderListProps) {
     const statusValue = status || "";
     switch (statusValue.toLowerCase()) {
       case "completed":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800"
       case "processing":
-        return "bg-blue-100 text-blue-800"
+        return "bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border-amber-200 dark:border-amber-800"
       case "pending":
-        return "bg-yellow-100 text-yellow-800"
+        return "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
       case "cancelled":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-muted text-muted-foreground border-border"
     }
   }
 
@@ -128,7 +128,7 @@ export function OrderList({ orders, isLoading = false }: OrderListProps) {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -136,7 +136,7 @@ export function OrderList({ orders, isLoading = false }: OrderListProps) {
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-medium">Orders ({filteredOrders.length})</h2>
+        <h2 className="text-lg font-medium text-foreground">Orders ({filteredOrders.length})</h2>
         <div className="relative w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -149,8 +149,8 @@ export function OrderList({ orders, isLoading = false }: OrderListProps) {
       </div>
 
       {currentOrders.length === 0 ? (
-        <div className="text-center py-6 bg-gray-50 rounded-lg">
-          <p className="text-gray-500 text-sm">No orders found</p>
+        <div className="text-center py-6 bg-muted rounded-lg">
+          <p className="text-muted-foreground text-sm">No orders found</p>
         </div>
       ) : (
         <div className="border rounded-md">
@@ -168,7 +168,7 @@ export function OrderList({ orders, isLoading = false }: OrderListProps) {
               {currentOrders.map((order) => (
                 <TableRow
                   key={order.id}
-                  className="cursor-pointer hover:bg-gray-50"
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() => handleOrderClick(order)}
                 >
                   <TableCell className="font-medium">

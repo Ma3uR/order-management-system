@@ -7,7 +7,7 @@ type OrderToolProps = {
 
 export function OrderTool({ orders, isLoading = false }: OrderToolProps) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-3">
+    <div className="bg-card rounded-lg shadow-sm border p-3">
       <OrderList orders={orders} isLoading={isLoading} />
     </div>
   )

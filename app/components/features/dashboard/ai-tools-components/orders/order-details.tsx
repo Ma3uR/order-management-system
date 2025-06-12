@@ -104,7 +104,7 @@ export function OrderDetails({ order, onClose }: OrderDetailsProps) {
 
   return (
     <Dialog open={true} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background opacity-100 z-50">
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center">
             <span>Order #{normalizedOrder.orderNumber || "Unknown"}</span>
@@ -113,11 +113,11 @@ export function OrderDetails({ order, onClose }: OrderDetailsProps) {
                 (() => {
                   // Default to empty string if status is undefined
                   const status = normalizedOrder.status || "";
-                  if (status.toLowerCase() === "completed") return "bg-green-100 text-green-800";
-                  if (status.toLowerCase() === "processing") return "bg-blue-100 text-blue-800";
-                  if (status.toLowerCase() === "pending") return "bg-yellow-100 text-yellow-800";
-                  if (status.toLowerCase() === "cancelled") return "bg-red-100 text-red-800";
-                  return "bg-gray-100 text-gray-800";
+                  if (status.toLowerCase() === "completed") return "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400";
+                  if (status.toLowerCase() === "processing") return "bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400";
+                  if (status.toLowerCase() === "pending") return "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400";
+                  if (status.toLowerCase() === "cancelled") return "bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400";
+                  return "bg-muted text-muted-foreground";
                 })()
               }
             >

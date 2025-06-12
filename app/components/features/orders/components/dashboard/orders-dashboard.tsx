@@ -81,13 +81,13 @@ export function OrdersDashboard() {
   const [sources, setSources] = useState<SourcesResponse[]>([])
   const [orders, setOrders] = useState<OrdersResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   // Keep track of whether the current user initiated the change
   const userActionRef = useRef<string | null>(null);
 
   // Declare copyTimeoutId in the component's scope
   let copyTimeoutId: NodeJS.Timeout | null = null;
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -497,14 +497,22 @@ export function OrdersDashboard() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg text-red-500">Error: {error}</div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900/30">
       <Toaster richColors />
       {/* Header Section */}
-      <header className="bg-white dark:bg-slate-800 shadow-sm p-4 md:p-6 sticky top-0 z-40">
+      <header className="bg-card shadow-sm p-4 md:p-6 sticky top-0 z-40">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">Orders Management</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Orders Management</h1>
             <Button onClick={handleCreateNewOrder} className="bg-primary hover:bg-primary/90 text-white">
               <PlusCircle className="mr-2 h-5 w-5" />
               Create New Order
@@ -544,7 +552,7 @@ export function OrdersDashboard() {
               {/* Search Bar takes remaining space or full on smaller lg */}
               <CardContent className="p-0 h-full flex items-center">
                 <div className="relative w-full h-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     type="search"
                     placeholder="Search by order #, customer, product..."
@@ -716,7 +724,7 @@ export function OrdersDashboard() {
                       }
                       className="mt-2"
                     />
-                    <div className="flex justify-between text-xs text-slate-500 mt-1">
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
                       <span>{filters.amountRange[0]} UAH</span>
                       <span>{filters.amountRange[1]} UAH</span>
                     </div>
@@ -742,7 +750,7 @@ export function OrdersDashboard() {
             </Sheet>
           </div>
           {/* Orders Table Area */}
-          <div className="bg-white dark:bg-slate-800 shadow-lg rounded-lg overflow-hidden flex flex-col">
+          <div className="bg-card shadow-lg rounded-lg overflow-hidden flex flex-col">
             {paginatedOrders.length > 0 ? (
               <>
                 <div className="overflow-x-auto">
@@ -755,7 +763,7 @@ export function OrdersDashboard() {
                             <TableHead
                               key={colId}
                               onClick={() => handleSort(colId)}
-                              className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700"
+                              className="cursor-pointer hover:bg-muted/50"
                             >
                               <div className="flex items-center gap-1">
                                 {colId.charAt(0).toUpperCase() + colId.slice(1).replace(/([A-Z])/g, " $1")}{" "}
@@ -780,7 +788,7 @@ export function OrdersDashboard() {
                         return (
                           <TableRow
                             key={order.id}
-                            className="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer"
+                            className="hover:bg-muted/50 cursor-pointer"
                             onClick={(e) => {
                               // Only trigger row copy if the click is not on an interactive element or a specific copyable span
                               const target = e.target as HTMLElement
@@ -855,8 +863,7 @@ export function OrdersDashboard() {
                                 <span
                                   data-copy-target="true"
                                   className="cursor-pointer hover:underline"
-                                  onClick={(e) => {
-                                    // e.stopPropagation(); // Parent div has data-no-row-click
+                                  onClick={() => {
                                     copyToClipboard(
                                       order.phoneNumber,
                                       `${order.phoneNumber} copied!`,
@@ -916,7 +923,7 @@ export function OrdersDashboard() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Badge
-                                    className={`${status?.color || "bg-slate-400"} text-white text-xs cursor-pointer hover:opacity-80`}
+                                    className={`${status?.color || "bg-muted"} text-white text-xs cursor-pointer hover:opacity-80`}
                                     variant="default"
                                   >
                                     {status?.name || "Unknown"}
@@ -939,7 +946,7 @@ export function OrdersDashboard() {
                             </TableCell>
                             <TableCell>
                               <Badge
-                                className={`${source?.color || "bg-slate-400"} text-white text-xs`}
+                                className={`${source?.color || "bg-muted"} text-white text-xs`}
                                 variant="default"
                               >
                                 {source?.name || "Unknown"}
@@ -975,9 +982,9 @@ export function OrdersDashboard() {
                   </Table>
                 </div>
                 {/* Pagination Controls */}
-                <div className="p-4 border-t dark:border-slate-700 mt-auto">
+                <div className="p-4 border-t border-border mt-auto">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-slate-600 dark:text-slate-400">
+                    <div className="text-sm text-muted-foreground">
                       Showing {pagination.pageIndex * pagination.pageSize + 1}-
                       {Math.min((pagination.pageIndex + 1) * pagination.pageSize, sortedOrders.length)} of{" "}
                       {sortedOrders.length} orders
@@ -1009,7 +1016,7 @@ export function OrdersDashboard() {
                       >
                         Previous
                       </Button>
-                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                      <span className="text-sm text-muted-foreground">
                         Page {pagination.pageIndex + 1} of {totalPages}
                       </span>
                       <Button
@@ -1027,9 +1034,9 @@ export function OrdersDashboard() {
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
-                <Search className="h-16 w-16 text-slate-300 dark:text-slate-600 mb-4" />
-                <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">No Orders Found</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Try adjusting your search or filters.</p>
+                <Search className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">No Orders Found</h3>
+                <p className="text-sm text-muted-foreground">Try adjusting your search or filters.</p>
               </div>
             )}
           </div>
@@ -1045,7 +1052,7 @@ export function OrdersDashboard() {
             ...selectedOrder,
             source: selectedOrder.source || '',
             archived: selectedOrder.archived || false,
-            products: (selectedOrder.products as any[]).map((p: any) => ({
+            products: (selectedOrder.products as Array<{ title?: string; name?: string; quantity: number; price: number }>).map((p) => ({
               title: p.title || p.name || '',
               quantity: p.quantity || 0,
               price: p.price || 0

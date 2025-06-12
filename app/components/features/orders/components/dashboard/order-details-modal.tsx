@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/app/components/shared/ui/button"
 import { Input } from "@/app/components/shared/ui/input"
 import { Textarea } from "@/app/components/shared/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/app/components/shared/ui/dialog" // Assuming DialogClose is available or use X icon button
+import { Dialog, DialogHeader, DialogTitle, DialogFooter, DialogContent } from "@/app/components/shared/ui/dialog"
 import { Badge } from "@/app/components/shared/ui/badge"
 import { Label } from "@/app/components/shared/ui/label"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/app/components/shared/ui/select"
@@ -418,18 +418,18 @@ export function OrderDetailsModal({
   return (
     <>
     <Toaster richColors />
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl sm:max-w-5xl md:max-w-5xl lg:max-w-5xl xl:max-w-5xl w-[90vw] max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4 border-b dark:border-slate-700">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="w-[98vw] max-h-[90vh] flex flex-col p-0 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden" style={{ maxWidth: 'none' }}>
+        <DialogHeader className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
-            <DialogTitle className="text-2xl font-bold text-slate-800 dark:text-white">
+            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Order #{order.orderNumber}
             </DialogTitle>
             <div className="flex items-center gap-3">
               {currentStatus && (
                 <Badge className={`${currentStatus.color} text-white text-xs`}>{currentStatus.name}</Badge>
               )}
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 {format(new Date(order.created), "MMM d, yyyy HH:mm")}
               </span>
             </div>
@@ -458,9 +458,9 @@ export function OrderDetailsModal({
           {/* Left Column */}
           <div className="space-y-6">
             <section>
-              <h3 className="text-lg font-semibold mb-3 text-slate-700 dark:text-slate-200">Customer Details</h3>
+              <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Customer Details</h3>
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-xs text-slate-500">
+                <Label htmlFor="fullName" className="text-xs text-gray-600 dark:text-gray-400">
                   Full Name
                 </Label>
                 <Input
@@ -476,7 +476,7 @@ export function OrderDetailsModal({
                   </div>
                 )}
 
-                <Label htmlFor="phoneNumber" className="text-xs text-slate-500">
+                <Label htmlFor="phoneNumber" className="text-xs text-gray-600 dark:text-gray-400">
                   Phone Number
                 </Label>
                 <div className="flex items-center gap-2">
@@ -519,7 +519,7 @@ export function OrderDetailsModal({
                 )}
                 {order.email && (
                   <div>
-                    <Label htmlFor="email" className="text-xs text-slate-500">
+                    <Label htmlFor="email" className="text-xs text-gray-600 dark:text-gray-400">
                       Email
                     </Label>
                     <Input
@@ -535,10 +535,10 @@ export function OrderDetailsModal({
             </section>
 
             <section>
-              <h3 className="text-lg font-semibold mb-3 text-slate-700 dark:text-slate-200">Order Information</h3>
+              <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Order Information</h3>
               <div className="space-y-3">
                 <div className="flex items-center">
-                  <Label htmlFor="orderNumberModal" className="text-xs text-slate-500 w-28">
+                  <Label htmlFor="orderNumberModal" className="text-xs text-gray-600 dark:text-gray-400 w-28">
                     Order #
                   </Label>
                   <Input
@@ -557,7 +557,7 @@ export function OrderDetailsModal({
                   </Button>
                 </div>
                 <div>
-                  <Label htmlFor="sourceModal" className="text-xs text-slate-500">
+                  <Label htmlFor="sourceModal" className="text-xs text-gray-600 dark:text-gray-400">
                     Source/Marketplace
                   </Label>
                   <Select value={order.source} onValueChange={(value) => handleInputChange("source", value)}>
@@ -574,7 +574,7 @@ export function OrderDetailsModal({
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="statusModal" className="text-xs text-slate-500">
+                  <Label htmlFor="statusModal" className="text-xs text-gray-600 dark:text-gray-400">
                     Status
                   </Label>
                   <div className="relative" ref={statusRef}>
@@ -598,7 +598,7 @@ export function OrderDetailsModal({
                     </Button>
                     
                     {statusOpen && (
-                      <div className="absolute z-50 w-full bg-background border rounded-md shadow-md mt-1">
+                      <div className="absolute z-50 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-md mt-1">
                         <div className="flex items-center border-b px-3 py-2">
                           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                           <Input
@@ -612,7 +612,7 @@ export function OrderDetailsModal({
                         <ScrollArea className="max-h-[200px]">
                           <div className="py-2">
                             {filteredStatuses.length === 0 ? (
-                              <div className="p-4 text-center text-muted-foreground">
+                              <div className="p-4 text-center text-gray-600 dark:text-gray-400">
                                 No statuses found
                               </div>
                             ) : (
@@ -641,15 +641,15 @@ export function OrderDetailsModal({
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   Created:{" "}
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
                     {format(new Date(order.created), "PPPp")}
                   </span>
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   Total Amount:{" "}
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
                     {formatCurrency(order.amount)}
                   </span>
                 </p>
@@ -660,10 +660,10 @@ export function OrderDetailsModal({
           {/* Right Column */}
           <div className="space-y-6">
             <section>
-              <h3 className="text-lg font-semibold mb-3 text-slate-700 dark:text-slate-200">Delivery Details</h3>
+              <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Delivery Details</h3>
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="deliveryMethod" className="text-xs text-slate-500">
+                  <Label htmlFor="deliveryMethod" className="text-xs text-gray-600 dark:text-gray-400">
                     Delivery Method
                   </Label>
                   <Select
@@ -686,7 +686,7 @@ export function OrderDetailsModal({
                 {/* Nova Poshta TTN Section */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs text-slate-500">Nova Poshta TTN</Label>
+                    <Label className="text-xs text-gray-600 dark:text-gray-400">Nova Poshta TTN</Label>
                     <Button
                       variant="outline"
                       size="sm"
@@ -711,7 +711,7 @@ export function OrderDetailsModal({
                 
                 {order.deliveryPostNumber && (
                   <div>
-                    <Label htmlFor="deliveryPostNumber" className="text-xs text-slate-500">
+                    <Label htmlFor="deliveryPostNumber" className="text-xs text-gray-600 dark:text-gray-400">
                       Post/Tracking Number
                     </Label>
                     <Input
@@ -726,10 +726,10 @@ export function OrderDetailsModal({
             </section>
 
             <section>
-              <h3 className="text-lg font-semibold mb-3 text-slate-700 dark:text-slate-200">Payment Information</h3>
+              <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Payment Information</h3>
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="paymentMethod" className="text-xs text-slate-500">
+                  <Label htmlFor="paymentMethod" className="text-xs text-gray-600 dark:text-gray-400">
                     Payment Method
                   </Label>
                   <Select
@@ -749,7 +749,7 @@ export function OrderDetailsModal({
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="productionCost" className="text-xs text-slate-500">
+                  <Label htmlFor="productionCost" className="text-xs text-gray-600 dark:text-gray-400">
                     Production Cost (Optional)
                   </Label>
                   <Input
@@ -767,7 +767,7 @@ export function OrderDetailsModal({
 
             <section>
               <div className="flex justify-between items-center mb-1">
-                <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Notes</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Notes</h3>
                 <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(!isEditingNotes)}>
                   {isEditingNotes ? "Done" : <Edit3 className="h-4 w-4 mr-1" />} {isEditingNotes ? "" : "Edit"}
                 </Button>
@@ -781,7 +781,7 @@ export function OrderDetailsModal({
                   className="text-sm"
                 />
               ) : (
-                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap min-h-[40px]">
+                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap min-h-[40px]">
                   {order.notes || "No notes yet."}
                 </p>
               )}
@@ -790,12 +790,12 @@ export function OrderDetailsModal({
         </div>
 
         {/* Products Section */}
-        <div className="p-6 border-t dark:border-slate-700">
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700">
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="products-section">
               <AccordionTrigger className="py-3 hover:no-underline">
                 <div className="flex justify-between items-center w-full">
-                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Products</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Products</h3>
                   {/* Optionally, move the "Add Product" button outside the trigger or style it differently if inside */}
                 </div>
               </AccordionTrigger>
@@ -803,7 +803,7 @@ export function OrderDetailsModal({
                 <Button variant="outline" size="sm" onClick={handleAddProduct} className="mb-3">
                   <PlusCircle className="h-4 w-4 mr-2" /> Add Product
                 </Button>
-                <div className="max-h-60 overflow-y-auto border rounded-md dark:border-slate-700">
+                <div className="max-h-60 overflow-y-auto border rounded-md border-gray-200 dark:border-gray-700">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -857,7 +857,7 @@ export function OrderDetailsModal({
                       ))}
                       {order.products.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-sm text-slate-500 py-4">
+                          <TableCell colSpan={5} className="text-center text-sm text-gray-600 dark:text-gray-400 py-4">
                             No products added yet.
                           </TableCell>
                         </TableRow>
@@ -881,7 +881,7 @@ export function OrderDetailsModal({
           </Accordion>
         </div>
 
-        <DialogFooter className="p-6 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <DialogFooter className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>

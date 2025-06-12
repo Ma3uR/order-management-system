@@ -58,7 +58,7 @@ export function MonthlyChart({ className }: MonthlyChartProps) {
     name: product.name.length > 15 ? product.name.substring(0, 15) + '...' : product.name,
     fullName: product.name,
     value: product.count,
-    color: `hsl(${(index * 45) % 360}, 70%, 50%)` // Generate different colors for each product
+    color: `hsl(${(index * 45) % 360}, 45%, 65%)` // Generate different colors for each product
   }));
 
   if (isLoading) {
