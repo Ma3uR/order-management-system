@@ -3,8 +3,6 @@
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
-import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
 import { ThemeProvider } from 'next-themes';
 import { AppSidebar } from '@/app/components/layouts/AppSidebar';
 import {
@@ -97,7 +95,7 @@ function DashboardLayoutContent({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="h-screen flex flex-col">
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-1 bg-background overflow-hidden z-10">
+        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-1 bg-background overflow-hidden z-10" style={{ opacity: 1 }}>
           <div className="flex flex-1 items-center gap-1 px-2 overflow-hidden">
             <div className="md:hidden">
               <SidebarTrigger location="header" />
@@ -113,10 +111,6 @@ function DashboardLayoutContent({
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-          </div>
-          <div className="flex items-center gap-1 px-2">
-            <LanguageSwitcher />
-            <ThemeToggle />
           </div>
         </header>
         <main className="flex-1 px-2 py-2 sm:px-3 sm:py-3 md:p-4">

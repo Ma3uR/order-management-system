@@ -59,6 +59,16 @@ const formatCurrency = (amount: number, currencyCode: string) => {
   return amount.toLocaleString("uk-UA", { style: "currency", currency: code });
 };
 
+// Helper function to get source color
+const getSourceColor = (sourceId: string) => {
+  const sourceColors: Record<string, string> = {
+    '4tvf116a5aitwmb': '#10B981', // Rozetka - Green
+    'gfzk8nxfokgu9ku': '#8B5CF6', // Prom.ua - Purple
+    'pj9sejm9vqtu8xq': '#6B7280', // Epicentr - Gray
+  };
+  return sourceColors[sourceId] || '#6B7280'; // Default gray
+};
+
 export function OrdersDashboard() {
   const t = useTranslations('Orders')
   const tDashboard = useTranslations('Dashboard')
@@ -514,42 +524,32 @@ export function OrdersDashboard() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900/30">
       <Toaster richColors />
-      {/* Header Section */}
-      <header className="bg-card shadow-sm p-4 md:p-6">
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-4 md:p-6" style={{ opacity: 1 }}>
         <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t('title')}</h1>
+          {/* Search and Create Button */}
+          <div className="flex items-center gap-4 mb-6">
+            <Card className="flex-1">
+              <CardContent className="p-0 h-12 flex items-center">
+                <div className="relative w-full h-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder={t('filterOrdersPlaceholder')}
+                    className="w-full h-full pl-10 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md"
+                    style={{ backgroundColor: 'var(--background)', opacity: 1 }}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
             <Button onClick={handleCreateNewOrder}>
-              <PlusCircle className="mr-2 h-5 w-5" />
+              <PlusCircle className="mr-2 h-4 w-4" />
               {t('createNewOrder')}
             </Button>
           </div>
-        </div>
-      </header>
-      
-      {/* Sticky Search Bar */}
-      <div className="bg-background shadow-md p-4 md:p-6 sticky top-0 z-50 border-b">
-        <div className="container mx-auto">
-          <Card>
-            <CardContent className="p-0 h-16 flex items-center">
-              <div className="relative w-full h-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder={t('filterOrdersPlaceholder')}
-                  className="w-full h-full pl-10 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-6">
-        <div className="container mx-auto">
           <Stats 
             stats={[
               {
@@ -637,7 +637,15 @@ export function OrdersDashboard() {
                               }))
                             }}
                           >
-                            <Badge className={`${status.color} text-white mr-2 text-xs`}>{status.name}</Badge>
+                            <Badge 
+                              className="text-white mr-2 text-xs"
+                              style={{
+                                backgroundColor: status.color,
+                                borderColor: status.color
+                              }}
+                            >
+                              {status.name}
+                            </Badge>
                           </DropdownMenuCheckboxItem>
                         ))}
                       </DropdownMenuContent>
@@ -669,7 +677,13 @@ export function OrdersDashboard() {
                               }))
                             }}
                           >
-                            <Badge className={`${source.color || "bg-gray-500"} text-white mr-2 text-xs`}>
+                            <Badge 
+                              className="text-white mr-2 text-xs"
+                              style={{
+                                backgroundColor: getSourceColor(source.id),
+                                borderColor: getSourceColor(source.id)
+                              }}
+                            >
                               {source.name}
                             </Badge>
                           </DropdownMenuCheckboxItem>
@@ -945,8 +959,12 @@ export function OrdersDashboard() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Badge
-                                    className={`${status?.color || "bg-muted"} text-white text-xs cursor-pointer hover:brightness-110`}
+                                    className="text-white text-xs cursor-pointer hover:brightness-110"
                                     variant="default"
+                                    style={{
+                                      backgroundColor: status?.color || '#6b7280',
+                                      borderColor: status?.color || '#6b7280'
+                                    }}
                                   >
                                     {status?.name || "Unknown"}
                                   </Badge>
@@ -957,7 +975,15 @@ export function OrdersDashboard() {
                                       key={sOpt.id}
                                       onClick={() => handleStatusChange(order.id, sOpt.id)}
                                     >
-                                      <Badge className={`${sOpt.color} text-white mr-2 text-xs`}>{sOpt.name}</Badge>
+                                      <Badge 
+                                        className="text-white mr-2 text-xs" 
+                                        style={{
+                                          backgroundColor: sOpt.color,
+                                          borderColor: sOpt.color
+                                        }}
+                                      >
+                                        {sOpt.name}
+                                      </Badge>
                                     </DropdownMenuItem>
                                   ))}
                                 </DropdownMenuContent>
@@ -968,8 +994,12 @@ export function OrdersDashboard() {
                             </TableCell>
                             <TableCell>
                               <Badge
-                                className={`${source?.color || "bg-muted"} text-white text-xs`}
+                                className="text-white text-xs"
                                 variant="default"
+                                style={{
+                                  backgroundColor: getSourceColor(source?.id || ''),
+                                  borderColor: getSourceColor(source?.id || '')
+                                }}
                               >
                                 {source?.name || "Unknown"}
                               </Badge>

@@ -1826,7 +1826,7 @@ export function NovaPoshtaModal({
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw] p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" style={{ maxWidth: '800px' }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw] p-6 text-gray-900 dark:text-gray-100" style={{ maxWidth: '800px', backgroundColor: 'var(--background)' }}>
           <DialogHeader>
             <DialogTitle>
               {existingTtn ? `Nova Poshta Invoice: ${existingTtn.number}` : "Generate Nova Poshta Invoice"}
@@ -1949,7 +1949,7 @@ export function NovaPoshtaModal({
 
       {/* Confirmation Dialog for Creating Counterparty */}
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <DialogContent className="sm:max-w-md text-gray-900 dark:text-gray-100" style={{ backgroundColor: 'var(--background)' }}>
           <DialogHeader>
             <DialogTitle>Create New Recipient</DialogTitle>
             <DialogDescription>

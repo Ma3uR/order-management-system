@@ -25,6 +25,16 @@ import { OrdersMergeStatusOptions, OrdersMergeSourceOptions } from '@/app/types/
 import pb from '@/app/lib/pocketbase'
 import { formatCurrency } from "@/app/lib/utils"
 
+// Helper function to get source color
+const getSourceColor = (sourceId: string) => {
+  const sourceColors: Record<string, string> = {
+    '4tvf116a5aitwmb': '#10B981', // Rozetka - Green
+    'gfzk8nxfokgu9ku': '#8B5CF6', // Prom.ua - Purple
+    'pj9sejm9vqtu8xq': '#6B7280', // Epicentr - Gray
+  };
+  return sourceColors[sourceId] || '#6B7280'; // Default gray
+};
+
 
 // Types (ensure these are consistent or imported)
 type Order = {
@@ -419,7 +429,7 @@ export function OrderDetailsModal({
     <>
     <Toaster richColors />
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[98vw] max-h-[90vh] flex flex-col p-0 bg-background text-foreground overflow-hidden" style={{ maxWidth: 'none' }}>
+      <DialogContent className="w-[98vw] max-h-[90vh] flex flex-col p-0 overflow-hidden" style={{ maxWidth: 'none', backgroundColor: 'var(--background)' }}>
         <DialogHeader className="p-6 pb-4 border-b border-border">
           <div className="flex justify-between items-center">
             <DialogTitle className="text-2xl font-bold text-foreground">
@@ -427,7 +437,15 @@ export function OrderDetailsModal({
             </DialogTitle>
             <div className="flex items-center gap-3">
               {currentStatus && (
-                <Badge className={`${currentStatus.color} text-white text-xs`}>{currentStatus.name}</Badge>
+                <Badge 
+                  className="text-white text-xs"
+                  style={{
+                    backgroundColor: currentStatus.color,
+                    borderColor: currentStatus.color
+                  }}
+                >
+                  {currentStatus.name}
+                </Badge>
               )}
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 {format(new Date(order.created), "MMM d, yyyy HH:mm")}
@@ -567,7 +585,15 @@ export function OrderDetailsModal({
                     <SelectContent>
                       {sources.map((src) => (
                         <SelectItem key={src.id} value={src.id}>
-                          <Badge className={`${src.color || "bg-gray-500"} text-white mr-2 text-xs`}>{src.name}</Badge>
+                          <Badge 
+                            className="text-white mr-2 text-xs"
+                            style={{
+                              backgroundColor: getSourceColor(src.id),
+                              borderColor: getSourceColor(src.id)
+                            }}
+                          >
+                            {src.name}
+                          </Badge>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -587,7 +613,13 @@ export function OrderDetailsModal({
                     >
                       {currentStatus ? (
                         <div className="flex items-center">
-                          <Badge className={`${currentStatus.color} text-white mr-2 text-xs`}>
+                          <Badge 
+                            className="text-white mr-2 text-xs"
+                            style={{
+                              backgroundColor: currentStatus.color,
+                              borderColor: currentStatus.color
+                            }}
+                          >
                             {currentStatus.name}
                           </Badge>
                         </div>
@@ -629,7 +661,13 @@ export function OrderDetailsModal({
                                     setStatusSearchValue("")
                                   }}
                                 >
-                                  <Badge className={`${status.color} text-white mr-2 text-xs`}>
+                                  <Badge 
+                                    className="text-white mr-2 text-xs"
+                                    style={{
+                                      backgroundColor: status.color,
+                                      borderColor: status.color
+                                    }}
+                                  >
                                     {status.name}
                                   </Badge>
                                 </div>

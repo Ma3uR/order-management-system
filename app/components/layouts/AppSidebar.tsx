@@ -15,6 +15,8 @@ import {
   Bot,
   Receipt
 } from 'lucide-react';
+import { ThemeToggle } from '@/app/components/shared/ui/theme-toggle';
+import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
 
 export function AppSidebar() {
   const t = useTranslations('Dashboard');
@@ -79,6 +81,15 @@ export function AppSidebar() {
           ))}
         </nav>
       </SidebarContent>
+      
+      {/* Language and Theme Controls */}
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-t mt-auto">
+        <div className="group-data-[state=collapsed]:hidden">
+          <LanguageSwitcher />
+        </div>
+        <ThemeToggle className="group-data-[state=collapsed]:mx-auto" />
+      </div>
+      
       <SidebarFooter />
     </Sidebar>
   );
