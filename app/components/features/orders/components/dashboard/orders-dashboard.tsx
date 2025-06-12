@@ -86,7 +86,7 @@ export function OrdersDashboard() {
   const userActionRef = useRef<string | null>(null);
 
   // Declare copyTimeoutId in the component's scope
-  let copyTimeoutId: NodeJS.Timeout | null = null;
+  const copyTimeoutIdRef = useRef<NodeJS.Timeout | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch data on component mount
@@ -235,8 +235,8 @@ export function OrdersDashboard() {
         valB = valB.toLowerCase()
       }
       
-      if (valA < valB) return sorting.desc ? 1 : -1
-      if (valA > valB) return sorting.desc ? -1 : 1
+      if ((valA as unknown as number) < (valB as unknown as number)) return sorting.desc ? 1 : -1
+      if ((valA as unknown as number) > (valB as unknown as number)) return sorting.desc ? -1 : 1
       return 0
     })
   }, [filteredOrders, sorting])
@@ -446,21 +446,21 @@ export function OrdersDashboard() {
 
   // Replace existing copyToClipboard function
   const copyToClipboard = (text: string, message: string, rowId: string, columnId: string) => {
-    if (copyTimeoutId) {
-      clearTimeout(copyTimeoutId)
+    if (copyTimeoutIdRef.current) {
+      clearTimeout(copyTimeoutIdRef.current)
     }
     navigator.clipboard
       .writeText(text)
       .then(() => {
         setCopyNotification({ message, rowId, columnId, key: Date.now() })
-        copyTimeoutId = setTimeout(() => {
+        copyTimeoutIdRef.current = setTimeout(() => {
           setCopyNotification(null)
         }, 2000) // Hide after 2 seconds
       })
       .catch((err) => {
         console.error("Failed to copy:", err)
         setCopyNotification({ message: "Failed to copy!", rowId, columnId, key: Date.now() })
-        copyTimeoutId = setTimeout(() => {
+        copyTimeoutIdRef.current = setTimeout(() => {
           setCopyNotification(null)
         }, 2000)
       })
@@ -475,7 +475,7 @@ export function OrdersDashboard() {
     // TODO: Potentially mark these orders as "reviewed for merge" in backend to not show again immediately
   }
 
-  const handleConfirmMerge = (ordersToMerge: OrdersResponse[]) => {
+  const handleConfirmMerge = (ordersToMerge: { id: string; orderNumber: string; fullName: string; phoneNumber: string; status: string; amount: number; source: string; created: string }[]) => {
     // TODO: Implement actual merge logic (API call)
     // 1. Create a new merged order.
     // 2. Archive or mark original orders as merged.
@@ -701,7 +701,7 @@ export function OrdersDashboard() {
                           initialFocus
                           mode="range"
                           defaultMonth={filters.dateRange?.from}
-                          selected={filters.dateRange}
+                          selected={filters.dateRange?.from ? filters.dateRange as { from: Date; to?: Date } : undefined}
                           onSelect={(range) => {
                             setFilters((prev) => ({ ...prev, dateRange: range || undefined }))
                           }}
@@ -1052,6 +1052,7 @@ export function OrdersDashboard() {
             ...selectedOrder,
             source: selectedOrder.source || '',
             archived: selectedOrder.archived || false,
+            originalOrders: Array.isArray(selectedOrder.originalOrders) ? selectedOrder.originalOrders : undefined,
             products: (selectedOrder.products as Array<{ title?: string; name?: string; quantity: number; price: number }>).map((p) => ({
               title: p.title || p.name || '',
               quantity: p.quantity || 0,
@@ -1059,7 +1060,11 @@ export function OrdersDashboard() {
             }))
           } : null}
           statusOptions={statuses}
-          sources={sources}
+          sources={sources.map(s => ({
+            id: s.id,
+            name: s.name || '',
+            color: s.color
+          }))}
           onSave={async (updatedOrder) => {
             console.log("🔄 Saving order to database:", updatedOrder)
             try {
@@ -1123,8 +1128,24 @@ export function OrdersDashboard() {
       <ConfirmOrderMergeModal
         isOpen={isConfirmMergeModalOpen}
         onClose={() => setIsConfirmMergeModalOpen(false)}
-        ordersToMerge={potentialMergeOrders}
-                  sources={sources}
+        ordersToMerge={potentialMergeOrders.map(o => ({
+          id: o.id,
+          orderNumber: o.orderNumber,
+          fullName: o.fullName,
+          phoneNumber: o.phoneNumber,
+          status: o.status,
+          amount: o.amount,
+          source: o.source || '',
+          created: o.created,
+          products: (o.products as Array<{ title: string; quantity: number; price: number }>) || [],
+          numberOfItems: o.numberOfItems || 0,
+          currency: o.currency || ''
+        }))}
+        sources={sources.map(s => ({
+          id: s.id,
+          name: s.name || '',
+          color: s.color
+        }))}
         onConfirmMerge={handleConfirmMerge}
       />
     </div>

@@ -126,6 +126,7 @@ export type PaymentOptionsRecord = {
 export type SourcesRecord = {
 	name?: string
 	url?: string
+	color?: string
 }
 
 export type StatusOptionsRecord = {
