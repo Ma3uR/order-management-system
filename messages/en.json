@@ -139,6 +139,7 @@
     "sourceRequired": "Source is required",
     "blacklistedCustomerWarning": "Customer is blacklisted. Only prepayment is allowed.",
     "totalOrders": "Total Orders",
+    "activeOrders": "Active Orders",
     "filters": "Filters",
     "all": "All",
     "amountRange": "Amount Range",

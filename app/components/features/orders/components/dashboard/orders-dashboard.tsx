@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import { useTranslations } from 'next-intl'
 import { Button } from "@/app/components/shared/ui/button"
 import { Input } from "@/app/components/shared/ui/input"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/shared/ui/table"
@@ -14,6 +15,7 @@ import {
 import { Badge } from "@/app/components/shared/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/app/components/shared/ui/sheet"
+import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/app/components/shared/ui/select"
 import { Slider } from "@/app/components/shared/ui/slider"
 import { Switch } from "@/app/components/shared/ui/switch"
@@ -30,6 +32,7 @@ import {
   MessageSquare,
   Send,
   Eye,
+  X,
 } from "lucide-react"
 import { OrderDetailsModal } from "@/app/components/features/orders/components/dashboard/order-details-modal"
 import { updateOrder } from '@/app/[locale]/orders/actions/orders'
@@ -40,6 +43,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/app/components/shared
 import { Calendar } from "@/app/components/shared/ui/calendar"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Stats } from "@/app/components/shared/ui/stats-section"
 import { OrdersResponse, SourcesResponse, StatusResponse, OrdersMergeStatusOptions, OrdersMergeSourceOptions, Collections } from "@/app/types/pocketbase-types"
 import { getOrders, getSettings } from '@/app/[locale]/orders/actions/orders'
 import pb from '@/app/lib/pocketbase'
@@ -56,6 +60,8 @@ const formatCurrency = (amount: number, currencyCode: string) => {
 };
 
 export function OrdersDashboard() {
+  const t = useTranslations('Orders')
+  const tDashboard = useTranslations('Dashboard')
   const [searchTerm, setSearchTerm] = useState("")
   const [filters, setFilters] = useState({
     status: [] as string[],
@@ -492,7 +498,7 @@ export function OrdersDashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading orders...</div>
+        <div className="text-lg">{t('loadingOrders')}</div>
       </div>
     )
   }
@@ -500,7 +506,7 @@ export function OrdersDashboard() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-lg text-red-500">Error: {error}</div>
+        <div className="text-lg text-red-500">{t('loadingFailed')}: {error}</div>
       </div>
     )
   }
@@ -509,71 +515,70 @@ export function OrdersDashboard() {
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900/30">
       <Toaster richColors />
       {/* Header Section */}
-      <header className="bg-card shadow-sm p-4 md:p-6 sticky top-0 z-40">
+      <header className="bg-card shadow-sm p-4 md:p-6">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Orders Management</h1>
-            <Button onClick={handleCreateNewOrder} className="bg-primary hover:bg-primary/90 text-white">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t('title')}</h1>
+            <Button onClick={handleCreateNewOrder}>
               <PlusCircle className="mr-2 h-5 w-5" />
-              Create New Order
+              {t('createNewOrder')}
             </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* Quick Stats Cards */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalOrders}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {totalAmount.toLocaleString("uk-UA", { style: "currency", currency: "UAH" })}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeOrders}</div>
-              </CardContent>
-            </Card>
-            <Card className="md:col-span-2 lg:col-span-1">
-              {" "}
-              {/* Search Bar takes remaining space or full on smaller lg */}
-              <CardContent className="p-0 h-full flex items-center">
-                <div className="relative w-full h-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search by order #, customer, product..."
-                    className="w-full h-full pl-10 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </header>
+      
+      {/* Sticky Search Bar */}
+      <div className="bg-background shadow-md p-4 md:p-6 sticky top-0 z-50 border-b">
+        <div className="container mx-auto">
+          <Card>
+            <CardContent className="p-0 h-16 flex items-center">
+              <div className="relative w-full h-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder={t('filterOrdersPlaceholder')}
+                  className="w-full h-full pl-10 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-auto p-4 md:p-6">
-        {" "}
-        {/* Changed to overflow-auto */}
-        <div className="container mx-auto h-full">
-          {" "}
-          {/* Removed flex gap-6 */}
+      <main className="flex-1 p-4 md:p-6">
+        <div className="container mx-auto">
+          <Stats 
+            stats={[
+              {
+                value: totalOrders.toString(),
+                change: "+12%",
+                changeType: 'positive',
+                label: t('totalOrders')
+              },
+              {
+                value: formatCurrency(totalAmount, "UAH"),
+                change: "+8.5%",
+                changeType: 'positive',
+                label: t('totalAmount')
+              },
+              {
+                value: activeOrders.toString(),
+                change: "-2%",
+                changeType: 'negative',
+                label: t('activeOrders')
+              },
+              {
+                value: Math.round(totalAmount / totalOrders || 0).toString() + " UAH",
+                change: "+5%",
+                changeType: 'positive',
+                label: tDashboard('averageOrderValue.title')
+              }
+            ]}
+          />
+          
           {/* Potential Merge Notification */}
           {potentialMergeOrders.length > 0 && (
             <PotentialMergeNotification
@@ -584,11 +589,11 @@ export function OrdersDashboard() {
           )}
           {/* Table Controls Bar */}
           <div className="mb-4 flex justify-end">
-            <Sheet open={isFiltersSidebarOpen} onOpenChange={setIsFiltersSidebarOpen}>
+            <Sheet open={isFiltersSidebarOpen} onOpenChange={setIsFiltersSidebarOpen} modal={false}>
               <SheetTrigger asChild>
                 <Button variant="outline">
                   <Filter className="mr-2 h-4 w-4" />
-                  Filters
+                  {t('filters')}
                   {activeFilterCount > 0 && (
                     <Badge variant="destructive" className="ml-2 rounded-full px-1.5 py-0.5 text-xs">
                       {activeFilterCount}
@@ -596,21 +601,26 @@ export function OrdersDashboard() {
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:max-w-xs p-0">
+              <SheetPrimitive.Portal>
+                <SheetPrimitive.Content
+                  side="right" 
+                  className="fixed inset-y-0 right-0 h-full w-full sm:max-w-xs p-0 z-[100] bg-white dark:bg-gray-900 border-l shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
+                  style={{ backgroundColor: 'var(--background)', opacity: '1' }}
+                >
                 <SheetHeader className="p-6 pb-0">
-                  <SheetTitle>Filters</SheetTitle>
+                  <SheetTitle>{t('filters')}</SheetTitle>
                 </SheetHeader>
                 <div className="p-6 space-y-6 overflow-y-auto h-[calc(100vh-120px)]">
                   {/* Status Filter */}
                   <div>
-                    <Label className="text-sm font-medium">Status</Label>
+                    <Label className="text-sm font-medium">{t('status')}</Label>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="w-full justify-between mt-1">
                           <span>
-                            {filters.status.length > 0 ? `${filters.status.length} selected` : "Select status"}
+                            {filters.status.length > 0 ? `${filters.status.length} selected` : t('selectStatus')}
                           </span>
-                          <ChevronDown className="h-4 w-4 opacity-50" />
+                          <ChevronDown className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
@@ -635,12 +645,12 @@ export function OrdersDashboard() {
                   </div>
                   {/* Source Filter */}
                   <div>
-                    <Label className="text-sm font-medium">Source/Marketplace</Label>
+                    <Label className="text-sm font-medium">{t('source')}</Label>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="w-full justify-between mt-1">
                           <span>
-                            {filters.source.length > 0 ? `${filters.source.length} selected` : "Select source"}
+                            {filters.source.length > 0 ? `${filters.source.length} selected` : t('selectSource')}
                           </span>
                           <ChevronDown className="h-4 w-4 opacity-50" />
                         </Button>
@@ -670,7 +680,7 @@ export function OrdersDashboard() {
 
                   {/* Date Range Filter */}
                   <div>
-                    <Label className="text-sm font-medium">Date Range</Label>
+                    <Label className="text-sm font-medium">{t('dateRange')}</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -692,7 +702,7 @@ export function OrdersDashboard() {
                               format(filters.dateRange.from, "LLL dd, y")
                             )
                           ) : (
-                            <span>Pick a date range</span>
+                            <span>{t('selectDateRange')}</span>
                           )}
                         </Button>
                       </PopoverTrigger>
@@ -713,7 +723,7 @@ export function OrdersDashboard() {
 
                   {/* Amount Range Slider */}
                   <div>
-                    <Label className="text-sm font-medium">Amount Range</Label>
+                    <Label className="text-sm font-medium">{t('amountRange')}</Label>
                     <Slider
                       min={0}
                       max={1000} // TODO: Set max dynamically based on data
@@ -743,10 +753,15 @@ export function OrdersDashboard() {
                 </div>
                 <SheetFooter className="p-6 pt-0">
                   <Button variant="outline" onClick={handleResetFilters} className="w-full">
-                    Reset Filters
+                    {t('resetFilters')}
                   </Button>
                 </SheetFooter>
-              </SheetContent>
+                <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </SheetPrimitive.Close>
+                </SheetPrimitive.Content>
+              </SheetPrimitive.Portal>
             </Sheet>
           </div>
           {/* Orders Table Area */}
@@ -758,17 +773,24 @@ export function OrdersDashboard() {
                     <TableHeader>
                       <TableRow>
                         {/* Define Table Columns */}
-                        {["orderNumber", "fullName", "phoneNumber", "status", "amount", "source", "created"].map(
-                          (colId) => (
+                        {[
+                          { id: "orderNumber", label: t('orderNumber') },
+                          { id: "fullName", label: t('fullName') },
+                          { id: "phoneNumber", label: t('phoneNumber') },
+                          { id: "status", label: t('status') },
+                          { id: "amount", label: t('amount') },
+                          { id: "source", label: t('source') },
+                          { id: "created", label: t('createdAt') }
+                        ].map(
+                          (col) => (
                             <TableHead
-                              key={colId}
-                              onClick={() => handleSort(colId)}
-                              className="cursor-pointer hover:bg-muted/50"
+                              key={col.id}
+                              onClick={() => handleSort(col.id)}
+                              className="cursor-pointer hover:bg-muted"
                             >
                               <div className="flex items-center gap-1">
-                                {colId.charAt(0).toUpperCase() + colId.slice(1).replace(/([A-Z])/g, " $1")}{" "}
-                                {/* Format title */}
-                                {sorting?.id === colId &&
+                                {col.label}
+                                {sorting?.id === col.id &&
                                   (sorting.desc ? (
                                     <ChevronDown className="h-4 w-4" />
                                   ) : (
@@ -778,7 +800,7 @@ export function OrdersDashboard() {
                             </TableHead>
                           ),
                         )}
-                        <TableHead>Actions</TableHead>
+                        <TableHead>{t('actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -788,7 +810,7 @@ export function OrdersDashboard() {
                         return (
                           <TableRow
                             key={order.id}
-                            className="hover:bg-muted/50 cursor-pointer"
+                            className="hover:bg-muted cursor-pointer"
                             onClick={(e) => {
                               // Only trigger row copy if the click is not on an interactive element or a specific copyable span
                               const target = e.target as HTMLElement
@@ -923,7 +945,7 @@ export function OrdersDashboard() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Badge
-                                    className={`${status?.color || "bg-muted"} text-white text-xs cursor-pointer hover:opacity-80`}
+                                    className={`${status?.color || "bg-muted"} text-white text-xs cursor-pointer hover:brightness-110`}
                                     variant="default"
                                   >
                                     {status?.name || "Unknown"}
@@ -985,9 +1007,9 @@ export function OrdersDashboard() {
                 <div className="p-4 border-t border-border mt-auto">
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                      Showing {pagination.pageIndex * pagination.pageSize + 1}-
-                      {Math.min((pagination.pageIndex + 1) * pagination.pageSize, sortedOrders.length)} of{" "}
-                      {sortedOrders.length} orders
+                      {t('showing')} {pagination.pageIndex * pagination.pageSize + 1}-
+                      {Math.min((pagination.pageIndex + 1) * pagination.pageSize, sortedOrders.length)} {t('of')}{" "}
+                      {sortedOrders.length} {t('orders')}
                     </div>
                     <div className="flex items-center gap-2">
                       <Select
@@ -1014,10 +1036,10 @@ export function OrdersDashboard() {
                         disabled={pagination.pageIndex === 0}
                         className="h-8"
                       >
-                        Previous
+                        {t('previous')}
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        Page {pagination.pageIndex + 1} of {totalPages}
+                        {t('page')} {pagination.pageIndex + 1} {t('of')} {totalPages}
                       </span>
                       <Button
                         variant="outline"
@@ -1026,7 +1048,7 @@ export function OrdersDashboard() {
                         disabled={pagination.pageIndex >= totalPages - 1}
                         className="h-8"
                       >
-                        Next
+                        {t('next')}
                       </Button>
                     </div>
                   </div>
@@ -1035,7 +1057,7 @@ export function OrdersDashboard() {
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
                 <Search className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold text-foreground mb-2">No Orders Found</h3>
+                <h3 className="text-xl font-semibold text-foreground mb-2">{t('noOrders')}</h3>
                 <p className="text-sm text-muted-foreground">Try adjusting your search or filters.</p>
               </div>
             )}

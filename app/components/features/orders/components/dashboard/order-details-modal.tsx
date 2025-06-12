@@ -419,10 +419,10 @@ export function OrderDetailsModal({
     <>
     <Toaster richColors />
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[98vw] max-h-[90vh] flex flex-col p-0 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden" style={{ maxWidth: 'none' }}>
-        <DialogHeader className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+      <DialogContent className="w-[98vw] max-h-[90vh] flex flex-col p-0 bg-background text-foreground overflow-hidden" style={{ maxWidth: 'none' }}>
+        <DialogHeader className="p-6 pb-4 border-b border-border">
           <div className="flex justify-between items-center">
-            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <DialogTitle className="text-2xl font-bold text-foreground">
               Order #{order.orderNumber}
             </DialogTitle>
             <div className="flex items-center gap-3">
