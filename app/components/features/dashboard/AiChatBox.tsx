@@ -377,7 +377,7 @@ export function AiChatBox({ id, userId, initialMessages, className }: AiChatBoxP
   };
 
   return (
-    <Card className={`h-full flex flex-col bg-white/50 dark:bg-black/90 backdrop-blur-sm ${className || ''}`}>
+    <Card className={`h-full flex flex-col shadow-md ${className || ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-medium">{t('title')}</CardTitle>
         <div className="flex space-x-2">

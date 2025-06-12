@@ -332,8 +332,6 @@ export default function Dashboard() {
     );
   }
 
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900/30">
       <motion.div 
@@ -367,7 +365,7 @@ export default function Dashboard() {
           />
           <MonthlyChart
             data={stats.monthlyData}
-            labels={months}
+            labels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
             className="h-full"
           />
         </motion.div>

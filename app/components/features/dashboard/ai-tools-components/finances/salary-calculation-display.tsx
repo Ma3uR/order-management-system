@@ -78,7 +78,7 @@ export function SalaryCalculationDisplay({ salaryData, isLoading = false }: Sala
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-32 bg-white rounded-lg shadow-sm border p-4">
+      <div className="flex justify-center items-center h-32 bg-card rounded-lg shadow-sm border p-4">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     )
@@ -86,9 +86,9 @@ export function SalaryCalculationDisplay({ salaryData, isLoading = false }: Sala
 
   if (!salaryData) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border p-4">
-        <h2 className="text-xl font-semibold mb-2">{t("salaryCalculation")}</h2>
-        <p className="text-gray-500">{t("noSalaryDataAvailable")}</p>
+      <div className="bg-card rounded-lg shadow-sm border p-4">
+        <h2 className="text-xl font-semibold mb-2 text-card-foreground">{t("salaryCalculation")}</h2>
+        <p className="text-muted-foreground">{t("noSalaryDataAvailable")}</p>
       </div>
     )
   }
@@ -96,17 +96,17 @@ export function SalaryCalculationDisplay({ salaryData, isLoading = false }: Sala
   const profitMargin = salaryData.totalOrderValue - salaryData.totalProductionCosts
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-4">
+    <div className="bg-card rounded-lg shadow-sm border p-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">{t("salaryCalculation")}</h2>
+        <h2 className="text-xl font-semibold text-card-foreground">{t("salaryCalculation")}</h2>
         <div className="flex items-center gap-2">
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             {salaryData.periodStart} - {salaryData.periodEnd}
           </div>
           {salaryData.orders && salaryData.orders.length > 0 ? (
             <button
               onClick={handleDownload}
-              className="px-3 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md flex items-center gap-1"
+              className="px-3 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/20 dark:hover:bg-blue-800/30 text-blue-700 dark:text-blue-300 rounded-md flex items-center gap-1"
               title={`Download ${salaryData.orders.length} orders with salary data`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -115,7 +115,7 @@ export function SalaryCalculationDisplay({ salaryData, isLoading = false }: Sala
               {t("download")}
             </button>
           ) : (
-            <span className="text-xs text-gray-400 italic" title="No order data available for download">
+            <span className="text-xs text-muted-foreground italic" title="No order data available for download">
               {t("noOrderDataForDownload")}
             </span>
           )}
@@ -123,53 +123,53 @@ export function SalaryCalculationDisplay({ salaryData, isLoading = false }: Sala
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-          <div className="text-sm text-gray-600">{t("totalSalary")}</div>
-          <div className="text-lg font-semibold text-blue-600">
+        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+          <div className="text-sm text-gray-600 dark:text-gray-300">{t("totalSalary")}</div>
+          <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
             {formatCurrency(salaryData.totalSalary)}
           </div>
         </div>
         
-        <div className="p-3 rounded-lg bg-green-50 border border-green-100">
-          <div className="text-sm text-gray-600">{t("totalOrderValue")}</div>
-          <div className="text-lg font-semibold text-green-600">
+        <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800">
+          <div className="text-sm text-gray-600 dark:text-gray-300">{t("totalOrderValue")}</div>
+          <div className="text-lg font-semibold text-green-600 dark:text-green-400">
             {formatCurrency(salaryData.totalOrderValue)}
           </div>
         </div>
         
-        <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-          <div className="text-sm text-gray-600">{t("totalProductionCosts")}</div>
-          <div className="text-lg font-semibold text-red-600">
+        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
+          <div className="text-sm text-gray-600 dark:text-gray-300">{t("totalProductionCosts")}</div>
+          <div className="text-lg font-semibold text-red-600 dark:text-red-400">
             {formatCurrency(salaryData.totalProductionCosts)}
           </div>
         </div>
         
-        <div className="p-3 rounded-lg bg-purple-50 border border-purple-100">
-          <div className="text-sm text-gray-600">{t("orderCount")}</div>
-          <div className="text-lg font-semibold text-purple-600">
+        <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800">
+          <div className="text-sm text-gray-600 dark:text-gray-300">{t("orderCount")}</div>
+          <div className="text-lg font-semibold text-purple-600 dark:text-purple-400">
             {salaryData.orderCount}
           </div>
         </div>
       </div>
       
-      <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-100">
-        <div className="text-sm text-gray-600">{t("profitMargin")}</div>
-        <div className="text-lg font-semibold text-amber-600">
+      <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+        <div className="text-sm text-gray-600 dark:text-gray-300">{t("profitMargin")}</div>
+        <div className="text-lg font-semibold text-amber-600 dark:text-amber-400">
           {formatCurrency(profitMargin)}
         </div>
       </div>
       
       {/* Salary Breakdown */}
       <div>
-        <h3 className="text-md font-medium mb-2 text-gray-700">{t("salaryBreakdown")}</h3>
+        <h3 className="text-md font-medium mb-2 text-foreground">{t("salaryBreakdown")}</h3>
         <div className="space-y-2">
           {salaryData.salaryBreakdown.map((item, index) => (
-            <div key={`salary-${index}`} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+            <div key={`salary-${index}`} className="flex justify-between items-center p-3 bg-muted rounded">
               <div className="flex flex-col">
-                <span className="text-sm font-medium">{item.source}</span>
-                <span className="text-xs text-gray-500">{item.orderCount} {t("orders")}</span>
+                <span className="text-sm font-medium text-foreground">{item.source}</span>
+                <span className="text-xs text-muted-foreground">{item.orderCount} {t("orders")}</span>
               </div>
-              <span className="text-sm font-medium text-blue-600">{formatCurrency(item.commission)}</span>
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{formatCurrency(item.commission)}</span>
             </div>
           ))}
         </div>
