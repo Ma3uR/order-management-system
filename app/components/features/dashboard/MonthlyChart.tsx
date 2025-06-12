@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/shared/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { motion } from "framer-motion";
-import { useTranslations } from 'next-intl';
+// import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { getTopProductsByPopularity } from '@/app/lib/services/orders';
@@ -21,7 +21,7 @@ interface MonthlyChartProps {
 
 
 export function MonthlyChart({ className }: MonthlyChartProps) {
-  const t = useTranslations('Dashboard');
+  // const t = useTranslations('Dashboard');
   const { theme, systemTheme } = useTheme();
   const [productsData, setProductsData] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,9 +122,9 @@ export function MonthlyChart({ className }: MonthlyChartProps) {
                       color: "hsl(var(--card-foreground))",
                     }}
                     labelStyle={{ fontWeight: "bold", color: "hsl(var(--card-foreground))" }}
-                    formatter={(value: number, name: string, props: any) => [
+                    formatter={(value: number, name: string, props: any) => [ // eslint-disable-line @typescript-eslint/no-explicit-any
                       `${value} orders`,
-                      props.payload.fullName
+                      props?.payload?.fullName || name
                     ]}
                   />
                   <Bar dataKey="value" barSize={20} radius={[0, 4, 4, 0]} name="Orders">

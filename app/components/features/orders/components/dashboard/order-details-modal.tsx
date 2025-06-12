@@ -13,6 +13,7 @@ import { Phone, MessageSquare, Send, Copy, PlusCircle, Trash2, Edit3, Save, Truc
 import { format } from "date-fns"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/app/components/shared/ui/accordion"
 import { useEntities } from '@/app/hooks/useEntities'
+import { useRozetkaStatusOptions } from '@/app/hooks/useRozetkaStatusOptions'
 import { NovaPoshtaModal } from "@/app/components/features/orders/components/nova-poshta-modal"
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -21,9 +22,16 @@ import { z } from "zod"
 import { Alert, AlertDescription } from "@/app/components/shared/ui/alert"
 import { toast, Toaster } from 'sonner'
 import { createOrder } from "@/app/[locale]/orders/actions/orders"
-import { OrdersMergeStatusOptions, OrdersMergeSourceOptions } from '@/app/types/pocketbase-types'
+import { OrdersMergeStatusOptions, OrdersMergeSourceOptions, OrdersRecord, OrdersResponse, SourcesResponse, StatusResponse } from '@/app/types/pocketbase-types'
 import pb from '@/app/lib/pocketbase'
 import { formatCurrency } from "@/app/lib/utils"
+
+// Add this type near the top of the file
+type OrderProduct = {
+  title: string;
+  quantity: number;
+  price: number;
+}
 
 // Helper function to get source color
 const getSourceColor = (sourceId: string) => {
@@ -36,37 +44,6 @@ const getSourceColor = (sourceId: string) => {
 };
 
 
-// Types (ensure these are consistent or imported)
-type Order = {
-  id: string
-  orderNumber: string
-  fullName: string
-  phoneNumber: string
-  status: string
-  amount: number
-  source: string
-  created: string
-  deliveryMethod: string
-  deliveryPostNumber?: string
-  paymentMethod: string
-  products: Array<{ id?: string; title: string; quantity: number; price: number }>
-  numberOfItems: number
-  currency: string
-  notes?: string
-  archived: boolean
-  productionCost?: number
-  email?: string // Added email as per modal spec
-  // Nova Poshta TTN related fields
-  ttnNumber?: string
-  ttnDocumentRef?: string
-  // Order merge related fields
-  mergeStatus?: string
-  mergeSource?: string
-  marketplaceIds?: string
-  mergedWithOrderId?: string
-  originalOrders?: unknown[]
-  invoice_data?: unknown
-}
 
 // Nova Poshta compatible order type
 type NovaPoshtaOrder = {
@@ -78,25 +55,13 @@ type NovaPoshtaOrder = {
   deliveryPostNumber?: string
 }
 
-type StatusOption = {
-  id: string
-  name: string
-  color: string
-}
-
-type Source = {
-  id: string
-  name: string
-  color?: string
-}
-
 interface OrderDetailsModalProps {
   isOpen: boolean
   onClose: () => void
-  order: Order | null
-  statusOptions: StatusOption[]
-  sources: Source[]
-  onSave: (updatedOrder: Order) => Promise<unknown> // Callback for saving changes
+  order: OrdersResponse | null
+  statusOptions: StatusResponse[]
+  sources: SourcesResponse[]
+  onSave: (updatedOrder: OrdersRecord) => Promise<unknown> // Callback for saving changes
 }
 
 export function OrderDetailsModal({
@@ -107,7 +72,7 @@ export function OrderDetailsModal({
   sources,
   onSave,
 }: OrderDetailsModalProps) {
-  const [order, setOrder] = useState<Order | null>(initialOrder)
+  const [order, setOrder] = useState<OrdersResponse | null>(initialOrder)
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isNovaPoshtaModalOpen, setIsNovaPoshtaModalOpen] = useState(false)
@@ -119,8 +84,15 @@ export function OrderDetailsModal({
   // Fetch delivery and payment methods
   const { deliveryMethods, paymentMethods } = useEntities()
 
+  // Check if this is a Rozetka order and get available statuses
+  const isRozetkaOrder = order?.source === '4tvf116a5aitwmb'
+  const { rozetkaStatuses, loading: rozetkaStatusLoading, hasRozetkaStatuses } = useRozetkaStatusOptions(
+    order?.marketplaceIds || null,
+    isRozetkaOrder
+  )
+
   // Validate order using zod schema
-  const validateOrder = useCallback((orderData: Order) => {
+  const validateOrder = useCallback((orderData: OrdersRecord) => {
     try {
       // Transform order data to match schema expectations
       const orderToValidate = {
@@ -158,7 +130,7 @@ export function OrderDetailsModal({
     if (order) {
       validateOrder(order)
     }
-  }, [order])
+  }, [order, validateOrder])
 
   // Handle click outside to close status dropdown
   useEffect(() => {
@@ -178,23 +150,46 @@ export function OrderDetailsModal({
 
   if (!order) return null
 
-  const currentStatus = statusOptions.find((s) => s.id === order.status)
-  const currentSource = sources.find((s) => s.id === order.source)
+  const currentStatus = statusOptions.find((s) => s.id === order.status) as StatusResponse
 
   // Filter statuses based on source and search query
-  const filteredStatuses = statusOptions.filter(status => {
-    const matchesSearch = status.name.toLowerCase().includes(statusSearchValue.toLowerCase())
-    
-    // Filter statuses by source relationship
-    // If no source is selected, show all statuses
-    if (!currentSource) {
-      return matchesSearch
+  const filteredStatuses = (() => {
+    // For Rozetka orders, use available statuses from API if available
+    if (isRozetkaOrder && hasRozetkaStatuses) {
+      return rozetkaStatuses
+        .filter(status => status.name_uk.toLowerCase().includes(statusSearchValue.toLowerCase()))
+        .map(rozetkaStatus => ({
+          id: rozetkaStatus.status.toString(), // Use the status number as ID
+          name: rozetkaStatus.name_uk, // Use Ukrainian name
+          color: rozetkaStatus.color,
+          priority: 0, // Default priority
+          marketplace_code: rozetkaStatus.status.toString(),
+          source: order?.source || ''
+        }))
     }
     
-    return matchesSearch
-  })
+    // For other orders or when Rozetka statuses are not available, use regular status options
+    // First, get statuses that match the order's source
+    const sourceSpecificStatuses = statusOptions.filter(status => {
+      return status.source === order?.source
+    });
+    
+    // If we have source-specific statuses, use only those
+    if (sourceSpecificStatuses.length > 0) {
+      return sourceSpecificStatuses.filter(status => 
+        status.name.toLowerCase().includes(statusSearchValue.toLowerCase())
+      );
+    }
+    
+    // Fallback: if no source-specific statuses exist, show general statuses (those without source relation)
+    return statusOptions.filter(status => {
+      const matchesSearch = status.name.toLowerCase().includes(statusSearchValue.toLowerCase())
+      const isGeneralStatus = !status.source
+      return matchesSearch && isGeneralStatus
+    })
+  })()
 
-  const handleInputChange = <K extends keyof Order>(field: K, value: Order[K]) => {
+  const handleInputChange = <K extends keyof OrdersRecord>(field: K, value: OrdersRecord[K]) => {
     setOrder((prev) => {
       if (!prev) return null
       const updatedOrder = { ...prev, [field]: value }
@@ -204,35 +199,35 @@ export function OrderDetailsModal({
 
 
 
-  const handleProductChange = (index: number, field: keyof Order["products"][0], value: string | number) => {
+  const handleProductChange = (index: number, field: keyof OrderProduct, value: string | number) => {
     setOrder((prev) => {
-      if (!prev) return null
-      const updatedProducts = [...prev.products]
+      if (!prev) return null;
+      const updatedProducts = [...(prev.products as OrderProduct[])];
       updatedProducts[index] = {
         ...updatedProducts[index],
         [field]: field === "quantity" || field === "price" ? Number(value) : value,
-      }
+      };
       return {
         ...prev,
         products: updatedProducts,
         amount: calculateTotalAmount(updatedProducts),
         numberOfItems: calculateTotalItems(updatedProducts),
-      }
-    })
+      };
+    });
   }
 
   const handleAddProduct = () => {
     setOrder((prev) => {
-      if (!prev) return null
-      const newProduct = { title: "", quantity: 1, price: 0 }
-      return { ...prev, products: [...prev.products, newProduct] }
-    })
+      if (!prev) return null;
+      const newProduct: OrderProduct = { title: "", quantity: 1, price: 0 };
+      return { ...prev, products: [...(prev.products as OrderProduct[]), newProduct] };
+    });
   }
 
   const handleRemoveProduct = (index: number) => {
     setOrder((prev) => {
       if (!prev) return null
-      const updatedProducts = prev.products.filter((_, i) => i !== index)
+      const updatedProducts = (prev.products as OrderProduct[]).filter((_, i) => i !== index)
       return {
         ...prev,
         products: updatedProducts,
@@ -242,16 +237,16 @@ export function OrderDetailsModal({
     })
   }
 
-  const calculateTotalAmount = (products: Order["products"]) =>
+  const calculateTotalAmount = (products: OrderProduct[]) =>
     products.reduce((sum, p) => sum + p.quantity * p.price, 0)
-  const calculateTotalItems = (products: Order["products"]) => products.reduce((sum, p) => sum + p.quantity, 0)
+  const calculateTotalItems = (products: OrderProduct[]) => products.reduce((sum, p) => sum + p.quantity, 0)
 
   // Convert Order to NovaPoshtaOrder format
-  const convertToNovaPoshtaOrder = (order: Order): NovaPoshtaOrder => ({
-    id: order.id,
+  const convertToNovaPoshtaOrder = (order: OrdersResponse): NovaPoshtaOrder => ({
+    id: order.id || '',
     customerName: order.fullName,
     customerPhone: order.phoneNumber,
-    customerEmail: order.email || "",
+    customerEmail: "",
     totalAmount: order.amount,
     deliveryPostNumber: order.deliveryPostNumber
   })
@@ -288,12 +283,6 @@ export function OrderDetailsModal({
       console.log('❌ Order validation failed, cannot save')
       return
     }
-    
-    console.log('🔄 Starting save process for order:', {
-      id: order.id,
-      orderNumber: order.orderNumber,
-      fullName: order.fullName
-    })
     
     setIsLoading(true)
     try {
@@ -338,7 +327,7 @@ export function OrderDetailsModal({
           const orderData = {
             status: order.status,
             orderNumber: order.orderNumber,
-            source: order.source,
+            source: order.source || '',
             deliveryMethod: order.deliveryMethod,
             phoneNumber: order.phoneNumber,
             fullName: order.fullName,
@@ -354,7 +343,7 @@ export function OrderDetailsModal({
             mergeSource: OrdersMergeSourceOptions.none,
             originalOrders: null,
             products: (order.products || []) as Array<{ title: string; quantity: number; price: number }>
-          }
+          } as const;
           
                     console.log('🔍 Order data prepared for creation:', JSON.stringify(orderData, null, 2))
           
@@ -363,7 +352,7 @@ export function OrderDetailsModal({
             console.log('🔍 Validating relation IDs...')
             await Promise.all([
               pb.collection('status_options').getOne(orderData.status),
-              pb.collection('sources').getOne(orderData.source),
+              pb.collection('sources').getOne(orderData.source || ''),
               pb.collection('delivery_options').getOne(orderData.deliveryMethod),
               pb.collection('payment_options').getOne(orderData.paymentMethod),
               pb.collection('currency_options').getOne(orderData.currency)
@@ -374,7 +363,7 @@ export function OrderDetailsModal({
             throw new Error(`Invalid relation ID: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`)
           }
           
-                    const createResult = await createOrder(orderData)
+            const createResult = await createOrder(orderData)
           if (createResult.error) {
             throw new Error(createResult.error)
           }
@@ -535,7 +524,7 @@ export function OrderDetailsModal({
                     {getFieldError("phoneNumber")}
                   </div>
                 )}
-                {order.email && (
+                {/* {order.email && (
                   <div>
                     <Label htmlFor="email" className="text-xs text-gray-600 dark:text-gray-400">
                       Email
@@ -548,7 +537,7 @@ export function OrderDetailsModal({
                       className="text-base"
                     />
                   </div>
-                )}
+                )} */}
               </div>
             </section>
 
@@ -601,7 +590,11 @@ export function OrderDetailsModal({
                 </div>
                 <div>
                   <Label htmlFor="statusModal" className="text-xs text-gray-600 dark:text-gray-400">
-                    Status
+                    Status {isRozetkaOrder && hasRozetkaStatuses && (
+                      <span className="text-green-600 dark:text-green-400 font-semibold">
+                        (Rozetka Available)
+                      </span>
+                    )}
                   </Label>
                   <div className="relative" ref={statusRef}>
                     <Button
@@ -643,9 +636,16 @@ export function OrderDetailsModal({
                         </div>
                         <ScrollArea className="max-h-[200px]">
                           <div className="py-2">
-                            {filteredStatuses.length === 0 ? (
+                            {isRozetkaOrder && rozetkaStatusLoading ? (
                               <div className="p-4 text-center text-gray-600 dark:text-gray-400">
-                                No statuses found
+                                <div className="flex items-center justify-center space-x-2">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
+                                  <span>Loading Rozetka statuses...</span>
+                                </div>
+                              </div>
+                            ) : filteredStatuses.length === 0 ? (
+                              <div className="p-4 text-center text-gray-600 dark:text-gray-400">
+                                {isRozetkaOrder ? "No available status transitions found" : "No statuses found"}
                               </div>
                             ) : (
                               filteredStatuses.map((status) => (
@@ -732,15 +732,15 @@ export function OrderDetailsModal({
                       className="h-8 px-3 text-xs"
                     >
                       <Truck className="h-4 w-4 mr-1" />
-                      {order.ttnNumber ? "Manage TTN" : "Create TTN"}
+                      {order.invoice_data ? "Manage TTN" : "Create TTN"}
                     </Button>
                   </div>
-                  {order.ttnNumber && (
+                  {(order.invoice_data as { Ref: string }) && (
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-2">
                       <div className="flex items-center gap-2">
                         <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
                         <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                          TTN: {order.ttnNumber}
+                          TTN: {(order.invoice_data as { Ref: string }).Ref}
                         </span>
                       </div>
                     </div>
@@ -853,7 +853,7 @@ export function OrderDetailsModal({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {order.products.map((product, index) => (
+                      {(order.products as OrderProduct[]).map((product, index) => (
                         <TableRow key={index}>
                           <TableCell>
                             <Input
@@ -893,7 +893,7 @@ export function OrderDetailsModal({
                           </TableCell>
                         </TableRow>
                       ))}
-                      {order.products.length === 0 && (
+                      {(order.products as OrderProduct[]).length === 0 && (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center text-sm text-gray-600 dark:text-gray-400 py-4">
                             No products added yet.
@@ -943,9 +943,9 @@ export function OrderDetailsModal({
         order={convertToNovaPoshtaOrder(order)}
         onTtnCreated={handleTtnCreated}
         onTtnDeleted={handleTtnDeleted}
-        existingTtn={order.ttnNumber && order.ttnDocumentRef ? {
-          number: order.ttnNumber,
-          documentRef: order.ttnDocumentRef
+        existingTtn={order.invoice_data && (order.invoice_data as { Ref: string }).Ref ? {
+          number: (order.invoice_data as { Ref: string }).Ref,
+          documentRef: (order.invoice_data as { Ref: string }).Ref
         } : undefined}
       />
     )}

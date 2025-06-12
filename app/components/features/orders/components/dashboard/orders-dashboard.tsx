@@ -13,8 +13,8 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/app/components/shared/ui/dropdown-menu"
 import { Badge } from "@/app/components/shared/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/app/components/shared/ui/sheet"
+import { Card, CardContent } from "@/app/components/shared/ui/card"
+import { Sheet, SheetTrigger, SheetHeader, SheetTitle, SheetFooter } from "@/app/components/shared/ui/sheet"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/app/components/shared/ui/select"
 import { Slider } from "@/app/components/shared/ui/slider"
@@ -44,7 +44,7 @@ import { Calendar } from "@/app/components/shared/ui/calendar"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Stats } from "@/app/components/shared/ui/stats-section"
-import { OrdersResponse, SourcesResponse, StatusResponse, OrdersMergeStatusOptions, OrdersMergeSourceOptions, Collections } from "@/app/types/pocketbase-types"
+import { OrdersRecord, OrdersResponse, SourcesResponse, StatusResponse, OrdersMergeStatusOptions, OrdersMergeSourceOptions, Collections } from "@/app/types/pocketbase-types"
 import { getOrders, getSettings } from '@/app/[locale]/orders/actions/orders'
 import pb from '@/app/lib/pocketbase'
 import type { RecordSubscription } from 'pocketbase'
@@ -357,9 +357,8 @@ export function OrdersDashboard() {
         throw new Error('No valid products found');
       }
 
-      // Update local database
+      // Prepare update payload
       const updatePayload = {
-        status: newStatusId,
         source: order.source || '',
         fullName: order.fullName,
         phoneNumber: order.phoneNumber,
@@ -381,18 +380,31 @@ export function OrdersDashboard() {
         marketplaceIds: order.marketplaceIds
       };
 
-      console.log(`🔄 Updating order ${orderId} status to ${newStatusId}`);
-      const result = await updateOrder(orderId, updatePayload);
+      console.log(`🔄 Updating order ${orderId} status to ${newStatusId} with marketplace sync`);
+      
+      // Import the marketplace sync function
+      const { updateOrderStatusWithSync } = await import('@/app/actions/marketplace-status-sync');
+      
+      // Update with marketplace sync
+      const result = await updateOrderStatusWithSync(orderId, newStatusId, updatePayload);
 
-      if (result.error) {
-        throw new Error(result.error);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update order status');
       }
 
       // Update local state if successful
       setOrders(prevOrders => 
         prevOrders.map(o => o.id === orderId ? result.data! : o) as OrdersResponse[]
       );
-      toast.success("Order status updated successfully");
+
+      // Show appropriate success message
+      if (result.error) {
+        // Partial success - local update worked but marketplace sync failed
+        toast.warning(`Status updated locally, but marketplace sync failed: ${result.error}`);
+      } else {
+        // Full success
+        toast.success("Order status updated and synced to marketplace successfully");
+      }
     } catch (error) {
       console.error('❌ Error updating order status:', error);
       toast.error(error instanceof Error ? error.message : "Failed to update order status");
@@ -603,9 +615,9 @@ export function OrdersDashboard() {
               </SheetTrigger>
               <SheetPrimitive.Portal>
                 <SheetPrimitive.Content
-                  side="right" 
                   className="fixed inset-y-0 right-0 h-full w-full sm:max-w-xs p-0 z-[100] bg-white dark:bg-gray-900 border-l shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
                   style={{ backgroundColor: 'var(--background)', opacity: '1' }}
+                  data-side="right"
                 >
                 <SheetHeader className="p-6 pb-0">
                   <SheetTitle>{t('filters')}</SheetTitle>
@@ -970,7 +982,24 @@ export function OrdersDashboard() {
                                   </Badge>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start">
-                                  {statuses.map((sOpt) => (
+                                  {(() => {
+                                    // First, get statuses that match the order's source
+                                    const sourceSpecificStatuses = statuses.filter(sOpt => {
+                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                      return (sOpt as any).source === order.source
+                                    });
+                                    
+                                    // If we have source-specific statuses, use only those
+                                    if (sourceSpecificStatuses.length > 0) {
+                                      return sourceSpecificStatuses;
+                                    }
+                                    
+                                    // Fallback: if no source-specific statuses exist, show general statuses (those without source relation)
+                                    return statuses.filter(sOpt => {
+                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                      return !(sOpt as any).source
+                                    });
+                                  })().map((sOpt) => (
                                     <DropdownMenuItem
                                       key={sOpt.id}
                                       onClick={() => handleStatusChange(order.id, sOpt.id)}
@@ -1112,20 +1141,21 @@ export function OrdersDashboard() {
             }))
           } : null}
           statusOptions={statuses}
-          sources={sources.map(s => ({
-            id: s.id,
-            name: s.name || '',
-            color: s.color
-          }))}
-          onSave={async (updatedOrder) => {
+          sources={sources as SourcesResponse[]}
+          onSave={async (updatedOrder: OrdersRecord) => {
+            const orderId = selectedOrder?.id;
             console.log("🔄 Saving order to database:", updatedOrder)
             try {
-              userActionRef.current = updatedOrder.id;
+              userActionRef.current = orderId;
+              
+              // Check if status has changed to determine if we need marketplace sync
+              const currentOrder = orders.find(o => o.id === orderId) as OrdersResponse;
+              const statusChanged = currentOrder && currentOrder.status !== updatedOrder.status;
               
               // Prepare order data using the same pattern as OrdersManagement
               const orderData = {
-                status: updatedOrder.status,
                 orderNumber: updatedOrder.orderNumber,
+                status: updatedOrder.status,
                 source: updatedOrder.source || '',
                 deliveryMethod: updatedOrder.deliveryMethod,
                 deliveryPostNumber: updatedOrder.deliveryPostNumber || '',
@@ -1137,35 +1167,59 @@ export function OrdersDashboard() {
                 amount: updatedOrder.amount,
                 currency: updatedOrder.currency,
                 notes: updatedOrder.notes || '',
-                mergeStatus: (updatedOrder.mergeStatus as OrdersMergeStatusOptions) || OrdersMergeStatusOptions.none,
+                mergeStatus: updatedOrder.mergeStatus || OrdersMergeStatusOptions.none,
                 mergedWithOrderId: updatedOrder.mergedWithOrderId || '',
-                originalOrders: updatedOrder.originalOrders || null,
-                mergeSource: (updatedOrder.mergeSource as OrdersMergeSourceOptions) || OrdersMergeSourceOptions.none,
+                originalOrders: Array.isArray(updatedOrder.originalOrders) ? updatedOrder.originalOrders : null,
+                mergeSource: updatedOrder.mergeSource || OrdersMergeSourceOptions.none,
                 archived: updatedOrder.archived || false,
                 productionCost: updatedOrder.productionCost || 0,
-                marketplaceIds: updatedOrder.marketplaceIds || '',
+                marketplaceIds: updatedOrder.marketplaceIds || ''
+              } as const;
+              
+              console.log(`🔄 Updating order in database with data (status changed: ${statusChanged}):`, orderData)
+              
+              if (statusChanged) {
+                // Status changed - use marketplace sync
+                console.log("🔄 Status changed, using marketplace sync");
+                const { updateOrderStatusWithSync } = await import('@/app/actions/marketplace-status-sync');
+                const result = await updateOrderStatusWithSync(orderId, updatedOrder.status, orderData);
+                
+                if (!result.success) {
+                  throw new Error(result.error || 'Failed to update order');
+                }
+                
+                // Update local state
+                setOrders(prevOrders => 
+                  prevOrders.map(o => o.id === orderId ? result.data! : o) as OrdersResponse[]
+                );
+                
+                // Show appropriate success message
+                if (result.error) {
+                  toast.warning(`Order updated locally, but marketplace sync failed: ${result.error}`);
+                } else {
+                  toast.success("Order updated and synced to marketplace successfully");
+                }
+              } else {
+                // No status change - use regular update
+                console.log("🔄 No status change, using regular update");
+                const result = await updateOrder(orderId, orderData);
+                
+                if (result.error) {
+                  throw new Error(result.error);
+                }
+                
+                // Update local state
+                setOrders(prevOrders => 
+                  prevOrders.map(o => o.id === orderId ? result.data! : o) as OrdersResponse[]
+                );
+                
+                toast.success("Order updated successfully");
               }
               
-              console.log("🔄 Updating order in database with data:", orderData)
-              
-              // Use server action like in OrdersManagement
-              const result = await updateOrder(updatedOrder.id, orderData)
-              
-              if (result.error) {
-                throw new Error(result.error)
-              }
-              
-              console.log("✅ Order saved to database successfully:", result.data)
-              
-              // Update local state
-              setOrders(prevOrders => 
-                prevOrders.map(o => o.id === updatedOrder.id ? result.data! : o) as OrdersResponse[]
-              );
+              console.log("✅ Order saved to database successfully")
               
               setIsOrderModalOpen(false)
               console.log("✅ Order modal closed, UI updated")
-              
-              return result.data
             } catch (error) {
               console.error("❌ Failed to save order to database:", error)
               throw error // This will be caught by the modal's error handling

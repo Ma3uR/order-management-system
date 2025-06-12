@@ -146,7 +146,9 @@ export const getSettings = async () => {
             authenticatedCall(() => pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>()),
             authenticatedCall(() => pb.collection('payment_options').getFullList<PaymentMethodsResponse>()),
             authenticatedCall(() => pb.collection('currency_options').getFullList<CurrencyResponse>()),
-            authenticatedCall(() => pb.collection('status_options').getFullList<StatusResponse>()),
+            authenticatedCall(() => pb.collection('status_options').getFullList<StatusResponse>({
+                expand: 'source'
+            })),
             authenticatedCall(() => pb.collection('sources').getFullList<SourcesResponse>())
         ]);
 
@@ -209,7 +211,6 @@ export const syncRozetkaOrders = async () => {
 /**
  * Updates the invoice reference and data for an order
  * @param orderId The ID of the order to update
- * @param invoiceRef The invoice reference to set (or null to clear it)
  * @param invoiceData The complete invoice data object from Nova Poshta (or null to clear it)
  * @returns The updated order record
  */

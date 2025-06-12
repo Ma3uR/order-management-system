@@ -156,8 +156,9 @@ export async function calculateSalaryForPeriod(
     }
     
     // Get orders for the period with source expansion
+    // TODO: add status filter for cancelled orders
     const orders = await authenticatedCall(async () => pb.collection<OrdersResponse>('orders').getList(1, 50, {
-      filter: `created >= "${startDate}" && created <= "${endDate}" && status != "Скасовано"`,
+      filter: `created >= "${startDate}" && created <= "${endDate}" && status != "Скасовано" && status != "0a3jmekr5xi0xqt" && (archived = false || archived = null)`,
       expand: 'source',
     })); 
     

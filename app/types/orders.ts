@@ -102,5 +102,15 @@ export interface RozetkaOrderResponse {
     color: string;
     title: string;
   };
+  status_available?: Array<{
+    id: number;
+    name: string;
+    name_uk: string;
+    name_en: string;
+    status_group: number;
+    status: number;
+    color: string;
+    title: string;
+  }>;
   payment_method_id: number;
 }

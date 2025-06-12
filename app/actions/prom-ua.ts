@@ -388,6 +388,34 @@ async function processOrder(promOrder: PromOrderResponse) {
   });
 
   if (existingOrders.items.length > 0) {
+    // Order exists, check if status needs to be updated
+    const existingOrder = existingOrders.items[0];
+    
+    // Get the new status based on prom.ua status code
+    const statusResult = await authenticatedCall(async () => {
+      return await pb.collection('status_options').getList(1, 50, {
+        filter: `marketplace_code = "${promOrder.status}" && source = "gfzk8nxfokgu9ku"`,
+        sort: '+priority'
+      });
+    });
+    
+    if (statusResult.items.length > 0) {
+      const newStatusId = statusResult.items[0].id;
+      
+      // Only update if status has changed
+      if (existingOrder.status !== newStatusId) {
+        console.log(`Updating order ${promOrder.id} status from ${existingOrder.status} to ${newStatusId}`);
+        
+        await authenticatedCall(async () => {
+          return await pb.collection('orders').update(existingOrder.id, {
+            status: newStatusId,
+            updated: new Date().toISOString()
+          });
+        });
+        
+        console.log(`Order ${promOrder.id} status updated successfully`);
+      }
+    }
     return;
   }
   
@@ -449,6 +477,7 @@ async function processOrder(promOrder: PromOrderResponse) {
     mergeStatus: 'none',
     archived: false,
     productionCost: 0,
+    created: promOrder.date_created,
   };
 
   const safeData = {

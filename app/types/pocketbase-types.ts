@@ -92,7 +92,7 @@ export enum OrdersMergeSourceOptions {
 	"phone" = "phone",
 	"name" = "name",
 }
-export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown, Tinvoice_data = unknown> = {
+export type OrdersRecord<Tinvoice_data = unknown, ToriginalOrders = unknown, Tproducts = unknown> = {
 	orderNumber: string
 	marketplaceIds?: string
 	source?: RecordIdString
@@ -106,7 +106,6 @@ export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown, Tinvoic
 	status: RecordIdString
 	currency: RecordIdString
 	paymentMethod: RecordIdString
-	invoice_data?: null | Tinvoice_data
 	notes?: string
 	mergeStatus: OrdersMergeStatusOptions
 	mergedWithOrderId?: string
@@ -114,6 +113,7 @@ export type OrdersRecord<ToriginalOrders = unknown, Tproducts = unknown, Tinvoic
 	mergeSource: OrdersMergeSourceOptions
 	archived?: boolean
 	productionCost?: number
+	invoice_data?: null | Tinvoice_data
 }
 
 export type PaymentOptionsRecord = {
@@ -133,8 +133,8 @@ export type StatusOptionsRecord = {
 	name: string
 	color: string
 	priority: number
-	marketplace_code?: string
 	source?: RecordIdString
+	marketplace_code?: string
 }
 
 export type SyncRecordsRecord = {
