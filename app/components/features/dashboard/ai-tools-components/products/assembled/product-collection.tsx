@@ -109,14 +109,14 @@ export function ProductCollection({
   // Compact view for chat
   if (isCompact) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border p-4">
+      <div className="bg-card rounded-lg shadow-sm border p-4">
         <div className="flex justify-between items-center mb-3">
           <div>
             <h3 className="font-medium flex items-center gap-2">
               <ShoppingBag className="h-4 w-4" />
               {defaultTitle}
             </h3>
-            <p className="text-sm text-gray-500">{generatedSubtitle}</p>
+            <p className="text-sm text-muted-foreground">{generatedSubtitle}</p>
           </div>
           <Dialog open={isFullViewOpen} onOpenChange={setIsFullViewOpen}>
             <DialogTrigger asChild>
@@ -141,7 +141,7 @@ export function ProductCollection({
             .slice(0, 1)
             .map(([category, categoryProducts]) => (
               <div key={category}>
-                <div className="text-sm font-medium text-gray-500 mb-1">{category}</div>
+                <div className="text-sm font-medium text-muted-foreground mb-1">{category}</div>
                 {categoryProducts.slice(0, 2).map((product) => (
                   <div key={product.id} className="flex justify-between items-center py-1 border-b">
                     <span className="text-sm truncate" style={{ maxWidth: "70%" }}>
@@ -151,14 +151,14 @@ export function ProductCollection({
                   </div>
                 ))}
                 {categoryProducts.length > 2 && (
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {t("moreProducts", { count: categoryProducts.length - 2 })}
                   </div>
                 )}
               </div>
             ))}
           {Object.keys(groupedProducts).length > 1 && (
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-muted-foreground mt-1">
               {t("moreCategories", { count: Object.keys(groupedProducts).length - 1 })}
             </div>
           )}
@@ -224,7 +224,7 @@ function FullProductView({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">{subtitle}</p>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
         <Button variant="outline" size="sm" onClick={onDownload}>
           <Download className="h-4 w-4 mr-2" />
           {t("download")}
@@ -232,7 +232,7 @@ function FullProductView({
       </div>
 
       <div className="relative">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder={t("searchProducts")}
           className="pl-8"
@@ -241,7 +241,7 @@ function FullProductView({
         />
         {searchTerm && (
           <button className="absolute right-2 top-2.5" onClick={() => _setSearchTerm("")} aria-label={t("clearSearch")}>
-            <X className="h-4 w-4 text-gray-400" />
+            <X className="h-4 w-4 text-muted-foreground" />
           </button>
         )}
       </div>
@@ -249,7 +249,7 @@ function FullProductView({
       <ScrollArea className="h-[400px] pr-4">
         <div className="space-y-4">
           {Object.keys(filteredGroups).length === 0 ? (
-            <div className="text-center py-8 text-gray-500">{t("noProductsFound")}</div>
+            <div className="text-center py-8 text-muted-foreground">{t("noProductsFound")}</div>
           ) : (
             Object.entries(filteredGroups).map(([category, categoryProducts]) => (
               <Collapsible
@@ -257,7 +257,7 @@ function FullProductView({
                 open={openCategories[category] !== false}
                 onOpenChange={() => toggleCategory(category)}
               >
-                <div className="bg-gray-50 rounded-md">
+                <div className="bg-muted rounded-md">
                   <CollapsibleTrigger className="flex w-full justify-between items-center p-3 text-left">
                     <div className="flex items-center">
                       <span className="font-medium">{category}</span>
@@ -273,8 +273,8 @@ function FullProductView({
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="px-3 pb-3">
-                      <div className="bg-white rounded border">
-                        <div className="grid grid-cols-2 gap-4 p-3 border-b text-sm font-medium text-gray-500">
+                      <div className="bg-card rounded border">
+                        <div className="grid grid-cols-2 gap-4 p-3 border-b text-sm font-medium text-muted-foreground">
                           <div>{t("productName")}</div>
                           <div className="text-right">{t("quantity")}</div>
                         </div>

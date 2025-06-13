@@ -1010,7 +1010,7 @@ export function NovaPoshtaModal({
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
                     ) : senders.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground">
+                      <div className="p-4 text-center text-gray-600 dark:text-gray-400">
                         No senders found
                       </div>
                     ) : (
@@ -1075,7 +1075,7 @@ export function NovaPoshtaModal({
               )}
             </div>
             {!formData.senderRef && (
-              <p className="text-xs text-muted-foreground mt-1">Select a sender first</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select a sender first</p>
             )}
           </div>
           <div className="space-y-2">
@@ -1135,7 +1135,7 @@ export function NovaPoshtaModal({
             </div>
             {searchingWarehouses && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             {!formData.senderCityRef && formData.senderRef && (
-              <p className="text-xs text-muted-foreground mt-1">Select a city first</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select a city first</p>
             )}
           </div>
         </div>
@@ -1147,11 +1147,11 @@ export function NovaPoshtaModal({
               <span>Loading contacts...</span>
             </div>
           ) : !formData.senderRef ? (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               Select a sender first
             </div>
           ) : contactPersons.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               No contact persons found for this sender
             </div>
           ) : (
@@ -1202,11 +1202,11 @@ export function NovaPoshtaModal({
                 >
                   <Info className="h-4 w-4" />
                 </Button>
-                <span className="text-xs ml-1 text-muted-foreground">(requires Last Name First Name Middle Name)</span>
+                <span className="text-xs ml-1 text-gray-500 dark:text-gray-400">(requires Last Name First Name Middle Name)</span>
               </Label>
             </div>
             {showFormatInfo && (
-              <div className="text-xs text-muted-foreground bg-muted p-2 rounded-md mb-2">
+              <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-2 rounded-md mb-2">
                 Format should be: <strong>Last Name First Name Middle Name</strong><br />
                 Example: <strong>Шевченко Тарас Григорович</strong><br/>
                 <span className="text-red-500 font-semibold">Middle name is required by Nova Poshta</span>
@@ -1256,7 +1256,7 @@ export function NovaPoshtaModal({
                         </div>
                       ) : recipients.length === 0 ? (
                         <div className="p-4 text-center">
-                          <div className="text-sm text-muted-foreground mb-2">
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                             No recipients found
                           </div>
                           <Button 
@@ -1316,15 +1316,15 @@ export function NovaPoshtaModal({
         
         {/* Display delivery post number if available */}
         {order.deliveryPostNumber && (
-          <div className="bg-muted/50 p-3 rounded-lg border border-muted">
+          <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span className="text-sm font-medium">Current Delivery Post Number:</span>
               </div>
-              <span className="text-sm text-muted-foreground">{order.deliveryPostNumber}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{order.deliveryPostNumber}</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               This order already has a delivery post number. Creating a new TTN will replace it.
             </p>
           </div>
@@ -1376,7 +1376,7 @@ export function NovaPoshtaModal({
                       </div>
                     ) : recipientContactPersons.length === 0 ? (
                       <div className="p-4 text-center">
-                        <div className="text-sm text-muted-foreground mb-2">
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                           No contact persons found
                         </div>
                         <Button 
@@ -1424,7 +1424,7 @@ export function NovaPoshtaModal({
             )}
           </div>
           {!formData.recipientRef && (
-            <p className="text-xs text-muted-foreground mt-1">Select a recipient first</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select a recipient first</p>
           )}
         </div>
         
@@ -1525,7 +1525,7 @@ export function NovaPoshtaModal({
             </div>
             {searchingWarehouses && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             {!formData.recipientCityRef && (
-              <p className="text-xs text-muted-foreground mt-1">Select a city first</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select a city first</p>
             )}
           </div>
         </div>
@@ -1826,7 +1826,7 @@ export function NovaPoshtaModal({
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw] p-6" style={{ maxWidth: '800px' }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw] p-6 text-gray-900 dark:text-gray-100" style={{ maxWidth: '800px', backgroundColor: 'var(--background)' }}>
           <DialogHeader>
             <DialogTitle>
               {existingTtn ? `Nova Poshta Invoice: ${existingTtn.number}` : "Generate Nova Poshta Invoice"}
@@ -1949,7 +1949,7 @@ export function NovaPoshtaModal({
 
       {/* Confirmation Dialog for Creating Counterparty */}
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md text-gray-900 dark:text-gray-100" style={{ backgroundColor: 'var(--background)' }}>
           <DialogHeader>
             <DialogTitle>Create New Recipient</DialogTitle>
             <DialogDescription>
@@ -2033,7 +2033,7 @@ export function NovaPoshtaModal({
       
       {/* Confirmation Dialog for Deleting TTN */}
       <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" style={{ backgroundColor: 'hsl(var(--background))', opacity: '1', zIndex: 9999 }}>
           <DialogHeader>
             <DialogTitle>Delete Nova Poshta Invoice</DialogTitle>
             <DialogDescription>

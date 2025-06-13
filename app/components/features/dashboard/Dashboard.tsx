@@ -34,11 +34,11 @@ interface Source {
 
 const SOURCE_COLORS: Record<string, string> = {
   'Rozetka': '#00A046',
-  'PromUa': '#3E77AA',
+  'PromUa': '#8B5CF6',
   'OLX': '#002F34',
   'Instagram': '#E4405F',
-  'Facebook': '#1877F2',
-  'Direct': '#4B6BFB',
+  'Facebook': '#10B981',
+  'Direct': '#FFC107',
   'Email': '#FF6B6B',
   'Affiliate': '#FFC107',
   'Phone': '#10B981',
@@ -332,8 +332,6 @@ export default function Dashboard() {
     );
   }
 
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900/30">
       <motion.div 
@@ -367,7 +365,7 @@ export default function Dashboard() {
           />
           <MonthlyChart
             data={stats.monthlyData}
-            labels={months}
+            labels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
             className="h-full"
           />
         </motion.div>

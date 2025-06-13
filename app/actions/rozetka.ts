@@ -3,6 +3,10 @@
 import axios from 'axios';
 import { RozetkaOrderResponse } from '@/app/types/orders';
 import * as dotenv from 'dotenv';
+import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import { orderSchema } from '@/app/lib/validations/orders';
+import { appendFileSync } from 'fs';
+import { getDefaultDeliveryMethod } from '../[locale]/settings/actions/delivery-methods';
 
 dotenv.config();
 
@@ -112,7 +116,7 @@ class RozetkaAPI {
           type: params?.type || 1,
           created_from: params?.from || defaultFrom,
           created_to: params?.to || defaultTo,
-          expand: 'delivery,user,status_data,payment_method_id'
+          expand: 'delivery,user,status_data,payment_method_id,status_available'
         }
       });
 
@@ -251,6 +255,170 @@ class RozetkaAPI {
 
 const api = RozetkaAPI.getInstance();
 
+async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
+  console.log('rozetkaOrder', rozetkaOrder);
+  const existingOrders = await authenticatedCall(async () => {
+    return await pb.collection('orders').getList(1, 1, {
+      filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
+    });
+  });
+
+  if (existingOrders.items.length > 0) {
+    // Order exists, check if status needs to be updated
+    const existingOrder = existingOrders.items[0];
+    
+    // Get the new status based on rozetka status
+    const statusResult = await authenticatedCall(async () => {
+      return await pb.collection('status_options').getList(1, 50, {
+        filter: `marketplace_code = "${rozetkaOrder.status}" && source = "4tvf116a5aitwmb"`,
+        sort: '+priority'
+      });
+    });
+    
+    if (statusResult.items.length > 0) {
+      const newStatusId = statusResult.items[0].id;
+      
+      // Only update if status has changed
+      if (existingOrder.status !== newStatusId) {
+        console.log(`Updating order ${rozetkaOrder.id} status from ${existingOrder.status} to ${newStatusId}`);
+        
+        await authenticatedCall(async () => {
+          return await pb.collection('orders').update(existingOrder.id, {
+            status: newStatusId,
+            updated: new Date().toISOString()
+          });
+        });
+        
+        console.log(`Order ${rozetkaOrder.id} status updated successfully`);
+      }
+    }
+    return;
+  }
+
+  // Order doesn't exist, create new order
+  const defaultCurrency = await authenticatedCall(async () => {
+    return await pb.collection('currency_options').getList(1, 1, {
+      filter: "isDefault = true"
+    });
+  });
+
+  if (defaultCurrency.items.length === 0) {
+    throw new Error('No default currency found');
+  }
+
+  // Get status by matching rozetkaOrder.status with marketplace_code
+  const statusResult = await authenticatedCall(async () => {
+    return await pb.collection('status_options').getList(1, 50, {
+      filter: `marketplace_code = "${rozetkaOrder.status}" && source = "4tvf116a5aitwmb"`,
+      sort: '+priority'
+    });
+  });
+  
+  if (statusResult.items.length === 0) {
+    throw new Error(`No matching status found for Rozetka status: ${rozetkaOrder.status}`);
+  }
+  
+  const orderStatus = statusResult.items[0].id;
+
+  const defaultDeliveryMethod = await getDefaultDeliveryMethod();
+  if (!defaultDeliveryMethod.data?.id) {
+    throw new Error('No default delivery method found');
+  }
+
+  // Get default payment method
+  const defaultPaymentMethod = await authenticatedCall(async () => {
+    return await pb.collection('payment_options').getList(1, 1, {
+      filter: "isDefault = true"
+    });
+  });
+
+  if (defaultPaymentMethod.items.length === 0) {
+    throw new Error('No default payment method found');
+  }
+
+  const fullName = rozetkaOrder.user_title?.full_name || rozetkaOrder.user?.contact_fio || 'Unknown';
+
+  const orderData = {
+    source: '4tvf116a5aitwmb',
+    orderNumber: rozetkaOrder.id.toString(),
+    marketplaceIds: rozetkaOrder.id.toString(),
+    phoneNumber: rozetkaOrder.user_phone || '',
+    fullName,
+    products: rozetkaOrder.items_photos?.map(item => ({
+      title: item.item_name,
+      quantity: 1,
+      price: parseFloat(item.item_price)
+    })) || [],
+    numberOfItems: rozetkaOrder.total_quantity || 0,
+    amount: parseFloat(rozetkaOrder.amount),
+    paymentMethod: defaultPaymentMethod.items[0].id,
+    deliveryMethod: defaultDeliveryMethod.data.id,
+    status: orderStatus,
+    currency: defaultCurrency.items[0].id,
+    notes: rozetkaOrder.comment || '',
+    deliveryPostNumber: rozetkaOrder.delivery?.delivery_service_name || '',
+    mergeSource: 'none',
+    mergeStatus: 'none',
+    archived: false,
+    productionCost: 0,
+    created: rozetkaOrder.created,
+  };
+
+  const validationResult = orderSchema.safeParse({
+    ...orderData,
+    mergeSource: orderData.mergeSource || 'none',
+    mergeStatus: orderData.mergeStatus || 'none'
+  });
+  
+  if (!validationResult.success) {
+    appendFileSync(
+      'orders-validation-errors.log',
+      `${new Date().toISOString()} - Validation Error:\n${JSON.stringify({
+        orderData,
+        validationErrors: validationResult.error.format()
+      }, null, 2)}\n\n`
+    );
+    throw new Error(`Invalid order data: ${validationResult.error.message}`);
+  }
+
+  await authenticatedCall(async () => {
+    return await pb.collection('orders').create(orderData);
+  });
+}
+
+export async function syncOrders() {
+  try {
+    const rozetkaOrders = await getOrders();
+    if (!rozetkaOrders || !Array.isArray(rozetkaOrders)) {
+      throw new Error('Failed to fetch Rozetka orders');
+    }
+    
+    let syncedOrders = 0;
+    let failedOrders = 0;
+
+    for (const order of rozetkaOrders) {
+      try {
+        await processOrder(order);
+        syncedOrders++;
+      } catch (error) {
+        console.error(`Failed to process rozetka order ${order.id}:`, error);
+        failedOrders++;
+      }
+    }
+    
+    await pb.collection('sync_records').create({
+      source: '4tvf116a5aitwmb',
+      orders_processed: syncedOrders,
+      orders_failures: failedOrders
+    });
+    
+    return { success: true, syncedOrders, failedOrders };
+  } catch (error) {
+    console.error('Failed to sync orders:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
 // Export only the functions
 export async function ensureValidToken() {
   return api.ensureValidToken();
@@ -283,4 +451,28 @@ export async function getOrderStatuses() {
 
 export async function setOrderStatus(orderId: string, statusCode: string): Promise<{ error: string | null, data: boolean | null }> {
   return api.setOrderStatus(orderId, statusCode);
-} 
+}
+
+/**
+ * Get available statuses for a specific Rozetka order
+ */
+export async function getAvailableStatusesForOrder(orderId: string): Promise<{ error: string | null, data: Array<{ id: number, name: string, name_uk: string, status: number, color: string }> | null }> {
+  try {
+    const orders = await api.getOrders({ page: 1 });
+    const order = orders.find(o => o.id.toString() === orderId);
+    
+    if (!order) {
+      return { error: 'Order not found', data: null };
+    }
+    
+    if (!order.status_available || order.status_available.length === 0) {
+      return { error: 'No available statuses found for this order', data: null };
+    }
+    
+    return { error: null, data: order.status_available };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Failed to get available statuses for Rozetka order ${orderId}:`, errorMessage);
+    return { error: errorMessage, data: null };
+  }
+}

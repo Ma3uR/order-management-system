@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from "recharts";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/shared/ui/card";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { motion } from "framer-motion";
 import { useTranslations } from 'next-intl';
+
+// Real traffic data will be provided via props
 
 interface TrafficChannelProps {
   data: Array<{
@@ -17,94 +19,18 @@ interface TrafficChannelProps {
   className?: string;
 }
 
-// Custom tooltip component with proper TypeScript types
-const CustomTooltip = ({ active, payload }: { 
-  active?: boolean; 
-  payload?: Array<{ payload: Record<string, unknown> }> 
-}) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-white dark:bg-gray-800 p-2 shadow-md rounded-md border border-gray-200 dark:border-gray-700">
-        <p className="font-medium">{String(data.name)}</p>
-        <p>Value: {Number(data.value).toFixed(1)}%</p>
-        {typeof data.rawValue === 'number' && (
-          <p>Raw amount: {Number(data.rawValue).toFixed(2)}</p>
-        )}
-        {typeof data.sourceId === 'string' && (
-          <p className="text-xs text-gray-500">ID: {data.sourceId}</p>
-        )}
-      </div>
-    );
-  }
-  return null;
-};
-
-// Custom active shape for better visualization
-// Note: We have to use 'any' here because recharts has incompatible type expectations
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderActiveShape = (props: any) => {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
-
-  return (
-    <g>
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius + 6}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-      />
-    </g>
-  );
-};
-
-// Custom label renderer with improved positioning
-// Note: We have to use any for compatibility with recharts
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderCustomizedLabel = (props: any) => {
-  const { cx, cy, midAngle, outerRadius, percent, name } = props;
-  
-  // Calculate the positioning of the label to prevent overlap
-  const RADIAN = Math.PI / 180;
-  const radius = outerRadius + 30; // Position labels further out
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  
-  // Only show labels for items with more than 5% to prevent clutter
-  if (percent < 0.05) return null;
-  
-  // Different positioning based on which side of the chart
-  const textAnchor = x > cx ? 'start' : 'end';
-  
-  return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="currentColor" // Use currentColor to respect theme
-      className="text-xs" 
-      textAnchor={textAnchor}
-      dominantBaseline="central"
-    >
-      {`${name} (${(percent * 100).toFixed(1)}%)`}
-    </text>
-  );
-};
-
 export const TrafficChannel: React.FC<TrafficChannelProps> = ({ data, className }) => {
   const t = useTranslations('Dashboard');
-  const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onPieEnter = (_: any, index: number) => {
-    setActiveIndex(index);
-  };
-
-  const onPieLeave = () => {
-    setActiveIndex(undefined);
-  };
+  
+  // Calculate total for center display (use percentage values)
+  const totalPercentage = data.reduce((sum, entry) => sum + entry.value, 0);
+  
+  // Use the real data provided via props
+  const pieData = data.map(item => ({
+    name: item.name,
+    value: item.value,
+    color: item.color
+  }));
   
   return (
     <motion.div
@@ -113,39 +39,74 @@ export const TrafficChannel: React.FC<TrafficChannelProps> = ({ data, className 
       transition={{ duration: 0.5 }}
       className={className}
     >
-      <Card className="h-full">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-md font-medium">{t('trafficSources')}</CardTitle>
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-foreground">{t('trafficSources')}</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Traffic source distribution
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[270px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={renderCustomizedLabel}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  activeIndex={activeIndex}
-                  activeShape={renderActiveShape}
-                  onMouseEnter={onPieEnter}
-                  onMouseLeave={onPieLeave}
-                  animationDuration={750}
-                >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Chart Section */}
+            <div className="flex justify-center">
+              <div style={{ width: 200, height: 200, position: "relative" }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        borderColor: "hsl(var(--border))",
+                        borderRadius: "var(--radius-md)",
+                        color: "hsl(var(--card-foreground))",
+                      }}
+                    />
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} stroke={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-bold text-foreground">{totalPercentage.toFixed(1)}%</span>
+                  <span className="text-xs text-muted-foreground">Total</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Legend Section */}
+            <div className="flex flex-col justify-center space-y-2">
+              <h4 className="text-sm font-medium text-foreground mb-2">Traffic Sources</h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {pieData.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: item.color }}
+                      ></div>
+                      <span className="text-foreground truncate">{item.name}</span>
+                    </div>
+                    <span className="text-muted-foreground font-medium ml-2">
+                      {item.value.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
     </motion.div>
   );
-}; 
+};

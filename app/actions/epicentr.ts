@@ -421,6 +421,34 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
   });
 
   if (existingOrders.items.length > 0) {
+    // Order exists, check if status needs to be updated
+    const existingOrder = existingOrders.items[0];
+    
+    // Get the new status based on epicentr status code
+    const statusResult = await authenticatedCall(async () => {
+      return await pb.collection('status_options').getList(1, 50, {
+        filter: `marketplace_code = "${epicentrOrder.statusCode}" && source = "pj9sejm9vqtu8xq"`,
+        sort: '+priority'
+      });
+    });
+    
+    if (statusResult.items.length > 0) {
+      const newStatusId = statusResult.items[0].id;
+      
+      // Only update if status has changed
+      if (existingOrder.status !== newStatusId) {
+        console.log(`Updating order ${epicentrOrder.number} status from ${existingOrder.status} to ${newStatusId}`);
+        
+        await authenticatedCall(async () => {
+          return await pb.collection('orders').update(existingOrder.id, {
+            status: newStatusId,
+            updated: new Date().toISOString()
+          });
+        });
+        
+        console.log(`Order ${epicentrOrder.number} status updated successfully`);
+      }
+    }
     return;
   }
 
@@ -483,6 +511,7 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
     mergeSource: 'none',
     mergeStatus: 'none',
     productionCost: 0,
+    created: epicentrOrder.createdAt,
   };
 
   const validationResult = orderSchema.safeParse({

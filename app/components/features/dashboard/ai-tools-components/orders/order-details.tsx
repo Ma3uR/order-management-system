@@ -104,7 +104,7 @@ export function OrderDetails({ order, onClose }: OrderDetailsProps) {
 
   return (
     <Dialog open={true} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background opacity-100 z-50">
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center">
             <span>Order #{normalizedOrder.orderNumber || "Unknown"}</span>
@@ -113,11 +113,11 @@ export function OrderDetails({ order, onClose }: OrderDetailsProps) {
                 (() => {
                   // Default to empty string if status is undefined
                   const status = normalizedOrder.status || "";
-                  if (status.toLowerCase() === "completed") return "bg-green-100 text-green-800";
-                  if (status.toLowerCase() === "processing") return "bg-blue-100 text-blue-800";
-                  if (status.toLowerCase() === "pending") return "bg-yellow-100 text-yellow-800";
-                  if (status.toLowerCase() === "cancelled") return "bg-red-100 text-red-800";
-                  return "bg-gray-100 text-gray-800";
+                  if (status.toLowerCase() === "completed") return "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400";
+                  if (status.toLowerCase() === "processing") return "bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400";
+                  if (status.toLowerCase() === "pending") return "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400";
+                  if (status.toLowerCase() === "cancelled") return "bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400";
+                  return "bg-muted text-muted-foreground";
                 })()
               }
             >
@@ -136,11 +136,11 @@ export function OrderDetails({ order, onClose }: OrderDetailsProps) {
           <TabsContent value="details" className="space-y-4 pt-3">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-gray-500">Order Date</p>
+                <p className="text-muted-foreground">Order Date</p>
                 <p>{normalizedOrder.createdAt ? new Date(normalizedOrder.createdAt).toLocaleDateString() : "Unknown date"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Total Amount</p>
+                <p className="text-muted-foreground">Total Amount</p>
                 <p className="font-medium">
                   {typeof normalizedOrder.amount === 'number' && !isNaN(normalizedOrder.amount) 
                     ? UtilityService.formatCurrency(normalizedOrder.amount) 
@@ -148,20 +148,20 @@ export function OrderDetails({ order, onClose }: OrderDetailsProps) {
                 </p>
               </div>
               <div>
-                <p className="text-gray-500">Payment Method</p>
+                <p className="text-muted-foreground">Payment Method</p>
                 <p>{normalizedOrder.paymentMethod || "Not specified"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Source</p>
+                <p className="text-muted-foreground">Source</p>
                 <p>{'source' in order ? order.source : (normalizedOrder.deliveryMethod || "Unknown source")}</p>
               </div>
               <div>
-                <p className="text-gray-500">Delivery Method</p>
+                <p className="text-muted-foreground">Delivery Method</p>
                 <p>{normalizedOrder.deliveryMethod || "Not specified"}</p>
               </div>
               {normalizedOrder.deliveryPostNumber && (
                 <div>
-                  <p className="text-gray-500">Post Number</p>
+                  <p className="text-muted-foreground">Post Number</p>
                   <p>{normalizedOrder.deliveryPostNumber}</p>
                 </div>
               )}
@@ -171,8 +171,8 @@ export function OrderDetails({ order, onClose }: OrderDetailsProps) {
               <>
                 <Separator />
                 <div>
-                  <p className="text-gray-500 text-sm mb-1">Notes</p>
-                  <p className="text-sm p-2 bg-gray-50 rounded-md">{normalizedOrder.notes}</p>
+                  <p className="text-muted-foreground text-sm mb-1">Notes</p>
+                  <p className="text-sm p-2 bg-muted rounded-md text-foreground">{normalizedOrder.notes}</p>
                 </div>
               </>
             )}
@@ -216,21 +216,21 @@ export function OrderDetails({ order, onClose }: OrderDetailsProps) {
           <TabsContent value="customer" className="pt-3">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-gray-500">Full Name</p>
+                <p className="text-muted-foreground">Full Name</p>
                 <p>{normalizedOrder.customerName || "Not provided"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Phone Number</p>
+                <p className="text-muted-foreground">Phone Number</p>
                 <p>{normalizedOrder.phoneNumber || "Not provided"}</p>
               </div>
               {'mergeStatus' in order && (
                 <>
                   <div>
-                    <p className="text-gray-500">Merge Status</p>
+                    <p className="text-muted-foreground">Merge Status</p>
                     <p>{order.mergeStatus || "Not merged"}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Merge Source</p>
+                    <p className="text-muted-foreground">Merge Source</p>
                     <p>{order.mergeSource || "Not applicable"}</p>
                   </div>
                 </>

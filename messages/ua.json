@@ -129,6 +129,7 @@
     "sourceRequired": "Джерело обов'язкове",
     "blacklistedCustomerWarning": "Клієнт у чорному списку. Дозволена тільки передоплата.",
     "totalOrders": "Всього замовлень",
+    "activeOrders": "Активні замовлення",
     "filters": "Фільтри",
     "all": "Всі",
     "amountRange": "Діапазон суми",
