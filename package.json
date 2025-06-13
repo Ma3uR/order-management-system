@@ -16,7 +16,9 @@
     "add-pb-user": "node scripts/add-test-pocketbase-user.js",
     "seed:pb": "node scripts/seed-pocketbase.js",
     "import-excel": "tsx scripts/import-excel-data.ts",
-    "cron:sync": "tsx cron.ts"
+    "sync:orders": "tsx scripts/orders-sync.ts",
+    "sync:statuses": "tsx scripts/marketplaces-status-sync.ts",
+    "sync:all": "tsx scripts/orders-sync.ts && tsx scripts/marketplaces-status-sync.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
