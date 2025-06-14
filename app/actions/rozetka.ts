@@ -528,15 +528,15 @@ export async function getAvailableStatusesForOrder(orderNumber: string): Promise
     }
     
     // Map the available transition IDs to actual status objects
-    const availableStatusIds = order.status_available.map(transition => transition.child_id);
-    console.log(`🔍 [DEBUG] Available transition child_ids:`, availableStatusIds);
+    const availableStatusIds = order.status_available.map(transition => transition.status);
+    console.log(`🔍 [DEBUG] Available transition status ids:`, availableStatusIds);
     
-    const availableStatuses = allStatuses.data.filter(status => 
+    const availableStatuses = allStatuses.data.filter((status: { id: number; name: string; name_uk: string; name_en: string; status_group: number; status: number; color: string; title: string }) => 
       availableStatusIds.includes(status.status)
     );
     
     console.log(`✅ [DEBUG] Found ${availableStatuses.length} matching statuses out of ${availableStatusIds.length} transitions`);
-    console.log(`🔍 [DEBUG] Matched statuses:`, availableStatuses.map(s => ({ id: s.id, name: s.name_uk, status: s.status })));
+    console.log(`🔍 [DEBUG] Matched statuses:`, availableStatuses.map((s: { id: number; name: string; name_uk: string; name_en: string; status_group: number; status: number; color: string; title: string }) => ({ id: s.id, name: s.name_uk, status: s.status })));
     
     if (availableStatuses.length === 0) {
       console.warn(`❌ [DEBUG] No matching statuses found for available transitions, returning all statuses as fallback`);

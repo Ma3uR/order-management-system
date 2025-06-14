@@ -103,7 +103,7 @@ export function OrderDetailsModal({
         error: rozetkaError
       });
     }
-  }, [isRozetkaOrder, order?.orderNumber, rozetkaStatusLoading, hasRozetkaStatuses, rozetkaStatuses.length, rozetkaError])
+  }, [isRozetkaOrder, order?.orderNumber, order?.source, rozetkaStatusLoading, hasRozetkaStatuses, rozetkaStatuses.length, rozetkaError])
 
   // Validate order using zod schema
   const validateOrder = useCallback((orderData: OrdersRecord) => {
