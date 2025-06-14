@@ -455,24 +455,98 @@ export async function setOrderStatus(orderId: string, statusCode: string): Promi
 
 /**
  * Get available statuses for a specific Rozetka order
+ * Uses the order number (Rozetka order ID) directly
  */
-export async function getAvailableStatusesForOrder(orderId: string): Promise<{ error: string | null, data: Array<{ id: number, name: string, name_uk: string, status: number, color: string }> | null }> {
+export async function getAvailableStatusesForOrder(orderNumber: string): Promise<{ error: string | null, data: Array<{ id: number, name: string, name_uk: string, status: number, color: string }> | null }> {
   try {
-    const orders = await api.getOrders({ page: 1 });
-    const order = orders.find(o => o.id.toString() === orderId);
+    console.log(`🔍 [DEBUG] Searching for Rozetka order: ${orderNumber}`);
+    
+    // First, get all available statuses from Rozetka to map against
+    const allStatuses = await api.getOrderStatuses();
+    if (!allStatuses.data || allStatuses.data.length === 0) {
+      console.warn(`❌ [DEBUG] Could not fetch general Rozetka statuses`);
+      return { error: 'Could not fetch available statuses from Rozetka', data: null };
+    }
+    
+    console.log(`🔍 [DEBUG] Found ${allStatuses.data.length} total Rozetka statuses available`);
+    
+    // Search for the specific order by ID in recent orders
+    let order = null;
+    let page = 1;
+    const maxPages = 5; // Limit search to recent orders
+    
+    while (page <= maxPages && !order) {
+      console.log(`🔍 [DEBUG] Fetching page ${page} of Rozetka orders...`);
+      const orders = await api.getOrders({ page });
+      console.log(`🔍 [DEBUG] Page ${page} returned ${orders.length} orders`);
+      
+      if (orders.length > 0) {
+        console.log(`🔍 [DEBUG] First few order IDs on page ${page}:`, orders.slice(0, 3).map(o => o.id));
+      }
+      
+      order = orders.find(o => o.id.toString() === orderNumber);
+      
+      if (order) {
+        console.log(`✅ [DEBUG] Found order ${orderNumber}:`, {
+          id: order.id,
+          status: order.status,
+          has_status_available: !!order.status_available,
+          status_available_length: order.status_available?.length || 0,
+          status_available_sample: order.status_available?.slice(0, 2)
+        });
+        break;
+      }
+      
+      if (orders.length === 0) {
+        console.log(`🔍 [DEBUG] No more orders to fetch at page ${page}`);
+        break;
+      }
+      
+      page++;
+    }
     
     if (!order) {
-      return { error: 'Order not found', data: null };
+      console.warn(`❌ [DEBUG] Order ${orderNumber} not found in ${maxPages} pages of recent orders`);
+      
+      // If order not found, return all available statuses as fallback
+      console.log(`🔄 [DEBUG] Order not found, returning all available Rozetka statuses as fallback`);
+      return { error: null, data: allStatuses.data };
     }
     
     if (!order.status_available || order.status_available.length === 0) {
-      return { error: 'No available statuses found for this order', data: null };
+      console.warn(`❌ [DEBUG] Order ${orderNumber} found but has no available status transitions`);
+      console.log(`🔍 [DEBUG] Order structure:`, {
+        id: order.id,
+        status: order.status,
+        keys: Object.keys(order).slice(0, 10),
+        status_available: order.status_available
+      });
+      
+      // If no specific transitions available, return all statuses
+      console.log(`🔄 [DEBUG] No status transitions available, returning all Rozetka statuses`);
+      return { error: null, data: allStatuses.data };
     }
     
-    return { error: null, data: order.status_available };
+    // Map the available transition IDs to actual status objects
+    const availableStatusIds = order.status_available.map(transition => transition.child_id);
+    console.log(`🔍 [DEBUG] Available transition child_ids:`, availableStatusIds);
+    
+    const availableStatuses = allStatuses.data.filter(status => 
+      availableStatusIds.includes(status.status)
+    );
+    
+    console.log(`✅ [DEBUG] Found ${availableStatuses.length} matching statuses out of ${availableStatusIds.length} transitions`);
+    console.log(`🔍 [DEBUG] Matched statuses:`, availableStatuses.map(s => ({ id: s.id, name: s.name_uk, status: s.status })));
+    
+    if (availableStatuses.length === 0) {
+      console.warn(`❌ [DEBUG] No matching statuses found for available transitions, returning all statuses as fallback`);
+      return { error: null, data: allStatuses.data };
+    }
+    
+    return { error: null, data: availableStatuses };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`Failed to get available statuses for Rozetka order ${orderId}:`, errorMessage);
+    console.error(`❌ [DEBUG] Failed to get available statuses for Rozetka order ${orderNumber}:`, errorMessage);
     return { error: errorMessage, data: null };
   }
 }

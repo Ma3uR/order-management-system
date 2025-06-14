@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/app/components/shared/ui/button"
 import { Input } from "@/app/components/shared/ui/input"
 import { Textarea } from "@/app/components/shared/ui/textarea"
@@ -86,10 +86,24 @@ export function OrderDetailsModal({
 
   // Check if this is a Rozetka order and get available statuses
   const isRozetkaOrder = order?.source === '4tvf116a5aitwmb'
-  const { rozetkaStatuses, loading: rozetkaStatusLoading, hasRozetkaStatuses } = useRozetkaStatusOptions(
-    order?.marketplaceIds || null,
+  const { rozetkaStatuses, loading: rozetkaStatusLoading, hasRozetkaStatuses, error: rozetkaError } = useRozetkaStatusOptions(
+    order?.orderNumber || null,
     isRozetkaOrder
   )
+
+  // Debug logging for Rozetka status loading
+  useEffect(() => {
+    if (isRozetkaOrder && order?.orderNumber) {
+      console.log(`🔍 [MODAL DEBUG] Rozetka order detected:`, {
+        orderNumber: order.orderNumber,
+        source: order.source,
+        isLoading: rozetkaStatusLoading,
+        hasStatuses: hasRozetkaStatuses,
+        statusCount: rozetkaStatuses.length,
+        error: rozetkaError
+      });
+    }
+  }, [isRozetkaOrder, order?.orderNumber, rozetkaStatusLoading, hasRozetkaStatuses, rozetkaStatuses.length, rozetkaError])
 
   // Validate order using zod schema
   const validateOrder = useCallback((orderData: OrdersRecord) => {
@@ -157,13 +171,13 @@ export function OrderDetailsModal({
     // For Rozetka orders, use available statuses from API if available
     if (isRozetkaOrder && hasRozetkaStatuses) {
       return rozetkaStatuses
-        .filter(status => status.name_uk.toLowerCase().includes(statusSearchValue.toLowerCase()))
+        .filter(status => status.name_uk?.toLowerCase().includes(statusSearchValue.toLowerCase()))
         .map(rozetkaStatus => ({
-          id: rozetkaStatus.status.toString(), // Use the status number as ID
+          id: rozetkaStatus.id.toString(), // Use the actual Rozetka status ID
           name: rozetkaStatus.name_uk, // Use Ukrainian name
           color: rozetkaStatus.color,
           priority: 0, // Default priority
-          marketplace_code: rozetkaStatus.status.toString(),
+          marketplace_code: rozetkaStatus.status.toString(), // The status code for API calls
           source: order?.source || ''
         }))
     }
@@ -645,7 +659,14 @@ export function OrderDetailsModal({
                               </div>
                             ) : filteredStatuses.length === 0 ? (
                               <div className="p-4 text-center text-gray-600 dark:text-gray-400">
-                                {isRozetkaOrder ? "No available status transitions found" : "No statuses found"}
+                                {isRozetkaOrder ? (
+                                  <div className="space-y-2">
+                                    <div>No available status transitions found</div>
+                                    <div className="text-xs text-gray-500">
+                                      Order: {order.orderNumber} | Check console for debug info
+                                    </div>
+                                  </div>
+                                ) : "No statuses found"}
                               </div>
                             ) : (
                               filteredStatuses.map((status) => (
