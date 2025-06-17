@@ -10,6 +10,9 @@ interface SyncResults {
   success: boolean;
   syncedOrders?: number;
   failedOrders?: number;
+  automatedStatusChanges?: number;
+  telegramNotifications?: number;
+  automationErrors?: number;
   error?: string;
 }
 
@@ -168,7 +171,7 @@ async function compareStatusesAfterSync(beforeData: {
   }
 }
 
-async function syncMarketplace(name: string, syncFunction: () => Promise<{ success: boolean; syncedOrders?: number; failedOrders?: number; error?: string }>): Promise<SyncResults> {
+async function syncMarketplace(name: string, syncFunction: () => Promise<{ success: boolean; syncedOrders?: number; failedOrders?: number; automatedStatusChanges?: number; telegramNotifications?: number; automationErrors?: number; error?: string }>): Promise<SyncResults> {
   console.log(`\n🔄 Syncing ${name} orders...`);
   
   try {
@@ -182,11 +185,22 @@ async function syncMarketplace(name: string, syncFunction: () => Promise<{ succe
       console.log(`   📥 Synced: ${result.syncedOrders || 0} orders`);
       console.log(`   ❌ Failed: ${result.failedOrders || 0} orders`);
       
+      // Show automation results if available
+      if (result.automatedStatusChanges !== undefined || result.telegramNotifications !== undefined || result.automationErrors !== undefined) {
+        console.log(`   🤖 Automation Results:`);
+        console.log(`      🔄 Status Changes: ${result.automatedStatusChanges || 0}`);
+        console.log(`      📱 Telegram Sent: ${result.telegramNotifications || 0}`);
+        console.log(`      ⚠️  Automation Errors: ${result.automationErrors || 0}`);
+      }
+      
       return {
         marketplace: name,
         success: true,
         syncedOrders: result.syncedOrders || 0,
-        failedOrders: result.failedOrders || 0
+        failedOrders: result.failedOrders || 0,
+        automatedStatusChanges: result.automatedStatusChanges || 0,
+        telegramNotifications: result.telegramNotifications || 0,
+        automationErrors: result.automationErrors || 0
       };
     } else {
       console.log(`❌ ${name} sync failed: ${result.error}`);
@@ -240,14 +254,23 @@ async function main() {
     
     let totalSynced = 0;
     let totalFailed = 0;
+    let totalAutomatedStatusChanges = 0;
+    let totalTelegramNotifications = 0;
+    let totalAutomationErrors = 0;
     let successfulMarketplaces = 0;
     
     results.forEach(result => {
       console.log(`\n${result.marketplace}:`);
       if (result.success) {
         console.log(`  ✅ Success - Synced: ${result.syncedOrders}, Failed: ${result.failedOrders}`);
+        if (result.automatedStatusChanges !== undefined || result.telegramNotifications !== undefined || result.automationErrors !== undefined) {
+          console.log(`  🤖 Automation - Status Changes: ${result.automatedStatusChanges || 0}, Telegram: ${result.telegramNotifications || 0}, Errors: ${result.automationErrors || 0}`);
+        }
         totalSynced += result.syncedOrders || 0;
         totalFailed += result.failedOrders || 0;
+        totalAutomatedStatusChanges += result.automatedStatusChanges || 0;
+        totalTelegramNotifications += result.telegramNotifications || 0;
+        totalAutomationErrors += result.automationErrors || 0;
         successfulMarketplaces++;
       } else {
         console.log(`  ❌ Failed - ${result.error}`);
@@ -258,6 +281,9 @@ async function main() {
     console.log(`   📈 Total Orders Synced: ${totalSynced}`);
     console.log(`   📉 Total Orders Failed: ${totalFailed}`);
     console.log(`   🔄 Status Updates: ${statusChanges}`);
+    console.log(`   🤖 Automated Status Changes: ${totalAutomatedStatusChanges}`);
+    console.log(`   📱 Telegram Notifications: ${totalTelegramNotifications}`);
+    console.log(`   ⚠️  Automation Errors: ${totalAutomationErrors}`);
     console.log(`   ✅ Successful Marketplaces: ${successfulMarketplaces}/3`);
     console.log(`   📅 Completed at: ${new Date().toLocaleString()}`);
     

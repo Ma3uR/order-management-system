@@ -7,6 +7,7 @@ import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { orderSchema } from '@/app/lib/validations/orders';
 import { appendFileSync } from 'fs';
 import { getDefaultDeliveryMethod } from '../[locale]/settings/actions/delivery-methods';
+import { processOrderAutomation, type AutomationResult } from '@/app/lib/services/status-automation';
 
 dotenv.config();
 
@@ -381,9 +382,30 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     throw new Error(`Invalid order data: ${validationResult.error.message}`);
   }
 
-  await authenticatedCall(async () => {
+  const createdOrder = await authenticatedCall(async () => {
     return await pb.collection('orders').create(orderData);
   });
+
+  // Process status automation for new orders
+  try {
+    const automationResult: AutomationResult = await processOrderAutomation(rozetkaOrder, createdOrder.id, '4tvf116a5aitwmb');
+    if (automationResult.success) {
+      if (automationResult.statusChanged) {
+        console.log(`🤖 Order ${rozetkaOrder.id} automated: status changed`);
+      }
+      if (automationResult.telegramSent) {
+        console.log(`📱 Order ${rozetkaOrder.id} automated: Telegram notification sent`);
+      }
+      if (automationResult.telegramError) {
+        console.warn(`⚠️ Order ${rozetkaOrder.id} automation warning: ${automationResult.telegramError}`);
+      }
+    } else {
+      console.error(`❌ Order ${rozetkaOrder.id} automation failed: ${automationResult.error}`);
+    }
+  } catch (error) {
+    console.error(`❌ Order ${rozetkaOrder.id} automation error:`, error);
+    // Don't throw error here - we don't want automation failures to break the sync
+  }
 }
 
 export async function syncOrders() {
@@ -395,11 +417,44 @@ export async function syncOrders() {
     
     let syncedOrders = 0;
     let failedOrders = 0;
+    let automatedStatusChanges = 0;
+    let telegramNotifications = 0;
+    let automationErrors = 0;
 
     for (const order of rozetkaOrders) {
       try {
+        // Store original processOrder to capture automation results
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        
+        
+        // Temporarily intercept logs to capture automation results
+        console.log = (...args) => {
+          originalLog(...args);
+          if (typeof args[0] === 'string' && args[0].includes(`🤖 Order ${order.id} automated: status changed`)) {
+            automatedStatusChanges++;
+          }
+          if (typeof args[0] === 'string' && args[0].includes(`📱 Order ${order.id} automated: Telegram notification sent`)) {
+            telegramNotifications++;
+          }
+        };
+        
+        console.error = (...args) => {
+          originalError(...args);
+          if (typeof args[0] === 'string' && (args[0].includes(`❌ Order ${order.id} automation failed`) || args[0].includes(`❌ Order ${order.id} automation error`))) {
+            automationErrors++;
+          }
+        };
+
         await processOrder(order);
         syncedOrders++;
+        
+        // Restore original console methods
+        console.log = originalLog;
+        console.warn = originalWarn;
+        console.error = originalError;
+        
       } catch (error) {
         console.error(`Failed to process rozetka order ${order.id}:`, error);
         failedOrders++;
@@ -409,10 +464,20 @@ export async function syncOrders() {
     await pb.collection('sync_records').create({
       source: '4tvf116a5aitwmb',
       orders_processed: syncedOrders,
-      orders_failures: failedOrders
+      orders_failures: failedOrders,
+      automation_status_changes: automatedStatusChanges,
+      automation_telegram_sent: telegramNotifications,
+      automation_errors: automationErrors
     });
     
-    return { success: true, syncedOrders, failedOrders };
+    return { 
+      success: true, 
+      syncedOrders, 
+      failedOrders,
+      automatedStatusChanges,
+      telegramNotifications,
+      automationErrors
+    };
   } catch (error) {
     console.error('Failed to sync orders:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
