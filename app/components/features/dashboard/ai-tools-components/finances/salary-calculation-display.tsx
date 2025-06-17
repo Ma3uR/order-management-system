@@ -103,7 +103,7 @@ export function SalaryCalculationDisplay({ salaryData, isLoading = false }: Sala
           <div className="text-sm text-muted-foreground">
             {salaryData.periodStart} - {salaryData.periodEnd}
           </div>
-          {salaryData.orders && salaryData.orders.length > 0 ? (
+          {salaryData.orders ? (
             <button
               onClick={handleDownload}
               className="px-3 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/20 dark:hover:bg-blue-800/30 text-blue-700 dark:text-blue-300 rounded-md flex items-center gap-1"

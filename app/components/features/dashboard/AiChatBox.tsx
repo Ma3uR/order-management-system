@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
@@ -22,6 +22,55 @@ interface AiChatBoxProps {
   userId?: string;
   initialMessages?: Message[];
   className?: string;
+}
+
+/**
+ * Helper function to format date to YYYY-MM-DD
+ */
+function formatDate(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+/**
+ * Generate date ranges for quick pick prompts
+ */
+function getDateRanges() {
+  const today = new Date();
+  
+  // Current month
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  
+  // Last 7 days
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - 7);
+  
+  // Current quarter
+  const quarterStartMonth = Math.floor(today.getMonth() / 3) * 3;
+  const quarterStart = new Date(today.getFullYear(), quarterStartMonth, 1);
+  
+  // Last month
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+  
+  return {
+    thisMonth: {
+      start: formatDate(currentMonthStart),
+      end: formatDate(currentMonthEnd)
+    },
+    lastWeek: {
+      start: formatDate(weekStart),
+      end: formatDate(today)
+    },
+    thisQuarter: {
+      start: formatDate(quarterStart),
+      end: formatDate(today)
+    },
+    lastMonth: {
+      start: formatDate(lastMonthStart),
+      end: formatDate(lastMonthEnd)
+    }
+  };
 }
 
 /**
@@ -186,8 +235,44 @@ export function AiChatBox({ id, userId, initialMessages, className }: AiChatBoxP
   
   // Use provided userId or get from session
   const currentUserId = userId || user?.id;
+
+  // Generate quick pick prompts with current dates
+  const quickPickPrompts = useMemo(() => {
+    const dateRanges = getDateRanges();
+    
+    return [
+      {
+        key: 'lastOrder',
+        text: t('quickPickLastOrder')
+      },
+      {
+        key: 'productsToAssemble',
+        text: t('quickPickProductsToAssemble')
+      },
+      {
+        key: 'salaryThisMonth',
+        text: `${t('quickPickSalaryThisMonth')} ${dateRanges.thisMonth.start} ${t('quickPickSalaryThisMonthTo')} ${dateRanges.thisMonth.end}`
+      },
+      {
+        key: 'popularProductsWeek',
+        text: `${t('quickPickPopularProductsWeek')} ${dateRanges.lastWeek.start} ${t('quickPickPopularProductsWeekTo')} ${dateRanges.lastWeek.end}`
+      },
+      {
+        key: 'balanceThisQuarter',
+        text: `${t('quickPickBalanceThisQuarter')} ${dateRanges.thisQuarter.start} ${t('quickPickBalanceThisQuarterTo')} ${dateRanges.thisQuarter.end}`
+      },
+      {
+        key: 'averageOrderValue',
+        text: t('quickPickAverageOrderValue')
+      },
+      {
+        key: 'unpopularProductsLastMonth',
+        text: `${t('quickPickUnpopularProductsLastMonth')} ${dateRanges.lastMonth.start} ${t('quickPickUnpopularProductsLastMonthTo')} ${dateRanges.lastMonth.end}`
+      }
+    ];
+  }, [t]);
   
-  const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, error, status, stop, reload, append } = useChat({
     api: '/api/chat',
     streamProtocol: 'data',  // Using data protocol to correctly handle tool invocations
     experimental_throttle: 50, // Lower this for more responsive streaming
@@ -351,6 +436,15 @@ export function AiChatBox({ id, userId, initialMessages, className }: AiChatBoxP
     }
   };
 
+  const handleQuickPickClick = (promptText: string) => {
+    // Use the append function to send the message directly
+    append({
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: promptText
+    });
+  };
+
   const messageVariants = {
     initial: { 
       opacity: 0, 
@@ -481,6 +575,30 @@ export function AiChatBox({ id, userId, initialMessages, className }: AiChatBoxP
                     {!(message.toolInvocations?.some(tool => tool.state === 'result')) && 
                       renderMessageContent(message.content)
                     }
+                    
+                    {/* Show quick pick buttons only for the initial assistant message */}
+                    {message.id === 'initial-message' && message.role === 'assistant' && (
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">
+                          {t('quickPicksTitle')}
+                        </p>
+                        <div className="flex flex-wrap gap-2.5">
+                          {quickPickPrompts.map((prompt) => (
+                            <Button
+                              key={prompt.key}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuickPickClick(prompt.text)}
+                              disabled={status !== 'ready' || error !== undefined}
+                              className="text-xs h-auto py-2 px-3 whitespace-normal text-left border-gray-200/50 dark:border-gray-600/30 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:border-blue-300/60 dark:hover:border-blue-600/50 text-gray-700 dark:text-gray-300 transition-all duration-200 shadow-sm hover:shadow-md bg-white/50 dark:bg-gray-800/30"
+                            >
+                              {prompt.text}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     {message.toolInvocations && renderToolInvocations(message.toolInvocations)}
                     
                     {/* Debug information - remove in production */}

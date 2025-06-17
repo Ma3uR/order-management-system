@@ -242,7 +242,19 @@
     "retry": "Повторити",
     "navButton": "Спілкуватися з AI",
     "refresh": "Оновити чат",
-    "clearChat": "Очистити історію чату"
+    "clearChat": "Очистити історію чату",
+    "quickPicksTitle": "Швидкі пропозиції:",
+    "quickPickLastOrder": "Покажи останнє замовлення",
+    "quickPickProductsToAssemble": "Які товари потрібно зібрати?",
+    "quickPickSalaryThisMonth": "Розрахуй зарплату з",
+    "quickPickSalaryThisMonthTo": "по",
+    "quickPickPopularProductsWeek": "Покажи найпопулярніші товари з",
+    "quickPickPopularProductsWeekTo": "по", 
+    "quickPickBalanceThisQuarter": "Розрахуй фінансовий баланс з",
+    "quickPickBalanceThisQuarterTo": "по",
+    "quickPickAverageOrderValue": "Який середній чек замовлень?",
+    "quickPickUnpopularProductsLastMonth": "Покажи найменш популярні товари з",
+    "quickPickUnpopularProductsLastMonthTo": "по"
   },
   "Settings": {
     "title": "Налаштування",

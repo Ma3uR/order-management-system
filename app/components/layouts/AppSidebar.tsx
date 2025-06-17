@@ -83,11 +83,11 @@ export function AppSidebar() {
       </SidebarContent>
       
       {/* Language and Theme Controls */}
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-t mt-auto">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-t mt-auto group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-2">
         <div className="group-data-[state=collapsed]:hidden">
           <LanguageSwitcher />
         </div>
-        <ThemeToggle className="group-data-[state=collapsed]:mx-auto" />
+        <ThemeToggle className="group-data-[state=collapsed]:mx-0" />
       </div>
       
       <SidebarFooter />
