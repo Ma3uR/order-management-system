@@ -49,7 +49,7 @@ export async function calculateBalanceForPeriod(
     }
     
     // Calculate income from orders in the period
-    const orders = await authenticatedCall(async () => pb.collection<OrdersResponse>('orders').getList(1, 50, {
+    const orders = await authenticatedCall(async () => pb.collection<OrdersResponse>('orders').getList(1, 1000, {
       filter: `created >= "${startDate}" && created <= "${endDate}" && status != "Скасовано"`,
       expand: 'source',
     }));
@@ -61,7 +61,7 @@ export async function calculateBalanceForPeriod(
     }, 0);
     
     // Get expenses for the period
-    const expenses = await authenticatedCall(async () => pb.collection<ExpensesRecord>('expenses').getList(1, 50, {
+    const expenses = await authenticatedCall(async () => pb.collection<ExpensesRecord>('expenses').getList(1, 1000, {
       filter: `date >= "${startDate}" && date <= "${endDate}"`,
       expand: 'category',
     }));
@@ -157,7 +157,7 @@ export async function calculateSalaryForPeriod(
     
     // Get orders for the period with source expansion
     // TODO: add status filter for cancelled orders
-    const orders = await authenticatedCall(async () => pb.collection<OrdersResponse>('orders').getList(1, 50, {
+    const orders = await authenticatedCall(async () => pb.collection<OrdersResponse>('orders').getList(1, 1000, {
       filter: `created >= "${startDate}" && created <= "${endDate}" && status != "Скасовано" && status != "0a3jmekr5xi0xqt" && (archived = false || archived = null)`,
       expand: 'source',
     })); 

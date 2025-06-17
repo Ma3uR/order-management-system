@@ -413,7 +413,6 @@ export async function getPaymentSettings(companyId: string) {
 }
 
 async function processOrder(epicentrOrder: EpicentrOrder) {
-  console.log('epicentrOrder', epicentrOrder);
   const existingOrders = await authenticatedCall(async () => {
     return await pb.collection('orders').getList(1, 1, {
       filter: `source = "pj9sejm9vqtu8xq" && orderNumber = "${epicentrOrder.number}"`

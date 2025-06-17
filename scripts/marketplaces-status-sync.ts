@@ -52,7 +52,7 @@ async function syncEpicentrStatuses(): Promise<{ synced: number; failed: number 
       try {
         // Check if status already exists by marketplace_code OR by name (for duplicates)
         const existingStatus = await authenticatedCall(() =>
-          pb.collection('status_options').getList(1, 50, {
+          pb.collection('status_options').getList(1, 200, {
             filter: `source = "${MARKETPLACE_SOURCES.EPICENTR}" && (marketplace_code = "${status.id}" || name = "${status.title.replace(/"/g, '\\"')}")`
           })
         );
@@ -131,7 +131,7 @@ async function syncPromStatuses(): Promise<{ synced: number; failed: number }> {
         // For Prom.ua, use title (Ukrainian) instead of name (English)
         const statusName = (status as Record<string, unknown>).title as string || status.name;
         const existingStatus = await authenticatedCall(() =>
-          pb.collection('status_options').getList(1, 50, {
+          pb.collection('status_options').getList(1, 200, {
             filter: `source = "${MARKETPLACE_SOURCES.PROM_UA}" && (marketplace_code = ${status.id} || name = "${statusName.replace(/"/g, '\\"')}" || name = "${status.name.replace(/"/g, '\\"')}")`
           })
         );
@@ -209,7 +209,7 @@ async function syncRozetkaStatuses(): Promise<{ synced: number; failed: number }
         // Check if status already exists by marketplace_code OR by name (for duplicates)
         const statusName = status.name || status.name_uk || `Status ${status.id}`;
         const existingStatus = await authenticatedCall(() =>
-          pb.collection('status_options').getList(1, 50, {
+          pb.collection('status_options').getList(1, 200, {
             filter: `source = "${MARKETPLACE_SOURCES.ROZETKA}" && (marketplace_code = ${status.id} || name = "${statusName.replace(/"/g, '\\"')}")`
           })
         );

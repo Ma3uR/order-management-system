@@ -230,7 +230,19 @@
     "retry": "Retry",
     "navButton": "Chat with AI",
     "refresh": "Refresh chat",
-    "clearChat": "Clear chat history"
+    "clearChat": "Clear chat history",
+    "quickPicksTitle": "Quick suggestions:",
+    "quickPickLastOrder": "Show me the last order",
+    "quickPickProductsToAssemble": "What products need to be assembled?",
+    "quickPickSalaryThisMonth": "Calculate salary from",
+    "quickPickSalaryThisMonthTo": "to",
+    "quickPickPopularProductsWeek": "Show most popular products from",
+    "quickPickPopularProductsWeekTo": "to",
+    "quickPickBalanceThisQuarter": "Calculate financial balance from", 
+    "quickPickBalanceThisQuarterTo": "to",
+    "quickPickAverageOrderValue": "What's the average order value?",
+    "quickPickUnpopularProductsLastMonth": "Show least popular products from",
+    "quickPickUnpopularProductsLastMonthTo": "to"
   },
   "Settings": {
     "title": "Settings",

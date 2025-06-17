@@ -2033,7 +2033,7 @@ export function NovaPoshtaModal({
       
       {/* Confirmation Dialog for Deleting TTN */}
       <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-        <DialogContent className="sm:max-w-md" style={{ backgroundColor: 'hsl(var(--background))', opacity: '1', zIndex: 9999 }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Nova Poshta Invoice</DialogTitle>
             <DialogDescription>

@@ -95,7 +95,7 @@ function DashboardLayoutContent({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="h-screen flex flex-col">
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-1 bg-background overflow-hidden z-10" style={{ opacity: 1 }}>
+        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-1 bg-background overflow-hidden z-10">
           <div className="flex flex-1 items-center gap-1 px-2 overflow-hidden">
             <div className="md:hidden">
               <SidebarTrigger location="header" />

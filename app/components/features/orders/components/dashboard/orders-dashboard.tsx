@@ -14,8 +14,6 @@ import {
 } from "@/app/components/shared/ui/dropdown-menu"
 import { Badge } from "@/app/components/shared/ui/badge"
 import { Card, CardContent } from "@/app/components/shared/ui/card"
-import { Sheet, SheetTrigger, SheetHeader, SheetTitle, SheetFooter } from "@/app/components/shared/ui/sheet"
-import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/app/components/shared/ui/select"
 import { Slider } from "@/app/components/shared/ui/slider"
 import { Switch } from "@/app/components/shared/ui/switch"
@@ -227,7 +225,19 @@ export function OrdersDashboard() {
           order.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (order.products && JSON.stringify(order.products).toLowerCase().includes(searchTerm.toLowerCase()))
         const matchesArchived = order.archived === filters.showArchived
-        return matchesStatus && matchesSource && matchesText && matchesArchived
+        
+        // Date range filter
+        const matchesDateRange = !filters.dateRange || (!filters.dateRange.from && !filters.dateRange.to) || (() => {
+          const orderDate = new Date(order.created)
+          const fromMatch = !filters.dateRange.from || orderDate >= filters.dateRange.from
+          const toMatch = !filters.dateRange.to || orderDate <= filters.dateRange.to
+          return fromMatch && toMatch
+        })()
+        
+        // Amount range filter
+        const matchesAmountRange = order.amount >= filters.amountRange[0] && order.amount <= filters.amountRange[1]
+        
+        return matchesStatus && matchesSource && matchesText && matchesArchived && matchesDateRange && matchesAmountRange
       })
       .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
   }, [orders, filters, searchTerm])
@@ -272,6 +282,26 @@ export function OrdersDashboard() {
   const activeOrders = orders.filter(
     order => !statuses.find(s => s.id === order.status)?.name.match(/Delivered|Cancelled|Returned/i) && !order.archived
   ).length
+
+  // Filter statuses based on selected sources
+  const filteredStatuses = useMemo(() => {
+    if (filters.source.length === 0) {
+      // If no source is selected, show all statuses
+      return statuses
+    }
+    
+    // Filter statuses to only show those that belong to the selected sources
+    return statuses.filter(status => {
+      // Check if the status has a source property and if it matches any selected source
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const statusSource = (status as any).source
+      if (statusSource) {
+        return filters.source.includes(statusSource)
+      }
+      // If status doesn't have a source (general status), show it
+      return true
+    })
+  }, [statuses, filters.source])
 
   const activeFilterCount = useMemo(() => {
     let count = 0
@@ -534,11 +564,11 @@ export function OrdersDashboard() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900/30">
+    <div className="flex flex-col h-screen">
       <Toaster richColors />
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-6" style={{ opacity: 1 }}>
+      <main className="flex-1 p-4 md:p-6 bg-background">
         <div className="container mx-auto">
           {/* Search and Create Button */}
           <div className="flex items-center gap-4 mb-6">
@@ -550,7 +580,6 @@ export function OrdersDashboard() {
                     type="search"
                     placeholder={t('filterOrdersPlaceholder')}
                     className="w-full h-full pl-10 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md"
-                    style={{ backgroundColor: 'var(--background)', opacity: 1 }}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -601,194 +630,230 @@ export function OrdersDashboard() {
           )}
           {/* Table Controls Bar */}
           <div className="mb-4 flex justify-end">
-            <Sheet open={isFiltersSidebarOpen} onOpenChange={setIsFiltersSidebarOpen} modal={false}>
-              <SheetTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="mr-2 h-4 w-4" />
-                  {t('filters')}
-                  {activeFilterCount > 0 && (
-                    <Badge variant="destructive" className="ml-2 rounded-full px-1.5 py-0.5 text-xs">
-                      {activeFilterCount}
-                    </Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetPrimitive.Portal>
-                <SheetPrimitive.Content
-                  className="fixed inset-y-0 right-0 h-full w-full sm:max-w-xs p-0 z-[100] bg-white dark:bg-gray-900 border-l shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
-                  style={{ backgroundColor: 'var(--background)', opacity: '1' }}
-                  data-side="right"
-                >
-                <SheetHeader className="p-6 pb-0">
-                  <SheetTitle>{t('filters')}</SheetTitle>
-                </SheetHeader>
-                <div className="p-6 space-y-6 overflow-y-auto h-[calc(100vh-120px)]">
-                  {/* Status Filter */}
-                  <div>
-                    <Label className="text-sm font-medium">{t('status')}</Label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between mt-1">
-                          <span>
-                            {filters.status.length > 0 ? `${filters.status.length} selected` : t('selectStatus')}
-                          </span>
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                        {statuses.map((status) => (
-                          <DropdownMenuCheckboxItem
-                            key={status.id}
-                            checked={filters.status.includes(status.id)}
-                            onCheckedChange={(checked) => {
-                              setFilters((prev) => ({
-                                ...prev,
-                                status: checked
-                                  ? [...prev.status, status.id]
-                                  : prev.status.filter((sId) => sId !== status.id),
-                              }))
-                            }}
+            {/* Custom Filters Sidebar */}
+            <div className="relative">
+              <Button variant="outline" onClick={() => setIsFiltersSidebarOpen(!isFiltersSidebarOpen)} className="border-border">
+                <Filter className="mr-2 h-4 w-4" />
+                {t('filters')}
+                {activeFilterCount > 0 && (
+                  <Badge variant="destructive" className="ml-2 rounded-full px-1.5 py-0.5 text-xs">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+              
+              {/* Custom Sidebar - No Radix Sheet */}
+              {isFiltersSidebarOpen && (
+                <>
+                  {/* Transparent Backdrop */}
+                  <div 
+                    className="fixed inset-0 bg-transparent z-[49]"
+                    onClick={() => setIsFiltersSidebarOpen(false)}
+                  />
+                  
+                  {/* Sidebar Content */}
+                  <div className="fixed inset-y-0 right-0 h-full w-full sm:max-w-xs bg-white dark:bg-slate-800 shadow-lg z-[50]">
+                    <div className="flex flex-col h-full">
+                      <div className="p-6 pb-4">
+                        <div className="flex items-center justify-between">
+                          <h2 className="text-lg font-semibold">{t('filters')}</h2>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => setIsFiltersSidebarOpen(false)}
+                            className="h-6 w-6"
                           >
-                            <Badge 
-                              className="text-white mr-2 text-xs"
-                              style={{
-                                backgroundColor: status.color,
-                                borderColor: status.color
-                              }}
-                            >
-                              {status.name}
-                            </Badge>
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  {/* Source Filter */}
-                  <div>
-                    <Label className="text-sm font-medium">{t('source')}</Label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between mt-1">
-                          <span>
-                            {filters.source.length > 0 ? `${filters.source.length} selected` : t('selectSource')}
-                          </span>
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                        {sources.map((source) => (
-                          <DropdownMenuCheckboxItem
-                            key={source.id}
-                            checked={filters.source.includes(source.id)}
-                            onCheckedChange={(checked) => {
-                              setFilters((prev) => ({
-                                ...prev,
-                                source: checked
-                                  ? [...prev.source, source.id]
-                                  : prev.source.filter((sId) => sId !== source.id),
-                              }))
-                            }}
-                          >
-                            <Badge 
-                              className="text-white mr-2 text-xs"
-                              style={{
-                                backgroundColor: getSourceColor(source.id),
-                                borderColor: getSourceColor(source.id)
-                              }}
-                            >
-                              {source.name}
-                            </Badge>
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                        {/* Status Filter */}
+                        <div>
+                          <Label className="text-sm font-medium">{t('status')}</Label>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between mt-1">
+                                <span>
+                                  {filters.status.length > 0 ? `${filters.status.length} selected` : t('selectStatus')}
+                                </span>
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[51]">
+                              {filteredStatuses.map((status) => (
+                                <DropdownMenuCheckboxItem
+                                  key={status.id}
+                                  checked={filters.status.includes(status.id)}
+                                  onCheckedChange={(checked) => {
+                                    setFilters((prev) => ({
+                                      ...prev,
+                                      status: checked
+                                        ? [...prev.status, status.id]
+                                        : prev.status.filter((sId) => sId !== status.id),
+                                    }))
+                                  }}
+                                >
+                                  <Badge 
+                                    className="text-white mr-2 text-xs"
+                                    style={{
+                                      backgroundColor: status.color,
+                                      borderColor: status.color
+                                    }}
+                                  >
+                                    {status.name}
+                                  </Badge>
+                                </DropdownMenuCheckboxItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        {/* Source Filter */}
+                        <div>
+                          <Label className="text-sm font-medium">{t('source')}</Label>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between mt-1">
+                                <span>
+                                  {filters.source.length > 0 ? `${filters.source.length} selected` : t('selectSource')}
+                                </span>
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[51]">
+                              {sources.map((source) => (
+                                <DropdownMenuCheckboxItem
+                                  key={source.id}
+                                  checked={filters.source.includes(source.id)}
+                                  onCheckedChange={(checked) => {
+                                    setFilters((prev) => {
+                                      const newSources = checked
+                                        ? [...prev.source, source.id]
+                                        : prev.source.filter((sId) => sId !== source.id)
+                                      
+                                      // Clear status filters that are no longer valid for the new source selection
+                                      const validStatuses = statuses.filter(status => {
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        const statusSource = (status as any).source
+                                        if (statusSource) {
+                                          return newSources.includes(statusSource)
+                                        }
+                                        // Keep general statuses (those without a source)
+                                        return true
+                                      }).map(s => s.id)
+                                      
+                                      const filteredStatusSelections = prev.status.filter(statusId => 
+                                        validStatuses.includes(statusId)
+                                      )
+                                      
+                                      return {
+                                        ...prev,
+                                        source: newSources,
+                                        status: filteredStatusSelections
+                                      }
+                                    })
+                                  }}
+                                >
+                                  <Badge 
+                                    className="text-white mr-2 text-xs"
+                                    style={{
+                                      backgroundColor: getSourceColor(source.id),
+                                      borderColor: getSourceColor(source.id)
+                                    }}
+                                  >
+                                    {source.name}
+                                  </Badge>
+                                </DropdownMenuCheckboxItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
 
-                  {/* Date Range Filter */}
-                  <div>
-                    <Label className="text-sm font-medium">{t('dateRange')}</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="date"
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal mt-1",
-                            !filters.dateRange && "text-muted-foreground",
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {filters.dateRange?.from ? (
-                            filters.dateRange.to ? (
-                              <>
-                                {format(filters.dateRange.from, "LLL dd, y")} -{" "}
-                                {format(filters.dateRange.to, "LLL dd, y")}
-                              </>
-                            ) : (
-                              format(filters.dateRange.from, "LLL dd, y")
-                            )
-                          ) : (
-                            <span>{t('selectDateRange')}</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          initialFocus
-                          mode="range"
-                          defaultMonth={filters.dateRange?.from}
-                          selected={filters.dateRange?.from ? filters.dateRange as { from: Date; to?: Date } : undefined}
-                          onSelect={(range) => {
-                            setFilters((prev) => ({ ...prev, dateRange: range || undefined }))
-                          }}
-                          numberOfMonths={2}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                        {/* Date Range Filter */}
+                        <div>
+                          <Label className="text-sm font-medium">{t('dateRange')}</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal mt-1",
+                                  !filters.dateRange && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {filters.dateRange?.from ? (
+                                  filters.dateRange.to ? (
+                                    <>
+                                      {format(filters.dateRange.from, "LLL dd, y")} -{" "}
+                                      {format(filters.dateRange.to, "LLL dd, y")}
+                                    </>
+                                  ) : (
+                                    format(filters.dateRange.from, "LLL dd, y")
+                                  )
+                                ) : (
+                                  <span>{t('selectDateRange')}</span>
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 z-[51]" align="start">
+                              <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={filters.dateRange?.from}
+                                selected={filters.dateRange?.from ? filters.dateRange as { from: Date; to?: Date } : undefined}
+                                onSelect={(range) => {
+                                  setFilters((prev) => ({ ...prev, dateRange: range || undefined }))
+                                }}
+                                numberOfMonths={2}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
 
-                  {/* Amount Range Slider */}
-                  <div>
-                    <Label className="text-sm font-medium">{t('amountRange')}</Label>
-                    <Slider
-                      min={0}
-                      max={1000} // TODO: Set max dynamically based on data
-                      step={10}
-                      value={filters.amountRange}
-                      onValueChange={(value) =>
-                        setFilters((prev) => ({ ...prev, amountRange: value as [number, number] }))
-                      }
-                      className="mt-2"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>{filters.amountRange[0]} UAH</span>
-                      <span>{filters.amountRange[1]} UAH</span>
+                        {/* Amount Range Slider */}
+                        <div>
+                          <Label className="text-sm font-medium">{t('amountRange')}</Label>
+                          <Slider
+                            min={0}
+                            max={1000} // TODO: Set max dynamically based on data
+                            step={10}
+                            value={filters.amountRange}
+                            onValueChange={(value) =>
+                              setFilters((prev) => ({ ...prev, amountRange: value as [number, number] }))
+                            }
+                            className="mt-2"
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>{filters.amountRange[0]} UAH</span>
+                            <span>{filters.amountRange[1]} UAH</span>
+                          </div>
+                        </div>
+                        {/* Archive Toggle */}
+                        <div className="flex items-center justify-between pt-2">
+                          <Label htmlFor="show-archived" className="text-sm font-medium">
+                            Show Archived Orders
+                          </Label>
+                          <Switch
+                            id="show-archived"
+                            checked={filters.showArchived}
+                            onCheckedChange={(checked) => setFilters((prev) => ({ ...prev, showArchived: checked }))}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Footer */}
+                      <div className="p-6 pt-4 mt-auto">
+                        <Button variant="outline" onClick={handleResetFilters} className="w-full">
+                          {t('resetFilters')}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  {/* Archive Toggle */}
-                  <div className="flex items-center justify-between pt-2">
-                    <Label htmlFor="show-archived" className="text-sm font-medium">
-                      Show Archived Orders
-                    </Label>
-                    <Switch
-                      id="show-archived"
-                      checked={filters.showArchived}
-                      onCheckedChange={(checked) => setFilters((prev) => ({ ...prev, showArchived: checked }))}
-                    />
-                  </div>
-                </div>
-                <SheetFooter className="p-6 pt-0">
-                  <Button variant="outline" onClick={handleResetFilters} className="w-full">
-                    {t('resetFilters')}
-                  </Button>
-                </SheetFooter>
-                <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </SheetPrimitive.Close>
-                </SheetPrimitive.Content>
-              </SheetPrimitive.Portal>
-            </Sheet>
+                </>
+              )}
+            </div>
           </div>
           {/* Orders Table Area */}
           <div className="bg-card shadow-lg rounded-lg overflow-hidden flex flex-col">
@@ -940,7 +1005,7 @@ export function OrdersDashboard() {
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
+                                  <DropdownMenuContent align="end" className="!z-[9999]">
                                     <DropdownMenuItem
                                       onClick={() => (window.location.href = `tel:${order.phoneNumber}`)}
                                     >
@@ -981,7 +1046,7 @@ export function OrdersDashboard() {
                                     {status?.name || "Unknown"}
                                   </Badge>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start">
+                                <DropdownMenuContent align="start" className="!z-[9999]">
                                   {(() => {
                                     // First, get statuses that match the order's source
                                     const sourceSpecificStatuses = statuses.filter(sOpt => {
