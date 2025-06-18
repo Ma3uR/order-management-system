@@ -12,8 +12,7 @@ async function testAutomationConfiguration() {
     console.log('📊 Automation Service:');
     const automationConfig = await getAutomationConfiguration();
     console.log(`  ✅ Enabled: ${automationConfig.enabled}`);
-    console.log(`  🔑 Has Status Code: ${automationConfig.hasStatusCode}`);
-    console.log(`  📝 Status Code: ${automationConfig.statusCode || 'Not set'}`);
+    console.log(`  🏪 Marketplaces: ${Object.keys(automationConfig.marketplaces).join(', ')}`);
     
     // Test Telegram service configuration
     console.log('\n📱 Telegram Service:');
@@ -37,9 +36,9 @@ async function testAutomationConfiguration() {
       ENABLE_STATUS_AUTOMATION: process.env.ENABLE_STATUS_AUTOMATION || 'Not set',
       TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Not set',
       TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID ? 'Set' : 'Not set',
-      ROZETKA_PROCESSING_STATUS_CODE: process.env.ROZETKA_PROCESSING_STATUS_CODE || 'Not set',
-      ROZETKA_USERNAME: process.env.ROZETKA_USERNAME ? 'Set' : 'Not set',
-      ROZETKA_PASSWORD: process.env.ROZETKA_PASSWORD ? 'Set' : 'Not set'
+      ROZETKA_TOKEN: process.env.ROZETKA_TOKEN ? 'Set' : 'Not set',
+      PROM_UA_TOKEN: process.env.PROM_UA_TOKEN ? 'Set' : 'Not set',
+      EPICENTR_TOKEN: process.env.EPICENTR_TOKEN ? 'Set' : 'Not set'
     };
     
     Object.entries(vars).forEach(([key, value]) => {
@@ -55,10 +54,6 @@ async function testAutomationConfiguration() {
       issues.push('Set ENABLE_STATUS_AUTOMATION=true');
     }
     
-    if (!automationConfig.hasStatusCode) {
-      issues.push('Set ROZETKA_PROCESSING_STATUS_CODE');
-    }
-    
     if (!telegramEnabled) {
       if (!process.env.TELEGRAM_BOT_TOKEN) {
         issues.push('Set TELEGRAM_BOT_TOKEN');
@@ -68,12 +63,17 @@ async function testAutomationConfiguration() {
       }
     }
     
-    if (!process.env.ROZETKA_USERNAME) {
-      issues.push('Set ROZETKA_USERNAME');
+    // Check marketplace tokens
+    if (!process.env.ROZETKA_TOKEN) {
+      issues.push('Set ROZETKA_TOKEN');
     }
     
-    if (!process.env.ROZETKA_PASSWORD) {
-      issues.push('Set ROZETKA_PASSWORD');
+    if (!process.env.PROM_UA_TOKEN) {
+      issues.push('Set PROM_UA_TOKEN');
+    }
+    
+    if (!process.env.EPICENTR_TOKEN) {
+      issues.push('Set EPICENTR_TOKEN');
     }
     
     if (issues.length === 0) {
