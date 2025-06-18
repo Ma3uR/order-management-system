@@ -478,6 +478,7 @@ async function processOrder(promOrder: PromOrderResponse) {
     archived: false,
     productionCost: 0,
     created: promOrder.date_created,
+    created_at_marketplace: promOrder.date_created,
   };
 
   const safeData = {

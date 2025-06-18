@@ -179,7 +179,7 @@ export function OrdersTable({
                 {order.amount.toFixed(2)}
               </TableCell>
               <TableCell className="hidden sm:table-cell">
-                {new Date(order.created).toLocaleString()}
+                {new Date(order.created_at_marketplace || order.created).toLocaleString()}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">

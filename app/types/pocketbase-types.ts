@@ -106,7 +106,7 @@ export type OrdersRecord<Tinvoice_data = unknown, ToriginalOrders = unknown, Tpr
 	status: RecordIdString
 	currency: RecordIdString
 	paymentMethod: RecordIdString
-	notes?: string
+notes?: string
 	mergeStatus: OrdersMergeStatusOptions
 	mergedWithOrderId?: string
 	originalOrders?: null | ToriginalOrders
@@ -114,6 +114,7 @@ export type OrdersRecord<Tinvoice_data = unknown, ToriginalOrders = unknown, Tpr
 	archived?: boolean
 	productionCost?: number
 	invoice_data?: null | Tinvoice_data
+	created_at_marketplace?: IsoDateString
 }
 
 export type PaymentOptionsRecord = {

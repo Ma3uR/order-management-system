@@ -178,7 +178,29 @@
     "allSources": "All Sources",
     "actionsAndStatistics": "Actions & Statistics",
     "details": "Order Details",
-    "product": "Product"
+    "product": "Product",
+    "novaPoshta": {
+      "ttn": "TTN",
+      "createTtn": "Create TTN",
+      "manageTtn": "Manage TTN",
+      "deleteTtn": "Delete TTN",
+      "deleteTtnTitle": "Delete Nova Poshta TTN",
+      "deleteTtnConfirmation": "Are you sure you want to delete this TTN? This action cannot be undone.",
+      "ttnNumber": "TTN Number",
+      "ttnNotFoundTitle": "TTN Not Found on Nova Poshta",
+      "ttnNotFoundDescription": "The TTN was not found on Nova Poshta's servers. This could mean:",
+      "ttnNotFoundReasons": {
+        "alreadyDeleted": "The TTN was already deleted from Nova Poshta",
+        "differentAccount": "It belongs to a different Nova Poshta account",
+        "permissionIssue": "There's an account or permission issue"
+      },
+      "ttnNotFoundQuestion": "What would you like to do?",
+      "keepReference": "Keep Reference",
+      "removeFromApp": "Remove from App",
+      "ttnDeletedSuccessfully": "TTN deleted successfully",
+      "ttnReferenceRemoved": "TTN reference removed from app",
+      "novaPoshtaError": "Nova Poshta Error"
+    }
   },
   "Blacklist": {
     "title": "Blacklist",

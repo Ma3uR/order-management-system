@@ -152,14 +152,24 @@ export async function deleteInternetDocument(documentRef: string) {
     initializeNovaPoshtaService();
     const service = getNovaPoshtaService();
     
-    await service.deleteInternetDocument(documentRef);
+    const result = await service.deleteInternetDocument(documentRef);
     
-    return { success: true, error: null };
+    if (result.success) {
+      return { success: true, error: null, errorType: null };
+    } else {
+      return { 
+        success: false, 
+        error: result.error || 'Unknown error',
+        errorType: result.errorType || 'unknown',
+        rawError: result.rawError
+      };
+    }
   } catch (error) {
     console.error('Error deleting Internet Document:', error);
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorType: 'unknown' as const
     };
   }
 }

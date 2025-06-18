@@ -511,6 +511,7 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
     mergeStatus: 'none',
     productionCost: 0,
     created: epicentrOrder.createdAt,
+    created_at_marketplace: epicentrOrder.createdAt,
   };
 
   const validationResult = orderSchema.safeParse({
