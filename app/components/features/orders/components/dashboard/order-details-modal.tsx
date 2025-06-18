@@ -392,6 +392,36 @@ export function OrderDetailsModal({
     })
   }
 
+  const formatOrderDetails = () => {
+    if (!order) return ""
+    
+    // Get delivery method name
+    const deliveryMethodName = deliveryMethods.find(dm => dm.id === order.deliveryMethod)?.name || "Не вказано"
+    
+    // Address fallback to delivery post number or "Не вказано"
+    const address = order.deliveryPostNumber || "Не вказано"
+    
+    // Format products with quantities
+    const productsText = (order.products as OrderProduct[]).map(product => {
+      if (product.quantity > 1) {
+        return `**_${product.title} ${product.quantity} шт_**`
+      } else {
+        return `${product.title} ${product.quantity} шт`
+      }
+    }).join('\n')
+    
+    // Build the formatted text
+    const formattedText = `№${order.orderNumber}
+${address}
+${deliveryMethodName}
+${order.phoneNumber}
+${order.fullName}
+${productsText}
+Разом: ${formatCurrency(order.amount)}`
+    
+    return formattedText
+  }
+
   // Get validation error for a specific field
   const getFieldError = (fieldPath: string) => {
     return validationErrors[fieldPath]
@@ -409,9 +439,20 @@ export function OrderDetailsModal({
       <DialogContent className="w-[98vw] max-h-[90vh] flex flex-col p-0 overflow-hidden" style={{ maxWidth: 'none', backgroundColor: 'var(--background)' }}>
         <DialogHeader className="p-6 pb-4 border-b border-border">
           <div className="flex justify-between items-center">
-            <DialogTitle className="text-2xl font-bold text-foreground">
-              Order #{order.orderNumber}
-            </DialogTitle>
+            <div className="flex items-center gap-3">
+              <DialogTitle className="text-2xl font-bold text-foreground">
+                Order #{order.orderNumber}
+              </DialogTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(formatOrderDetails())}
+                className="h-8 px-3 text-xs"
+              >
+                <Copy className="h-4 w-4 mr-1" />
+                Copy Details
+              </Button>
+            </div>
             <div className="flex items-center gap-3">
               {currentStatus && (
                 <Badge 
