@@ -256,6 +256,36 @@ class RozetkaAPI {
 
 const api = RozetkaAPI.getInstance();
 
+function buildRozetkaDeliveryAddress(delivery: RozetkaOrderResponse['delivery']): string {
+  if (!delivery) return '';
+  
+  const parts = [];
+  
+  // Add city
+  if (delivery.city?.name_ua || delivery.city?.city_name || delivery.city?.name) {
+    parts.push(delivery.city.name_ua || delivery.city.city_name || delivery.city.name);
+  }
+  
+  // Add street and building info
+  if (delivery.place_street) {
+    let streetInfo = delivery.place_street;
+    if (delivery.place_number) {
+      streetInfo += `, ${delivery.place_number}`;
+    }
+    if (delivery.place_house) {
+      streetInfo += `/${delivery.place_house}`;
+    }
+    parts.push(streetInfo);
+  }
+  
+  // Add pickup point reference if available
+  if (delivery.pickup_rz_id) {
+    parts.push(`Відділення: ${delivery.pickup_rz_id}`);
+  }
+  
+  return parts.length > 0 ? parts.join(', ') : '';
+}
+
 async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   console.log('rozetkaOrder', rozetkaOrder);
   const existingOrders = await authenticatedCall(async () => {
@@ -357,7 +387,7 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     status: orderStatus,
     currency: defaultCurrency.items[0].id,
     notes: rozetkaOrder.comment || '',
-    deliveryPostNumber: rozetkaOrder.delivery?.delivery_service_name || '',
+    deliveryPostNumber: buildRozetkaDeliveryAddress(rozetkaOrder.delivery),
     mergeSource: 'none',
     mergeStatus: 'none',
     archived: false,
