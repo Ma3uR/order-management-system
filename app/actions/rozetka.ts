@@ -393,6 +393,7 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     archived: false,
     productionCost: 0,
     created: rozetkaOrder.created,
+    created_at_marketplace: rozetkaOrder.created,
   };
 
   const validationResult = orderSchema.safeParse({

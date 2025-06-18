@@ -168,6 +168,22 @@ class NovaPoshtaService {
   }
 
   /**
+   * Safely format error messages from Nova Poshta API response
+   */
+  private formatErrorMessage(errors: unknown): string {
+    if (Array.isArray(errors)) {
+      return errors.join(', ');
+    }
+    if (typeof errors === 'string') {
+      return errors;
+    }
+    if (errors && typeof errors === 'object') {
+      return JSON.stringify(errors);
+    }
+    return 'Unknown error';
+  }
+
+  /**
    * Make a request to the Nova Poshta API
    */
   private async makeRequest<T>(params: NovaPoshtaRequestParams): Promise<NovaPoshtaResponse<T>> {
@@ -206,7 +222,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data;
@@ -227,7 +243,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data;
@@ -246,7 +262,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data;
@@ -266,7 +282,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data;
@@ -286,7 +302,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data;
@@ -325,7 +341,7 @@ class NovaPoshtaService {
 
     if (!response.success) {
       console.error('Nova Poshta API error creating counterparty:', response.errors);
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data[0];
@@ -391,7 +407,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data[0];
@@ -412,7 +428,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data;
@@ -431,7 +447,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data[0];
@@ -454,7 +470,7 @@ class NovaPoshtaService {
     });
 
     if (!response.success) {
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data[0];
@@ -485,7 +501,7 @@ class NovaPoshtaService {
 
     if (!response.success) {
       console.error('Nova Poshta API error creating contact person:', response.errors);
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      throw new Error(`Nova Poshta API error: ${this.formatErrorMessage(response.errors)}`);
     }
 
     return response.data[0];
@@ -496,7 +512,7 @@ class NovaPoshtaService {
    * 
    * Deletes an existing Internet Document using its reference ID.
    */
-  async deleteInternetDocument(documentRef: string): Promise<boolean> {
+  async deleteInternetDocument(documentRef: string): Promise<{ success: boolean; error?: string; errorType?: 'not_found' | 'permission' | 'unknown'; rawError?: unknown }> {
     console.log('🗑️ Deleting Internet Document with ref:', documentRef);
     
     const response = await this.makeRequest<{ Ref: string }>({
@@ -511,10 +527,40 @@ class NovaPoshtaService {
 
     if (!response.success) {
       console.error('❌ Nova Poshta API error deleting Internet Document:', response.errors);
-      throw new Error(`Nova Poshta API error: ${response.errors.join(', ')}`);
+      
+      const errorMessage = this.formatErrorMessage(response.errors);
+      const errorType = this.categorizeError(response.errors);
+      
+      return {
+        success: false,
+        error: errorMessage,
+        errorType,
+        rawError: response.errors
+      };
     }
 
-    return true;
+    return { success: true };
+  }
+
+  /**
+   * Categorize Nova Poshta API errors for better handling
+   */
+  private categorizeError(errors: unknown): 'not_found' | 'permission' | 'unknown' {
+    const errorString = this.formatErrorMessage(errors).toLowerCase();
+    
+    if (errorString.includes('document not found') || 
+        errorString.includes('not found by owner') ||
+        errorString.includes('no document changed deletionmark')) {
+      return 'not_found';
+    }
+    
+    if (errorString.includes('permission') || 
+        errorString.includes('access') ||
+        errorString.includes('unauthorized')) {
+      return 'permission';
+    }
+    
+    return 'unknown';
   }
 }
 

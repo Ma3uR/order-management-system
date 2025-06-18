@@ -73,7 +73,7 @@ export function OrderList({
             <div className="flex justify-between items-start mb-2">
               <div className="font-medium text-sm">#{order.orderNumber}</div>
               <div className="text-xs text-muted-foreground">
-                {new Date(order.created).toLocaleDateString()}
+                {new Date(order.created_at_marketplace || order.created).toLocaleDateString()}
               </div>
             </div>
             
@@ -203,7 +203,7 @@ export function OrderList({
                 {UtilityService.formatCurrency(Number(order.amount))}
               </td>
               <td className="p-3 align-middle">
-                {new Date(order.created).toLocaleString()}
+                {new Date(order.created_at_marketplace || order.created).toLocaleString()}
               </td>
               <td className="p-3 align-middle">
                 <div className="flex items-center gap-2">

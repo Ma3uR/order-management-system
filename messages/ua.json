@@ -186,7 +186,29 @@
     "total": "Сума",
     "customerDetails": "Деталі клієнта",
     "orderDetails": "Деталі замовлення",
-    "actions": "Дії"
+    "actions": "Дії",
+    "novaPoshta": {
+      "ttn": "ТТН",
+      "createTtn": "Створити ТТН",
+      "manageTtn": "Керувати ТТН",
+      "deleteTtn": "Видалити ТТН",
+      "deleteTtnTitle": "Видалити ТТН Нової Пошти",
+      "deleteTtnConfirmation": "Ви впевнені, що хочете видалити цю ТТН? Цю дію неможливо скасувати.",
+      "ttnNumber": "Номер ТТН",
+      "ttnNotFoundTitle": "ТТН не знайдено в Новій Пошті",
+      "ttnNotFoundDescription": "ТТН не знайдено на серверах Нової Пошти. Це може означати:",
+      "ttnNotFoundReasons": {
+        "alreadyDeleted": "ТТН вже видалено з Нової Пошти",
+        "differentAccount": "Вона належить іншому акаунту Нової Пошти",
+        "permissionIssue": "Є проблема з акаунтом або дозволами"
+      },
+      "ttnNotFoundQuestion": "Що ви хочете зробити?",
+      "keepReference": "Залишити посилання",
+      "removeFromApp": "Видалити з програми",
+      "ttnDeletedSuccessfully": "ТТН успішно видалено",
+      "ttnReferenceRemoved": "Посилання на ТТН видалено з програми",
+      "novaPoshtaError": "Помилка Нової Пошти"
+    }
   },
   "Blacklist": {
     "title": "Чорний список",
