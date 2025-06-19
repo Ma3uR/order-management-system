@@ -85,7 +85,7 @@ class TelegramService {
       
     ];
 
-    return messageParts.filter(part => part !== '').join('\n');
+    return messageParts.filter(part => part !== null && part !== undefined).join('\n');
   }
 
   async sendOrderNotification(orderData: OrderData): Promise<TelegramSendResult> {
