@@ -213,8 +213,8 @@ class StatusAutomationService {
       }
       
       // Add place_id if it's a pickup point (Nova Poshta, etc.)
-      if (rozetkaOrder.delivery.place_id && rozetkaOrder.delivery.pickup_rz_id) {
-        address += ` (Відділення: ${rozetkaOrder.delivery.pickup_rz_id})`;
+      if (rozetkaOrder.delivery.place_id && !rozetkaOrder.delivery.pickup_rz_id) {
+        address += ` (Відділення: ${rozetkaOrder.delivery.place_id})`;
       }
     }
 
