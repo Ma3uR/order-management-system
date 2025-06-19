@@ -16,6 +16,7 @@ export interface OrderData {
   totalAmount: number;
   currency?: string;
   paymentMethod?: string;
+  isPayed?: boolean;
   source?: string;
 }
 
@@ -49,7 +50,7 @@ class TelegramService {
   }
 
   private formatOrderMessage(orderData: OrderData): string {
-    const { orderNumber, address, deliveryMethod, phoneNumber, fullName, products, paymentMethod, source } = orderData;
+    const { orderNumber, address, deliveryMethod, phoneNumber, fullName, products, paymentMethod, isPayed, source } = orderData;
     
     // Get source-specific emoji
     const getSourceEmoji = (source?: string): string => {
@@ -82,6 +83,7 @@ class TelegramService {
       '',
       `${products.reduce((sum, product) => sum + product.quantity, 0)} ${products.reduce((sum, product) => sum + product.quantity, 0) === 1 ? 'позиція' : 'позиції'}`,
       `💳 ${paymentMethod || 'Не вказано'}`,
+      isPayed !== undefined ? `💰 ${isPayed ? 'Оплачено' : 'Не оплачено'}` : '',
       
     ];
 
@@ -167,6 +169,7 @@ class TelegramService {
       products: [{ title: 'Test Product', quantity: 1 }],
       totalAmount: 100,
       paymentMethod: 'Test Payment',
+      isPayed: true,
       source: 'rozetka'
     });
   }
