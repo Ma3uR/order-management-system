@@ -15,6 +15,7 @@ export interface OrderData {
   }>;
   totalAmount: number;
   currency?: string;
+  paymentMethod?: string;
 }
 
 export interface TelegramSendResult {
@@ -47,7 +48,7 @@ class TelegramService {
   }
 
   private formatOrderMessage(orderData: OrderData): string {
-    const { orderNumber, address, deliveryMethod, phoneNumber, fullName, products, totalAmount, currency = '₴' } = orderData;
+    const { orderNumber, address, deliveryMethod, phoneNumber, fullName, products, paymentMethod } = orderData;
     
     // Format products list
     const productsList = products.map(product => {
@@ -57,18 +58,16 @@ class TelegramService {
     // Build message according to the specified template
     const messageParts = [
       `№${orderNumber}`,
-      '',
       address || '',
-      '',
       deliveryMethod || '',
-      '',
-      phoneNumber || '',
-      '',
+      phoneNumber ? `${phoneNumber.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')}` : '',
       fullName || '',
       '',
       productsList,
       '',
-      `Разом: ${totalAmount} ${currency}`
+      `${products.reduce((sum, product) => sum + product.quantity, 0)} позиції`,
+      `💳 ${paymentMethod || 'Не вказано'}`,
+      
     ];
 
     return messageParts.filter(part => part !== '').join('\n');
@@ -151,7 +150,8 @@ class TelegramService {
       phoneNumber: '+380000000000',
       fullName: 'Test User',
       products: [{ title: 'Test Product', quantity: 1 }],
-      totalAmount: 100
+      totalAmount: 100,
+      paymentMethod: 'Test Payment'
     });
   }
 

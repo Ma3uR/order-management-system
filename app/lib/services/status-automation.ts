@@ -149,20 +149,38 @@ class StatusAutomationService {
     return config.newStatusCodes.includes(status as string | number);
   }
 
-  private async mapOrderToTelegramData(order: AutomationOrder, sourceId: string): Promise<OrderData> {
+  private async getPaymentMethodName(orderDbId: string): Promise<string | undefined> {
+    try {
+      const order = await authenticatedCall(async () => {
+        return await pb.collection('orders').getOne(orderDbId, {
+          expand: 'paymentMethod'
+        });
+      });
+      
+      return order.expand?.paymentMethod?.name;
+    } catch (error) {
+      console.warn(`⚠️ Failed to fetch payment method for order ${orderDbId}:`, error);
+      return undefined;
+    }
+  }
+
+  private async mapOrderToTelegramData(order: AutomationOrder, sourceId: string, orderDbId: string): Promise<OrderData> {
     switch (sourceId) {
       case '4tvf116a5aitwmb': // Rozetka
-        return this.mapRozetkaOrderToTelegramData(order as RozetkaOrderResponse);
+        return this.mapRozetkaOrderToTelegramData(order as RozetkaOrderResponse, orderDbId);
       case 'gfzk8nxfokgu9ku': // Prom
-        return this.mapPromOrderToTelegramData(order);
+        return this.mapPromOrderToTelegramData(order, orderDbId);
       case 'pj9sejm9vqtu8xq': // Epicentr
-        return this.mapEpicentrOrderToTelegramData(order);
+        return this.mapEpicentrOrderToTelegramData(order, orderDbId);
       default:
         throw new Error(`Unknown source ID: ${sourceId}`);
     }
   }
 
-  private async mapRozetkaOrderToTelegramData(rozetkaOrder: RozetkaOrderResponse): Promise<OrderData> {
+  private async mapRozetkaOrderToTelegramData(rozetkaOrder: RozetkaOrderResponse, orderDbId: string): Promise<OrderData> {
+    // Get payment method from database
+    const paymentMethod = await this.getPaymentMethodName(orderDbId);
+
     // Get delivery method name
     let deliveryMethod = 'ROZETKA Delivery';
     if (rozetkaOrder.delivery?.delivery_service_name) {
@@ -199,11 +217,15 @@ class StatusAutomationService {
       fullName: rozetkaOrder.user_title?.full_name || rozetkaOrder.user?.contact_fio || 'Unknown',
       products,
       totalAmount: parseFloat(rozetkaOrder.amount),
-      currency: '₴'
+      currency: '₴',
+      paymentMethod
     };
   }
 
-  private async mapPromOrderToTelegramData(promOrder: AutomationOrder): Promise<OrderData> {
+  private async mapPromOrderToTelegramData(promOrder: AutomationOrder, orderDbId: string): Promise<OrderData> {
+    // Get payment method from database
+    const paymentMethod = await this.getPaymentMethodName(orderDbId);
+
     const fullName = [promOrder.client_first_name, promOrder.client_second_name, promOrder.client_last_name]
       .filter(Boolean)
       .join(' ') || 'Unknown';
@@ -220,11 +242,15 @@ class StatusAutomationService {
         price: parseFloat(item.price || '0')
       })) || [],
       totalAmount: parseFloat(promOrder.price || '0'),
-      currency: '₴'
+      currency: '₴',
+      paymentMethod
     };
   }
 
-  private async mapEpicentrOrderToTelegramData(epicentrOrder: AutomationOrder): Promise<OrderData> {
+  private async mapEpicentrOrderToTelegramData(epicentrOrder: AutomationOrder, orderDbId: string): Promise<OrderData> {
+    // Get payment method from database
+    const paymentMethod = await this.getPaymentMethodName(orderDbId);
+
     const fullName = [epicentrOrder.address?.firstName, epicentrOrder.address?.lastName, epicentrOrder.address?.patronymic]
       .filter(Boolean)
       .join(' ') || 'Unknown';
@@ -241,7 +267,8 @@ class StatusAutomationService {
         price: item.price
       })) || [],
       totalAmount: epicentrOrder.subtotal || 0,
-      currency: '₴'
+      currency: '₴',
+      paymentMethod
     };
   }
 
@@ -314,7 +341,7 @@ class StatusAutomationService {
 
       // Step 3: Send Telegram notification
       try {
-        const telegramData = await this.mapOrderToTelegramData(order, config.source);
+        const telegramData = await this.mapOrderToTelegramData(order, config.source, orderDbId);
         const telegramResult = await sendOrderNotification(telegramData);
         
         if (telegramResult.success) {
