@@ -218,7 +218,8 @@ class StatusAutomationService {
       products,
       totalAmount: parseFloat(rozetkaOrder.amount),
       currency: '₴',
-      paymentMethod
+      paymentMethod,
+      source: 'rozetka'
     };
   }
 
@@ -243,7 +244,8 @@ class StatusAutomationService {
       })) || [],
       totalAmount: parseFloat(promOrder.price || '0'),
       currency: '₴',
-      paymentMethod
+      paymentMethod,
+      source: 'prom'
     };
   }
 
@@ -268,7 +270,8 @@ class StatusAutomationService {
       })) || [],
       totalAmount: epicentrOrder.subtotal || 0,
       currency: '₴',
-      paymentMethod
+      paymentMethod,
+      source: 'epicentr'
     };
   }
 

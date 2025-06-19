@@ -16,6 +16,7 @@ export interface OrderData {
   totalAmount: number;
   currency?: string;
   paymentMethod?: string;
+  source?: string;
 }
 
 export interface TelegramSendResult {
@@ -48,7 +49,21 @@ class TelegramService {
   }
 
   private formatOrderMessage(orderData: OrderData): string {
-    const { orderNumber, address, deliveryMethod, phoneNumber, fullName, products, paymentMethod } = orderData;
+    const { orderNumber, address, deliveryMethod, phoneNumber, fullName, products, paymentMethod, source } = orderData;
+    
+    // Get source-specific emoji
+    const getSourceEmoji = (source?: string): string => {
+      switch (source) {
+        case 'rozetka':
+          return '🟢'; // Green circle for Rozetka
+        case 'prom':
+          return '🟣'; // Purple circle for Prom
+        case 'epicentr':
+          return '🔵'; // Blue circle for Epicentr
+        default:
+          return '⚪'; // White circle for unknown
+      }
+    };
     
     // Format products list
     const productsList = products.map(product => {
@@ -57,7 +72,7 @@ class TelegramService {
 
     // Build message according to the specified template
     const messageParts = [
-      `№${orderNumber}`,
+      `${getSourceEmoji(source)} №${orderNumber}`,
       address || '',
       deliveryMethod || '',
       phoneNumber ? `${phoneNumber.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')}` : '',
@@ -151,7 +166,8 @@ class TelegramService {
       fullName: 'Test User',
       products: [{ title: 'Test Product', quantity: 1 }],
       totalAmount: 100,
-      paymentMethod: 'Test Payment'
+      paymentMethod: 'Test Payment',
+      source: 'rozetka'
     });
   }
 
