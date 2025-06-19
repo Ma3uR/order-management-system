@@ -75,12 +75,12 @@ class TelegramService {
       `${getSourceEmoji(source)} №${orderNumber}`,
       address || '',
       deliveryMethod || '',
-      phoneNumber ? `${phoneNumber.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')}` : '',
+      phoneNumber ? `${phoneNumber.replace(/^380(\d{2})(\d{3})(\d{2})(\d{2})$/, '0$1 $2 $3 $4')}` : '',
       fullName || '',
       '',
       productsList,
       '',
-      `${products.reduce((sum, product) => sum + product.quantity, 0)} позиції`,
+      `${products.reduce((sum, product) => sum + product.quantity, 0)} ${products.reduce((sum, product) => sum + product.quantity, 0) === 1 ? 'позиція' : 'позиції'}`,
       `💳 ${paymentMethod || 'Не вказано'}`,
       
     ];
