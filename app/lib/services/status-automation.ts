@@ -219,6 +219,7 @@ class StatusAutomationService {
       totalAmount: parseFloat(rozetkaOrder.amount),
       currency: '₴',
       paymentMethod,
+      isPayed: rozetkaOrder.is_payed,
       source: 'rozetka'
     };
   }
