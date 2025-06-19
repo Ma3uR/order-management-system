@@ -187,18 +187,34 @@ class StatusAutomationService {
       deliveryMethod = rozetkaOrder.delivery.delivery_service_name;
     }
 
-    // Format address
+    // Format address with detailed delivery information
     let address = '';
     if (rozetkaOrder.delivery?.city) {
       address = rozetkaOrder.delivery.city.city_name || rozetkaOrder.delivery.city.name;
+      
+      // Add street information
       if (rozetkaOrder.delivery.place_street) {
         address += `, ${rozetkaOrder.delivery.place_street}`;
+        
+        // Add house number
         if (rozetkaOrder.delivery.place_number) {
           address += `, ${rozetkaOrder.delivery.place_number}`;
         }
+        
+        // Add house details (building)
         if (rozetkaOrder.delivery.place_house) {
-          address += rozetkaOrder.delivery.place_house;
+          address += `/${rozetkaOrder.delivery.place_house}`;
         }
+        
+        // Add apartment/flat number
+        if (rozetkaOrder.delivery.place_flat) {
+          address += `, кв. ${rozetkaOrder.delivery.place_flat}`;
+        }
+      }
+      
+      // Add place_id if it's a pickup point (Nova Poshta, etc.)
+      if (rozetkaOrder.delivery.place_id && rozetkaOrder.delivery.pickup_rz_id) {
+        address += ` (Відділення: ${rozetkaOrder.delivery.pickup_rz_id})`;
       }
     }
 
