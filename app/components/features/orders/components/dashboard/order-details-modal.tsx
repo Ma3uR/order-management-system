@@ -447,7 +447,33 @@ export function OrderDetailsModal({
   }
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
+    // Fallback function for when clipboard API is not available
+    const fallbackCopy = (text: string) => {
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      try {
+        const successful = document.execCommand('copy')
+        document.body.removeChild(textArea)
+        return Promise.resolve(successful)
+      } catch (err) {
+        document.body.removeChild(textArea)
+        return Promise.reject(err)
+      }
+    }
+
+    // Use modern clipboard API if available, otherwise fallback
+    const copyPromise = navigator.clipboard && navigator.clipboard.writeText 
+      ? navigator.clipboard.writeText(text)
+      : fallbackCopy(text)
+
+    copyPromise.then(() => {
       toast.success("Copied to clipboard!")
       console.log("Copied to clipboard:", text)
     }).catch(() => {
@@ -715,7 +741,7 @@ ${productsText}
                     </Button>
                     
                     {statusOpen && (
-                      <div className="absolute z-50 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-md mt-1">
+                      <div className="absolute z-[999999] w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-md mt-1">
                         <div className="flex items-center border-b px-3 py-2">
                           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                           <Input

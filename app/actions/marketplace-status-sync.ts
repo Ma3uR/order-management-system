@@ -88,6 +88,9 @@ export async function updateOrderStatusWithSync(
       return await pb.collection('orders').getOne(orderId) as OrdersResponse;
     });
 
+    // Store previous status for cancellation notification
+    const previousStatusId = currentOrder.status;
+
     // Update local database first
     console.log(`🔄 Updating local database for order ${orderId}`);
     const updatedOrder = await authenticatedCall(async () => {
@@ -101,6 +104,30 @@ export async function updateOrderStatusWithSync(
     // Sync to marketplace
     console.log(`🔄 Syncing to marketplace for order ${orderId}`);
     const syncResult = await syncStatusToMarketplace(currentOrder, newStatusId);
+
+    // Process cancellation notification (non-blocking)
+    try {
+      const { processCancellationNotification } = await import('@/app/lib/services/cancellation-notifications');
+      const cancellationResult = await processCancellationNotification(
+        orderId,
+        previousStatusId,
+        newStatusId,
+        updatedOrder
+      );
+
+      if (cancellationResult.notificationSent) {
+        console.log(`🚫 Cancellation notification sent for order ${updatedOrder.orderNumber}`);
+      } else if (cancellationResult.reason) {
+        console.log(`🚫 Cancellation notification skipped for order ${updatedOrder.orderNumber}: ${cancellationResult.reason}`);
+      }
+
+      if (cancellationResult.error) {
+        console.warn(`⚠️ Cancellation notification failed for order ${updatedOrder.orderNumber}:`, cancellationResult.error);
+      }
+    } catch (cancellationError) {
+      console.warn('⚠️ Error processing cancellation notification:', cancellationError);
+      // Don't fail the main operation if cancellation notification fails
+    }
 
     if (!syncResult.success) {
       // Marketplace sync failed, but local update succeeded

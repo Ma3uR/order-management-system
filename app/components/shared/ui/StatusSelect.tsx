@@ -48,18 +48,20 @@ export function StatusSelect({
             </Badge>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
+        <PopoverContent className="w-[200px] p-0 z-[999999]" side="bottom" align="start" sideOffset={4} avoidCollisions={true} collisionPadding={10}>
           <div className="grid gap-1 p-1">
             {statuses.map(statusOption => (
               <Button
                 key={statusOption.id}
                 variant="ghost"
-                className="w-full justify-start"
+                className="w-full justify-start hover:opacity-90"
                 style={{
                   backgroundColor: statusOption.color,
                   color: getContrastColor(statusOption.color)
                 }}
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
                   await onStatusChange(statusOption.id)
                   setIsOpen(false)
                 }}
