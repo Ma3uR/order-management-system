@@ -90,7 +90,7 @@ class CancellationNotificationService {
     try {
       if (order.source) {
         const source = await authenticatedCall(async () => {
-          return await pb.collection('sources').getOne(order.source);
+          return await pb.collection('sources').getOne(order.source as string);
         });
         sourceName = source.name || sourceName;
       }
