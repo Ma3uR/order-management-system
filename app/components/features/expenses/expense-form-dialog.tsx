@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { CalendarIcon, DollarSignIcon, TagIcon, FileTextIcon } from "lucide-react"
+import { CalendarIcon, DollarSignIcon, TagIcon, FileTextIcon, ChevronDown, Check, Search } from "lucide-react"
 import { format } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTranslations } from 'next-intl'
@@ -18,6 +18,7 @@ import { Calendar } from "@/app/components/shared/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/shared/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select"
+import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
 import { ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
 import pb, { authenticatedCall } from "@/app/lib/pocketbase"
 import { addExpense } from "@/app/lib/services/expenses"
@@ -63,6 +64,37 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
   const [showSuccess, setShowSuccess] = useState(false)
   const [categories, setCategories] = useState<ExpensesCategoriesResponse[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [categorySearchValue, setCategorySearchValue] = useState("")
+  const [categoryOpen, setCategoryOpen] = useState(false)
+  const categoryDropdownRef = useRef<HTMLDivElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
+
+  // Helper function to get selected category
+  const getSelectedCategory = (categoryId: string) => {
+    return categories.find(cat => cat.id === categoryId)
+  }
+
+  // Filter categories based on search
+  const filteredCategories = categories.filter(category =>
+    category.name.toLowerCase().includes(categorySearchValue.toLowerCase())
+  )
+
+  // Calculate dropdown position to avoid modal overflow
+  const calculateDropdownPosition = () => {
+    if (!categoryDropdownRef.current) return
+
+    const rect = categoryDropdownRef.current.getBoundingClientRect()
+    const modalRect = categoryDropdownRef.current.closest('.relative')?.getBoundingClientRect()
+    const dropdownHeight = 250 // Approximate height including search input
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+
+    if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+      setDropdownPosition('top')
+    } else {
+      setDropdownPosition('bottom')
+    }
+  }
 
   useEffect(() => {
     async function fetchCategories() {
@@ -80,6 +112,24 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
       fetchCategories();
     }
   }, [open]);
+
+  // Click outside detection for category dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setCategoryOpen(false)
+        setCategorySearchValue("")
+      }
+    }
+
+    if (categoryOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [categoryOpen]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(createFormSchema(t)),
@@ -287,23 +337,90 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                           <TagIcon className="h-4 w-4 text-black dark:text-white" />
                           {t('category')}
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <div className="relative" ref={categoryDropdownRef}>
                           <FormControl>
-                            <SelectTrigger className="border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all">
-                              <SelectValue placeholder={t('selectACategory')} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={categoryOpen}
+                              className={cn(
+                                "w-full justify-between border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              onClick={() => {
+                                if (!categoryOpen) {
+                                  calculateDropdownPosition()
+                                }
+                                setCategoryOpen(!categoryOpen)
+                              }}
+                            >
+                              {field.value ? (
                                 <div className="flex items-center gap-2">
-                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
-                                  {category.name}
+                                  <div 
+                                    className="w-3 h-3 rounded-full" 
+                                    style={{ backgroundColor: getSelectedCategory(field.value)?.color }} 
+                                  />
+                                  {getSelectedCategory(field.value)?.name}
                                 </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                              ) : (
+                                t('selectACategory')
+                              )}
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                          
+                          {categoryOpen && (
+                            <div className={cn(
+                              "absolute z-[9999] w-full bg-background border rounded-md shadow-lg",
+                              dropdownPosition === 'bottom' ? "mt-1" : "bottom-full mb-1"
+                            )}>
+                              <div className="flex items-center border-b px-3 py-2">
+                                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                <Input
+                                  placeholder="Search categories..."
+                                  value={categorySearchValue}
+                                  onChange={(e) => setCategorySearchValue(e.target.value)}
+                                  className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  autoFocus
+                                />
+                              </div>
+                              <div className="max-h-[150px] overflow-y-auto py-1">
+                                {filteredCategories.length === 0 ? (
+                                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                                    No categories found.
+                                  </div>
+                                ) : (
+                                  filteredCategories.map((category) => (
+                                    <div
+                                      key={category.id}
+                                      className={cn(
+                                        "relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                        field.value === category.id && "bg-accent text-accent-foreground"
+                                      )}
+                                      onClick={() => {
+                                        field.onChange(category.id)
+                                        setCategoryOpen(false)
+                                        setCategorySearchValue("")
+                                      }}
+                                    >
+                                      <div className="flex items-center gap-2 flex-1">
+                                        <div 
+                                          className="w-3 h-3 rounded-full" 
+                                          style={{ backgroundColor: category.color }} 
+                                        />
+                                        {category.name}
+                                      </div>
+                                      {field.value === category.id && (
+                                        <Check className="h-4 w-4" />
+                                      )}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
