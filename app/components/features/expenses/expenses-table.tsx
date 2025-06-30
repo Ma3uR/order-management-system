@@ -5,13 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/app/components/shared/ui/card"
 import { format } from "date-fns"
 import { Input } from "@/app/components/shared/ui/input"
-import { Search, ArrowUpDown, Calendar, Filter, Trash2, AlertCircle, RefreshCw } from "lucide-react"
+import { Search, ArrowUpDown, Calendar, Filter, Trash2, AlertCircle, RefreshCw, Edit } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTranslations } from 'next-intl'
 import { Button } from "@/app/components/shared/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/shared/ui/popover"
 import { Calendar as CalendarComponent } from "@/app/components/shared/ui/calendar"
 import type { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
+import { formatAmount } from "@/lib/utils"
 import pb, { authenticatedCall } from "@/app/lib/pocketbase"
 import { ExpensesResponse, ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
 import { 
@@ -27,6 +29,7 @@ import {
 import { deleteExpense } from "@/app/lib/services/expenses"
 import { toast } from "@/app/components/shared/ui/use-toast"
 import { EXPENSE_ADDED_EVENT } from "./expense-form-dialog"
+import { EditExpenseDialog, EXPENSE_UPDATED_EVENT } from "./edit-expense-dialog"
 
 // Define an extended expense type to include the category info
 interface ExtendedExpense extends ExpensesResponse {
@@ -37,6 +40,7 @@ interface ExtendedExpense extends ExpensesResponse {
 }
 
 export function ExpensesTable() {
+  const t = useTranslations('Expenses')
   const [expenses, setExpenses] = useState<ExtendedExpense[]>([])
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [categoriesMap, setCategories] = useState<{[key: string]: ExpensesCategoriesResponse}>({})
@@ -49,6 +53,8 @@ export function ExpensesTable() {
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [expenseToEdit, setExpenseToEdit] = useState<ExtendedExpense | null>(null)
   
   const fetchData = async () => {
     try {
@@ -98,7 +104,7 @@ export function ExpensesTable() {
         // Fallback to "Uncategorized"
         else {
           extendedExpense.categoryInfo = {
-            name: "Uncategorized",
+            name: t('uncategorized'),
             color: "#CCCCCC" // Light gray
           };
         }
@@ -111,8 +117,8 @@ export function ExpensesTable() {
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
-        title: "Error loading expenses",
-        description: "There was a problem loading your expenses.",
+        title: t('errorLoadingExpenses'),
+        description: t('problemLoadingExpenses'),
         variant: "destructive"
       });
     } finally {
@@ -163,6 +169,13 @@ export function ExpensesTable() {
     setDeleteDialogOpen(true);
   };
   
+  // Handle edit request
+  const handleEditRequest = (expense: ExtendedExpense) => {
+    setExpenseToEdit(expense);
+    setEditDialogOpen(true);
+  };
+  
+  
   // Confirm and execute deletion
   const confirmDelete = async () => {
     if (expenseToDelete) {
@@ -177,14 +190,14 @@ export function ExpensesTable() {
         // Success - refresh the expense list
         await fetchData();
         toast({
-          title: "Expense deleted",
-          description: "The expense has been successfully deleted."
+          title: t('expenseDeleted'),
+          description: t('expenseDeletedSuccessfully')
         });
       } catch (error) {
         console.error("Error deleting expense:", error);
         toast({
-          title: "Delete failed",
-          description: error instanceof Error ? error.message : "Failed to delete expense",
+          title: t('deleteFailed'),
+          description: error instanceof Error ? error.message : t('failedToDeleteExpense'),
           variant: "destructive"
         });
       } finally {
@@ -244,24 +257,31 @@ export function ExpensesTable() {
     setIsFiltering(false)
   }
 
-  // Add event listener for expense added event
+  // Add event listener for expense added/updated events
   useEffect(() => {
     const handleExpenseAdded = () => {
       // Refresh data when an expense is added
       fetchData();
       toast({
-        title: "Data refreshed",
-        description: "Expense list has been updated with new data.",
+        title: t('dataRefreshed'),
+        description: t('expenseListUpdated'),
       });
     };
+    
+    const handleExpenseUpdated = () => {
+      // Refresh data when an expense is updated
+      fetchData();
+    };
 
-    // Listen for the custom event
+    // Listen for the custom events
     document.addEventListener(EXPENSE_ADDED_EVENT, handleExpenseAdded);
+    document.addEventListener(EXPENSE_UPDATED_EVENT, handleExpenseUpdated);
     
     return () => {
       document.removeEventListener(EXPENSE_ADDED_EVENT, handleExpenseAdded);
+      document.removeEventListener(EXPENSE_UPDATED_EVENT, handleExpenseUpdated);
     };
-  }, []);
+  }, [t]);
 
   return (
     <>
@@ -280,14 +300,14 @@ export function ExpensesTable() {
               >
                 <Search className="h-5 w-5" />
               </motion.div>
-              <h3 className="text-lg font-semibold">Recent Expenses</h3>
+              <h3 className="text-lg font-semibold">{t('recentExpenses')}</h3>
               <motion.button
                 onClick={handleManualRefresh}
                 disabled={loading}
                 className={`ml-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed`}
                 whileHover={{ scale: 1.1, rotate: 180 }}
                 transition={{ duration: 0.5 }}
-                title="Refresh expenses"
+                title={t('refreshExpenses')}
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </motion.button>
@@ -299,7 +319,7 @@ export function ExpensesTable() {
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Input
                     type="search"
-                    placeholder="Search expenses..."
+                    placeholder={t('searchExpenses')}
                     className="pl-8 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -328,7 +348,7 @@ export function ExpensesTable() {
                           format(dateRange.from, "LLL dd")
                         )
                       ) : (
-                        "Date Filter"
+                        t('dateFilter')
                       )}
                     </Button>
                   </motion.div>
@@ -336,9 +356,9 @@ export function ExpensesTable() {
                 <PopoverContent className="w-auto p-0" align="end">
                   <div className="p-3 border-b">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Filter by date</h4>
+                      <h4 className="font-medium">{t('filterByDate')}</h4>
                       <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs">
-                        Clear filters
+                        {t('clearFilters')}
                       </Button>
                     </div>
                   </div>
@@ -367,19 +387,19 @@ export function ExpensesTable() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="cursor-pointer" onClick={() => requestSort("date")}>
                       <div className="flex items-center gap-1">
-                        Date
+                        {t('date')}
                         <ArrowUpDown className="h-3 w-3" />
                       </div>
                     </TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>{t('description')}</TableHead>
+                    <TableHead>{t('category')}</TableHead>
                     <TableHead className="text-right cursor-pointer" onClick={() => requestSort("amount")}>
                       <div className="flex items-center justify-end gap-1">
-                        Amount
+                        {t('amount')}
                         <ArrowUpDown className="h-3 w-3" />
                       </div>
                     </TableHead>
-                    <TableHead className="w-[60px]">Actions</TableHead>
+                    <TableHead className="w-[120px]">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -433,19 +453,30 @@ export function ExpensesTable() {
                               whileHover={{ scale: 1.05 }}
                               transition={{ type: "spring", stiffness: 400, damping: 10 }}
                             >
-                              ${(expense.amount || 0).toFixed(2)}
+                              ${formatAmount(expense.amount || 0)}
                             </motion.span>
                           </TableCell>
                           <TableCell>
-                            <motion.button
-                              className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
-                              whileHover={{ scale: 1.15 }}
-                              whileTap={{ scale: 0.95 }}
-                              title="Delete expense"
-                              onClick={() => handleDeleteRequest(expense.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </motion.button>
+                            <div className="flex items-center gap-1">
+                              <motion.button
+                                className="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                whileHover={{ scale: 1.15 }}
+                                whileTap={{ scale: 0.95 }}
+                                title={t('editExpenseButton')}
+                                onClick={() => handleEditRequest(expense)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </motion.button>
+                              <motion.button
+                                className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
+                                whileHover={{ scale: 1.15 }}
+                                whileTap={{ scale: 0.95 }}
+                                title={t('deleteExpenseButton')}
+                                onClick={() => handleDeleteRequest(expense.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </motion.button>
+                            </div>
                           </TableCell>
                         </motion.tr>
                       ))
@@ -459,10 +490,10 @@ export function ExpensesTable() {
                             transition={{ duration: 0.3 }}
                           >
                             <Search className="h-8 w-8 mb-2 opacity-50" />
-                            <p>No expenses found</p>
-                            <p className="text-sm">Try adjusting your search or add a new expense</p>
+                            <p>{t('noExpensesFound')}</p>
+                            <p className="text-sm">{t('tryAdjustingSearch')}</p>
                             <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
-                              Clear filters
+                              {t('clearFilters')}
                             </Button>
                           </motion.div>
                         </TableCell>
@@ -482,14 +513,14 @@ export function ExpensesTable() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-red-500" />
-              Delete Expense
+              {t('deleteExpense')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this expense? This action cannot be undone.
+              {t('deleteExpenseConfirmation')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -505,15 +536,22 @@ export function ExpensesTable() {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                   />
-                  Deleting...
+                  {t('deleting')}
                 </span>
               ) : (
-                "Delete"
+                t('delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Edit Expense Dialog */}
+      <EditExpenseDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        expense={expenseToEdit}
+      />
     </>
   )
 }

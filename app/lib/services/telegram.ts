@@ -20,6 +20,22 @@ export interface OrderData {
   source?: string;
 }
 
+export interface CancellationData {
+  orderNumber: string;
+  previousStatusName: string;
+  newStatusName: string;
+  fullName: string;
+  phoneNumber: string;
+  totalAmount: number;
+  currency?: string;
+  sourceName?: string;
+  products: Array<{
+    title: string;
+    quantity: number;
+    price?: number;
+  }>;
+}
+
 export interface TelegramSendResult {
   success: boolean;
   error?: string;
@@ -90,6 +106,39 @@ class TelegramService {
     return messageParts.filter(part => part !== null && part !== undefined).join('\n');
   }
 
+  private formatCancellationMessage(cancellationData: CancellationData): string {
+    const { orderNumber, previousStatusName, newStatusName, fullName, phoneNumber, totalAmount, currency, sourceName, products } = cancellationData;
+    
+    // Format products list if available
+    const productsList = products && products.length > 0 
+      ? products.map(product => `${product.title} ${product.quantity} шт`).join('\n')
+      : '';
+
+    // Calculate total items
+    const totalItems = products ? products.reduce((sum, product) => sum + product.quantity, 0) : 0;
+    const itemsText = totalItems === 1 ? 'позиція' : 'позиції';
+
+    // Build cancellation message
+    const messageParts = [
+      '🚫 СКАСУВАННЯ ЗАМОВЛЕННЯ',
+      '',
+      `№${orderNumber}`,
+      `Джерело: ${sourceName || 'Невідоме'}`,
+      `Попередній статус: ${previousStatusName}`,
+      `Клієнт: ${fullName}`,
+      `Телефон: ${phoneNumber}`,
+      productsList ? '' : null, // Empty line before products if they exist
+      productsList || null,
+      productsList ? '' : null, // Empty line after products if they exist
+      totalItems > 0 ? `${totalItems} ${itemsText}` : null,
+      `Сума: ${totalAmount.toLocaleString('uk-UA')} ${currency || '₴'}`,
+      '',
+      `⚠️ Замовлення скасовано: ${newStatusName}`
+    ];
+
+    return messageParts.filter(part => part !== null && part !== undefined && part !== '').join('\n');
+  }
+
   async sendOrderNotification(orderData: OrderData): Promise<TelegramSendResult> {
     if (!this.enabled) {
       console.log('🤖 Telegram notifications disabled, skipping notification');
@@ -154,6 +203,70 @@ class TelegramService {
     }
   }
 
+  async sendCancellationNotification(cancellationData: CancellationData): Promise<TelegramSendResult> {
+    if (!this.enabled) {
+      console.log('🚫 Telegram cancellation notifications disabled, skipping notification');
+      return { success: false, error: 'Telegram notifications disabled' };
+    }
+
+    if (!this.botToken || !this.chatId) {
+      console.error('❌ Telegram bot token or chat ID not configured');
+      return { success: false, error: 'Telegram configuration missing' };
+    }
+
+    try {
+      const message = this.formatCancellationMessage(cancellationData);
+      console.log('🚫 Sending Telegram cancellation notification for order:', cancellationData.orderNumber);
+      
+      const response = await axios.post(
+        `https://api.telegram.org/bot${this.botToken}/sendMessage`,
+        {
+          chat_id: this.chatId,
+          text: message,
+          parse_mode: 'HTML'
+        },
+        {
+          timeout: 10000, // 10 second timeout
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.ok) {
+        console.log('✅ Telegram cancellation notification sent successfully');
+        return { 
+          success: true, 
+          messageId: response.data.result.message_id 
+        };
+      } else {
+        console.error('❌ Telegram API error:', response.data);
+        return { 
+          success: false, 
+          error: response.data.description || 'Unknown Telegram API error' 
+        };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Failed to send Telegram cancellation notification:', errorMessage);
+      
+      // Check for specific error types
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          return { success: false, error: 'Telegram request timeout' };
+        }
+        if (error.response?.status === 401) {
+          return { success: false, error: 'Invalid Telegram bot token' };
+        }
+        if (error.response?.status === 400) {
+          return { success: false, error: 'Invalid chat ID or message format' };
+        }
+      }
+      
+      return { success: false, error: errorMessage };
+    }
+  }
+
   // Test method to verify configuration
   async testConnection(): Promise<TelegramSendResult> {
     if (!this.enabled) {
@@ -184,6 +297,10 @@ const telegramService = TelegramService.getInstance();
 
 export async function sendOrderNotification(orderData: OrderData): Promise<TelegramSendResult> {
   return telegramService.sendOrderNotification(orderData);
+}
+
+export async function sendCancellationNotification(cancellationData: CancellationData): Promise<TelegramSendResult> {
+  return telegramService.sendCancellationNotification(cancellationData);
 }
 
 export async function testTelegramConnection(): Promise<TelegramSendResult> {

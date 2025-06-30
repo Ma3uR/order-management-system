@@ -182,7 +182,7 @@
 [data-radix-dropdown-menu-content],
 [data-radix-select-content],
 [data-radix-popover-content] {
-  z-index: 99999 !important;
+  z-index: 999999 !important;
   background-color: white !important;
 }
 
@@ -197,8 +197,7 @@
 [data-radix-dropdown-menu-trigger][data-state="open"] ~ [data-radix-dropdown-menu-content],
 [data-radix-select-trigger][data-state="open"] ~ [data-radix-select-content],
 [data-radix-popover-trigger][data-state="open"] ~ [data-radix-popover-content] {
-  z-index: 99999 !important;
-  position: fixed !important;
+  z-index: 999999 !important;
   background-color: white !important;
 }
 
@@ -247,6 +246,40 @@
 .dark [role="dialog"] [data-radix-select-content],
 .dark [role="dialog"] .bg-background,
 .dark [role="dialog"] .absolute.z-50 {
+  background-color: rgb(30, 41, 59) !important;
+}
+
+/* Orders table dropdown fix */
+table [data-radix-dropdown-menu-content],
+.overflow-x-auto [data-radix-dropdown-menu-content],
+.overflow-hidden [data-radix-dropdown-menu-content] {
+  z-index: 999999 !important;
+  background-color: white !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Ensure proper positioning for dropdown content */
+[data-radix-dropdown-menu-content] {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin) !important;
+}
+
+/* Reset any interfering transforms or positioning contexts */
+table,
+.overflow-x-auto,
+.overflow-hidden {
+  position: relative;
+}
+
+/* Ensure dropdown triggers maintain proper positioning context */
+table [data-radix-dropdown-menu-trigger],
+.overflow-x-auto [data-radix-dropdown-menu-trigger],
+.overflow-hidden [data-radix-dropdown-menu-trigger] {
+  position: relative;
+}
+
+.dark table [data-radix-dropdown-menu-content],
+.dark .overflow-x-auto [data-radix-dropdown-menu-content],
+.dark .overflow-hidden [data-radix-dropdown-menu-content] {
   background-color: rgb(30, 41, 59) !important;
 }
 

@@ -13,8 +13,8 @@ export async function addExpense(
   try {
     console.log(`Adding expense: ${amount} on ${date} for ${description}`);
     
-    if (!amount || !description || !date) {
-      return { error: 'Amount, description and date are required' };
+    if (!amount || !date) {
+      return { error: 'Amount and date are required' };
     }
     
     interface ExpenseData {
@@ -134,5 +134,72 @@ export async function deleteExpense(expenseId: string) {
   } catch (error) {
     console.error(`Error deleting expense:`, error);
     return { error: 'Failed to delete expense', details: String(error) };
+  }
+}
+
+/**
+ * Update an existing expense
+ */
+export async function updateExpense(
+  expenseId: string,
+  amount: number, 
+  description?: string, 
+  date?: string, 
+  category?: string,
+  receipt?: string
+) {
+  try {
+    console.log(`Updating expense: ${expenseId}`);
+    
+    if (!expenseId || !amount || !date) {
+      return { error: 'Expense ID, amount and date are required' };
+    }
+    
+    interface ExpenseUpdateData {
+      amount: number;
+      description?: string;
+      date: string;
+      category?: string;
+      receipt?: string;
+    }
+    
+    const data: ExpenseUpdateData = {
+      amount,
+      date
+    };
+    
+    // Only add description if it's provided
+    if (description !== undefined) {
+      data.description = description;
+    }
+    
+    // Only add category if it's a valid non-empty string
+    if (category && category.trim() !== '') {
+      data.category = category;
+    }
+    
+    if (receipt) {
+      data.receipt = receipt;
+    }
+    
+    console.log('Updating expense with data:', data);
+    
+    const expense = await authenticatedCall(() => 
+      pb.collection('expenses').update(expenseId, data)
+    );
+    
+    console.log('Expense updated successfully:', expense.id);
+    
+    return {
+      id: expense.id,
+      amount,
+      description,
+      date,
+      category,
+      message: 'Expense updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    return { error: 'Failed to update expense', details: String(error) };
   }
 } 

@@ -228,7 +228,7 @@ export function OrdersDashboard() {
         
         // Date range filter
         const matchesDateRange = !filters.dateRange || (!filters.dateRange.from && !filters.dateRange.to) || (() => {
-          const orderDate = new Date(order.created)
+          const orderDate = new Date(order.created_at_marketplace || order.created)
           const fromMatch = !filters.dateRange.from || orderDate >= filters.dateRange.from
           const toMatch = !filters.dateRange.to || orderDate <= filters.dateRange.to
           return fromMatch && toMatch
@@ -239,7 +239,7 @@ export function OrdersDashboard() {
         
         return matchesStatus && matchesSource && matchesText && matchesArchived && matchesDateRange && matchesAmountRange
       })
-      .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
+      .sort((a, b) => new Date(b.created_at_marketplace || b.created).getTime() - new Date(a.created_at_marketplace || a.created).getTime())
   }, [orders, filters, searchTerm])
 
   // Sort orders based on sorting state
@@ -251,8 +251,8 @@ export function OrdersDashboard() {
       
       // Handle different data types properly
       if (sorting.id === 'created') {
-        valA = new Date(valA as string).getTime()
-        valB = new Date(valB as string).getTime()
+        valA = new Date((a.created_at_marketplace || a.created) as string).getTime()
+        valB = new Date((b.created_at_marketplace || b.created) as string).getTime()
       } else if (sorting.id === 'amount') {
         valA = Number(valA) || 0
         valB = Number(valB) || 0
@@ -293,8 +293,7 @@ export function OrdersDashboard() {
     // Filter statuses to only show those that belong to the selected sources
     return statuses.filter(status => {
       // Check if the status has a source property and if it matches any selected source
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const statusSource = (status as any).source
+      const statusSource = status.source
       if (statusSource) {
         return filters.source.includes(statusSource)
       }
@@ -357,6 +356,9 @@ export function OrdersDashboard() {
       userActionRef.current = orderId;
       const order = orders.find(o => o.id === orderId);
       if (!order) throw new Error('Order not found');
+
+      // Store previous status for cancellation notification
+      const previousStatusId = order.status;
 
       // Validate products before update
       if (!Array.isArray(order.products) || order.products.length === 0) {
@@ -426,6 +428,30 @@ export function OrdersDashboard() {
       setOrders(prevOrders => 
         prevOrders.map(o => o.id === orderId ? result.data! : o) as OrdersResponse[]
       );
+
+      // Check for cancellation notification
+      try {
+        const { processCancellationNotification } = await import('@/app/lib/services/cancellation-notifications');
+        const cancellationResult = await processCancellationNotification(
+          orderId,
+          previousStatusId,
+          newStatusId,
+          result.data!
+        );
+
+        if (cancellationResult.notificationSent) {
+          console.log(`🚫 Cancellation notification sent for order ${order.orderNumber}`);
+        } else if (cancellationResult.reason) {
+          console.log(`🚫 Cancellation notification skipped for order ${order.orderNumber}: ${cancellationResult.reason}`);
+        }
+
+        if (cancellationResult.error) {
+          console.warn(`⚠️ Cancellation notification failed for order ${order.orderNumber}:`, cancellationResult.error);
+        }
+      } catch (cancellationError) {
+        console.warn('⚠️ Error processing cancellation notification:', cancellationError);
+        // Don't fail the main operation if cancellation notification fails
+      }
 
       // Show appropriate success message
       if (result.error) {
@@ -507,8 +533,34 @@ export function OrdersDashboard() {
     if (copyTimeoutIdRef.current) {
       clearTimeout(copyTimeoutIdRef.current)
     }
-    navigator.clipboard
-      .writeText(text)
+
+    // Fallback function for when clipboard API is not available
+    const fallbackCopy = (text: string) => {
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      try {
+        const successful = document.execCommand('copy')
+        document.body.removeChild(textArea)
+        return Promise.resolve(successful)
+      } catch (err) {
+        document.body.removeChild(textArea)
+        return Promise.reject(err)
+      }
+    }
+
+    // Use modern clipboard API if available, otherwise fallback
+    const copyPromise = navigator.clipboard && navigator.clipboard.writeText 
+      ? navigator.clipboard.writeText(text)
+      : fallbackCopy(text)
+
+    copyPromise
       .then(() => {
         setCopyNotification({ message, rowId, columnId, key: Date.now() })
         copyTimeoutIdRef.current = setTimeout(() => {
@@ -647,12 +699,12 @@ export function OrdersDashboard() {
                 <>
                   {/* Transparent Backdrop */}
                   <div 
-                    className="fixed inset-0 bg-transparent z-[49]"
+                    className="fixed inset-0 bg-transparent z-[999997]"
                     onClick={() => setIsFiltersSidebarOpen(false)}
                   />
                   
                   {/* Sidebar Content */}
-                  <div className="fixed inset-y-0 right-0 h-full w-full sm:max-w-xs bg-white dark:bg-slate-800 shadow-lg z-[50]">
+                  <div className="fixed inset-y-0 right-0 h-full w-full sm:max-w-xs bg-white dark:bg-slate-800 shadow-lg z-[999998]">
                     <div className="flex flex-col h-full">
                       <div className="p-6 pb-4">
                         <div className="flex items-center justify-between">
@@ -680,7 +732,7 @@ export function OrdersDashboard() {
                                 <ChevronDown className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[51]">
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[999999]">
                               {filteredStatuses.map((status) => (
                                 <DropdownMenuCheckboxItem
                                   key={status.id}
@@ -720,7 +772,7 @@ export function OrdersDashboard() {
                                 <ChevronDown className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[51]">
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[999999]">
                               {sources.map((source) => (
                                 <DropdownMenuCheckboxItem
                                   key={source.id}
@@ -733,8 +785,7 @@ export function OrdersDashboard() {
                                       
                                       // Clear status filters that are no longer valid for the new source selection
                                       const validStatuses = statuses.filter(status => {
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        const statusSource = (status as any).source
+                                        const statusSource = status.source
                                         if (statusSource) {
                                           return newSources.includes(statusSource)
                                         }
@@ -797,7 +848,7 @@ export function OrdersDashboard() {
                                 )}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 z-[51]" align="start">
+                            <PopoverContent className="w-auto p-0 z-[999999]" align="start">
                               <Calendar
                                 initialFocus
                                 mode="range"
@@ -856,7 +907,7 @@ export function OrdersDashboard() {
             </div>
           </div>
           {/* Orders Table Area */}
-          <div className="bg-card shadow-lg rounded-lg overflow-hidden flex flex-col">
+          <div className="bg-card shadow-lg rounded-lg flex flex-col">
             {paginatedOrders.length > 0 ? (
               <>
                 <div className="overflow-x-auto">
@@ -1005,7 +1056,7 @@ export function OrdersDashboard() {
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="!z-[9999]">
+                                  <DropdownMenuContent align="end" className="!z-[999999]">
                                     <DropdownMenuItem
                                       onClick={() => (window.location.href = `tel:${order.phoneNumber}`)}
                                     >
@@ -1036,7 +1087,7 @@ export function OrdersDashboard() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Badge
-                                    className="text-white text-xs cursor-pointer hover:brightness-110"
+                                    className="text-white text-xs cursor-pointer hover:brightness-110 hover:shadow-md transition-all"
                                     variant="default"
                                     style={{
                                       backgroundColor: status?.color || '#6b7280',
@@ -1046,12 +1097,18 @@ export function OrdersDashboard() {
                                     {status?.name || "Unknown"}
                                   </Badge>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="!z-[9999]">
+                                <DropdownMenuContent 
+                                  align="start" 
+                                  side="bottom"
+                                  sideOffset={4}
+                                  className="!z-[999999]"
+                                  avoidCollisions={true}
+                                  collisionPadding={10}
+                                >
                                   {(() => {
-                                    // First, get statuses that match the order's source
+                                    // Get statuses that match the order's source
                                     const sourceSpecificStatuses = statuses.filter(sOpt => {
-                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                      return (sOpt as any).source === order.source
+                                      return sOpt.source === order.source
                                     });
                                     
                                     // If we have source-specific statuses, use only those
@@ -1061,13 +1118,17 @@ export function OrdersDashboard() {
                                     
                                     // Fallback: if no source-specific statuses exist, show general statuses (those without source relation)
                                     return statuses.filter(sOpt => {
-                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                      return !(sOpt as any).source
+                                      return !sOpt.source
                                     });
                                   })().map((sOpt) => (
                                     <DropdownMenuItem
                                       key={sOpt.id}
-                                      onClick={() => handleStatusChange(order.id, sOpt.id)}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleStatusChange(order.id, sOpt.id);
+                                      }}
+                                      className="cursor-pointer"
                                     >
                                       <Badge 
                                         className="text-white mr-2 text-xs" 
@@ -1098,7 +1159,16 @@ export function OrdersDashboard() {
                                 {source?.name || "Unknown"}
                               </Badge>
                             </TableCell>
-                            <TableCell>{format(new Date(order.created), "MMM d, yyyy HH:mm")}</TableCell>
+                            <TableCell>{(() => {
+                              const dateValue = order.created_at_marketplace || order.created;
+                              const dateObj = new Date(dateValue);
+                              console.log(`🔍 Order ${order.orderNumber}:`, {
+                                raw: dateValue,
+                                dateObj: dateObj.toISOString(),
+                                formatted: format(dateObj, "MMM d, yyyy HH:mm:ss")
+                              });
+                              return format(dateObj, "MMM d, yyyy HH:mm");
+                            })()}</TableCell>
                             <TableCell data-no-row-click="true">
                               <div className="flex items-center gap-1">
                                 <Button
@@ -1307,7 +1377,7 @@ export function OrdersDashboard() {
           status: o.status,
           amount: o.amount,
           source: o.source || '',
-          created: o.created,
+          created: o.created_at_marketplace || o.created,
           products: (o.products as Array<{ title: string; quantity: number; price: number }>) || [],
           numberOfItems: o.numberOfItems || 0,
           currency: o.currency || ''

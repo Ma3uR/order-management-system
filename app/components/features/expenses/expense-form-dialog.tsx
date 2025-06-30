@@ -7,6 +7,7 @@ import { z } from "zod"
 import { CalendarIcon, DollarSignIcon, TagIcon, FileTextIcon } from "lucide-react"
 import { format } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTranslations } from 'next-intl'
 
 import { Button } from "@/app/components/shared/ui/button"
 import { Input } from "@/app/components/shared/ui/input"
@@ -31,25 +32,25 @@ export function dispatchExpenseAddedEvent() {
   document.dispatchEvent(event);
 }
 
-const formSchema = z.object({
+const createFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().min(0, {
-    message: "Amount must be a positive number",
+    message: t('amountMustBePositive'),
   }),
   description: z.string().max(500, {
-    message: "Description must be less than 500 characters",
-  }),
+    message: t('descriptionMaxChars'),
+  }).optional(),
   date: z.date({
-    required_error: "Date is required",
+    required_error: t('dateRequired'),
   }),
   category: z
     .string()
     .max(100, {
-      message: "Category must be less than 100 characters",
+      message: t('categoryMaxChars'),
     })
     .optional(),
 })
 
-type ExpenseFormValues = z.infer<typeof formSchema>
+type ExpenseFormValues = z.infer<ReturnType<typeof createFormSchema>>
 
 interface ExpenseFormDialogProps {
   open: boolean
@@ -57,6 +58,7 @@ interface ExpenseFormDialogProps {
 }
 
 export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps) {
+  const t = useTranslations('Expenses')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [categories, setCategories] = useState<ExpensesCategoriesResponse[]>([])
@@ -80,7 +82,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
   }, [open]);
 
   const form = useForm<ExpenseFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       amount: undefined,
       description: "",
@@ -100,7 +102,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
       // Call the addExpense service function
       const result = await addExpense(
         values.amount,
-        values.description,
+        values.description || "",
         formattedDate,
         values.category
       )
@@ -130,8 +132,8 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
       
       // Show a toast notification
       toast({
-        title: "Expense added",
-        description: "Your expense has been added successfully.",
+        title: t('expenseAdded'),
+        description: t('expenseAddedSuccessfully'),
       });
     } catch (error) {
       console.error('Error adding expense:', error)
@@ -139,8 +141,8 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
       
       // Show error toast
       toast({
-        title: "Error adding expense",
-        description: error instanceof Error ? error.message : 'Failed to add expense', 
+        title: t('errorAddingExpense'),
+        description: error instanceof Error ? error.message : t('failedToAddExpense'), 
         variant: "destructive"
       });
     } finally {
@@ -169,7 +171,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span>Expense added successfully!</span>
+                  <span>{t('expenseAdded')}</span>
                 </div>
               </motion.div>
             )}
@@ -187,7 +189,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                 <span className="bg-black dark:bg-white dark:text-black text-white p-1.5 rounded-full">
                   <DollarSignIcon className="h-5 w-5" />
                 </span>
-                Add New Expense
+                {t('addNewExpense')}
               </DialogTitle>
             </div>
           </DialogHeader>
@@ -208,7 +210,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                         <FormItem>
                           <FormLabel className="flex items-center gap-2">
                             <DollarSignIcon className="h-4 w-4 text-black dark:text-white" />
-                            Amount
+                            {t('amount')}
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
@@ -241,7 +243,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                         <FormItem className="flex flex-col">
                           <FormLabel className="flex items-center gap-2">
                             <CalendarIcon className="h-4 w-4 text-black dark:text-white" />
-                            Date
+                            {t('date')}
                           </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -253,7 +255,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                                     !field.value && "text-muted-foreground",
                                   )}
                                 >
-                                  {field.value ? format(field.value, "yyyy-MM-dd") : <span>Pick a date</span>}
+                                  {field.value ? format(field.value, "yyyy-MM-dd") : <span>{t('pickDate')}</span>}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
                               </FormControl>
@@ -278,41 +280,17 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                   <FormField
                     control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <FileTextIcon className="h-4 w-4 text-black dark:text-white" />
-                          Description
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="What was this expense for?"
-                            className="resize-none min-h-[80px] border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-right">{field.value.length}/500 characters</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                  <FormField
-                    control={form.control}
                     name="category"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <TagIcon className="h-4 w-4 text-black dark:text-white" />
-                          Category
+                          {t('category')}
                         </FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger className="border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all">
-                              <SelectValue placeholder="Select a category" />
+                              <SelectValue placeholder={t('selectACategory')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -326,6 +304,30 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <FileTextIcon className="h-4 w-4 text-black dark:text-white" />
+                          {t('description')} ({t('optional')})
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder={t('whatWasExpenseFor')}
+                            className="resize-none min-h-[80px] border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-right">{(field.value || '').length}/500 {t('characters')}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -351,10 +353,10 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                         />
-                        Adding...
+                        {t('adding')}
                       </span>
                     ) : (
-                      "Add Expense"
+                      t('addExpense')
                     )}
                   </Button>
                 </motion.div>

@@ -510,7 +510,6 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
     mergeSource: 'none',
     mergeStatus: 'none',
     productionCost: 0,
-    created: epicentrOrder.createdAt,
     created_at_marketplace: epicentrOrder.createdAt,
   };
 

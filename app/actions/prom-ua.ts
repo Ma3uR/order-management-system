@@ -477,7 +477,6 @@ async function processOrder(promOrder: PromOrderResponse) {
     mergeStatus: 'none',
     archived: false,
     productionCost: 0,
-    created: promOrder.date_created,
     created_at_marketplace: promOrder.date_created,
   };
 
