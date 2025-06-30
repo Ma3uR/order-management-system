@@ -25,12 +25,14 @@ export async function getUserRole(userId: string): Promise<UsersRoleOptions | nu
 
     // Method 2: Try alternative collection name if it exists
     try {
-      const userRecord = await pb.collection('user_roles').getFirst(`user_id="${userId}"`);
+      const userRecord = await pb.collection('user_roles').getList(1, 1, {
+        filter: `user_id="${userId}"`
+      });
       console.log('User_roles collection response:', userRecord);
       
-      if (userRecord.role) {
-        console.log('Found role in user_roles collection:', userRecord.role);
-        return userRecord.role as UsersRoleOptions;
+      if (userRecord.items[0]?.role) {
+        console.log('Found role in user_roles collection:', userRecord.items[0].role);
+        return userRecord.items[0].role as UsersRoleOptions;
       }
     } catch {
       console.log('No user_roles collection or no record found');

@@ -59,7 +59,7 @@ export function useSession() {
             
             // IMMEDIATE CHECK: Emergency fallback for known admin emails
             const adminEmails = [
-              // 'andriimazurenko99@gmail.com', // Commented for testing
+              'andriimazurenko99@gmail.com', // Commented for testing
             ];
             isAdminByEmail = adminEmails.includes(authModel.email);
             
