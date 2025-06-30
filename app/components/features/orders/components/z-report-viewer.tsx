@@ -12,10 +12,23 @@ import { format } from "date-fns"
 import { formatCurrency } from "@/app/lib/utils"
 import { ZReportReceiptInfo, ZReportSummary, ZReportTaxDetail, ZReportPaymentMethod } from '@/app/types/casa-vchasno'
 
+// Z-Report data type
+export type ZReportData = {
+  receipt: ZReportReceiptInfo;
+  summary: ZReportSummary;
+  taxes?: ZReportTaxDetail[];
+  pays?: ZReportPaymentMethod[];
+  cashier: string;
+  dt: string;
+  fisid: string;
+  doccode: string;
+  safe?: number;
+}
+
 interface ZReportViewerProps {
   isOpen: boolean
   onClose: () => void
-  zReportData: unknown
+  zReportData: ZReportData | null
   shiftData?: unknown
 }
 

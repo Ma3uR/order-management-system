@@ -142,9 +142,11 @@ export class CasaVchasnoService {
       }
 
       // Prepare payment information
+      const expandData = order.expand as Record<string, unknown>;
+      const paymentMethodName = (expandData?.paymentMethod as Record<string, unknown>)?.name as string || 'Other';
       const payments = this.createPaymentArray(
         order.amount || 0,
-        order.expand?.paymentMethod?.name || 'Other'
+        paymentMethodName
       );
 
       // Prepare receipt data
@@ -160,8 +162,9 @@ export class CasaVchasnoService {
       };
 
       // Prepare user info (required for sales)
+      const customerEmail_ = (expandData?.customer as Record<string, unknown>)?.email as string || 'noemail@example.com';
       const userinfo: UserInfo = {
-        email: customerEmail || order.expand?.customer?.email || 'noemail@example.com',
+        email: customerEmail || customerEmail_,
         phone: customerPhone || order.phoneNumber || '+380000000000',
       };
 
@@ -215,9 +218,11 @@ export class CasaVchasnoService {
       const amount = returnAmount || order.amount || 0;
 
       // Prepare payment information
+      const expandData2 = order.expand as Record<string, unknown>;
+      const paymentMethodName2 = (expandData2?.paymentMethod as Record<string, unknown>)?.name as string || 'Other';
       const payments = this.createPaymentArray(
         amount,
-        order.expand?.paymentMethod?.name || 'Other'
+        paymentMethodName2
       );
 
       // Prepare receipt data
@@ -304,8 +309,8 @@ export class CasaVchasnoService {
           receipt_type: receiptType,
           fiscal_data: fiscalData,
           casa_response: casaResponse,
-          qr_code: casaResponse.info?.qr || '',
-          document_code: casaResponse.info?.doccode || '',
+          qr_code: (casaResponse.info as unknown as Record<string, unknown>)?.qr as string || '',
+          document_code: (casaResponse.info as unknown as Record<string, unknown>)?.doccode as string || '',
           status: casaResponse.res === 0 ? FiscalReceiptsStatusOptions.success : FiscalReceiptsStatusOptions.failed,
           error_message: casaResponse.res !== 0 ? casaResponse.errortxt : undefined,
         })
@@ -379,8 +384,8 @@ export class CasaVchasnoService {
       const shift = openShifts.items[0];
 
       // Extract sales data from Z-report
-      const salesData = zReportResponse.info?.summary;
-      const receiptData = zReportResponse.info?.receipt;
+      const salesData = (zReportResponse.info as unknown as Record<string, unknown>)?.summary;
+      const receiptData = (zReportResponse.info as unknown as Record<string, unknown>)?.receipt;
 
       // Update shift with Z-report data
       await authenticatedCall(() =>
@@ -388,9 +393,9 @@ export class CasaVchasnoService {
           closed_at: new Date().toISOString(),
           status: FiscalShiftsStatusOptions.closed,
           z_report_data: zReportResponse.info,
-          total_sales: salesData?.base_p || 0,
-          total_returns: salesData?.base_m || 0,
-          receipts_count: (receiptData?.count_p || 0) + (receiptData?.count_m || 0),
+          total_sales: (salesData as Record<string, unknown>)?.base_p as number || 0,
+          total_returns: (salesData as Record<string, unknown>)?.base_m as number || 0,
+          receipts_count: ((receiptData as Record<string, unknown>)?.count_p as number || 0) + ((receiptData as Record<string, unknown>)?.count_m as number || 0),
         })
       );
 

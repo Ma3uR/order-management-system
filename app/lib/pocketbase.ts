@@ -1,6 +1,6 @@
 import PocketBase, { AdminAuthResponse } from 'pocketbase';
 import { OrdersResponse, OrdersMergeStatusOptions, OrdersMergeSourceOptions, UsersRoleOptions } from '../types/pocketbase-types';
-import { User } from '../types/user';
+import { UsersResponse } from '../types/pocketbase-types';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -199,7 +199,7 @@ export async function authenticateAdmin() {
 }
 
 // Helper to login a user and save to localStorage
-export async function loginUser(email: string, password: string): Promise<{ user: User; isAdmin: boolean }> {
+export async function loginUser(email: string, password: string): Promise<{ user: UsersResponse; isAdmin: boolean }> {
   console.log(`🚀 [loginUser] Starting login for:`, email);
   
   try {
@@ -217,20 +217,25 @@ export async function loginUser(email: string, password: string): Promise<{ user
         token: !!adminAuth.token
       });
       
-      const adminUser: User = {
+      const adminUser = {
         id: adminAuth.admin.id,
         email: adminAuth.admin.email,
+        emailVisibility: false,
         name: adminAuth.admin.email, // Admins don't have separate names
         username: adminAuth.admin.email,
-        avatar: '',
+        verified: true,
         role: UsersRoleOptions.admin,
-      };
+        created: adminAuth.admin.created || '',
+        updated: adminAuth.admin.updated || '',
+        collectionId: '',
+        collectionName: 'users',
+      } as UsersResponse;
       
       console.log(`🎯 [loginUser] Returning admin user:`, adminUser);
       return { user: adminUser, isAdmin: true };
       
     } catch (adminError) {
-      console.log(`❌ [loginUser] Admin login failed (this is normal for regular users):`, adminError.message);
+      console.log(`❌ [loginUser] Admin login failed (this is normal for regular users):`, adminError);
       
       // If admin login fails, try regular user login
       console.log(`👤 [loginUser] Attempting regular user login...`);
@@ -243,14 +248,19 @@ export async function loginUser(email: string, password: string): Promise<{ user
         token: !!userAuth.token
       });
       
-      const regularUser: User = {
+      const regularUser = {
         id: userAuth.record.id,
         email: userAuth.record.email,
+        emailVisibility: userAuth.record.emailVisibility || false,
         name: userAuth.record.name || userAuth.record.email,
         username: userAuth.record.username || userAuth.record.email,
-        avatar: userAuth.record.avatar || '',
+        verified: userAuth.record.verified || false,
         role: userAuth.record.role || UsersRoleOptions.user,
-      };
+        created: userAuth.record.created || '',
+        updated: userAuth.record.updated || '',
+        collectionId: userAuth.record.collectionId || '',
+        collectionName: userAuth.record.collectionName || 'users',
+      } as UsersResponse;
       
       console.log(`🎯 [loginUser] Returning regular user:`, regularUser);
       return { user: regularUser, isAdmin: false };

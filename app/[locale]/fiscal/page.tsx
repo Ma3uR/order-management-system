@@ -4,6 +4,7 @@ import React, { useState } from "react"
 import { useTranslations } from 'next-intl'
 import { ShiftManagement } from "@/app/components/features/orders/components/shift-management"
 import { ZReportViewer } from "@/app/components/features/orders/components/z-report-viewer"
+import type { ZReportData } from "@/app/components/features/orders/components/z-report-viewer"
 import { ShiftStatusDisplay } from "@/app/components/features/orders/components/shift-status"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
 import { Button } from "@/app/components/shared/ui/button"
@@ -308,7 +309,7 @@ export default function FiscalPage(): JSX.Element {
               setShowZReportViewer(false)
               setSelectedZReport(null)
             }}
-            zReportData={selectedZReport}
+            zReportData={selectedZReport as ZReportData}
           />
         )}
       </div>

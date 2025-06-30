@@ -60,11 +60,11 @@ export function ShiftManagement() {
       ])
 
       if (shiftResult.success) {
-        setCurrentShift(shiftResult.data)
+        setCurrentShift(shiftResult.data as ShiftData)
       }
 
       if (statsResult.success && statsResult.data) {
-        setFiscalStats(statsResult.data)
+        setFiscalStats(statsResult.data as FiscalStats)
       }
     } catch (error) {
       console.error('Error loading shift data:', error)

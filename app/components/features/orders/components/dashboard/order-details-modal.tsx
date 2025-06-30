@@ -37,6 +37,17 @@ type OrderProduct = {
   price: number;
 }
 
+// Fiscal receipt type
+type FiscalReceipt = {
+  id?: string;
+  status: string;
+  receipt_type: string;
+  qr_code?: string;
+  document_code?: string;
+  error_message?: string;
+  created?: string;
+}
+
 // Nova Poshta invoice data structure
 interface NovaPoshtaInvoiceData {
   Ref: string;
@@ -98,7 +109,7 @@ export function OrderDetailsModal({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showNotFoundDialog, setShowNotFoundDialog] = useState(false)
   const [notFoundError, setNotFoundError] = useState<string>("")
-  const [fiscalReceipts, setFiscalReceipts] = useState<unknown[]>([])
+  const [fiscalReceipts, setFiscalReceipts] = useState<FiscalReceipt[]>([])
   const [loadingFiscalReceipts, setLoadingFiscalReceipts] = useState(false)
   const [creatingFiscalReceipt, setCreatingFiscalReceipt] = useState(false)
   const statusRef = useRef<HTMLDivElement>(null)
@@ -343,7 +354,7 @@ export function OrderDetailsModal({
     try {
       const result = await getFiscalReceiptsForOrder(orderId)
       if (result.success && result.data) {
-        setFiscalReceipts(result.data)
+        setFiscalReceipts(result.data as FiscalReceipt[])
       } else {
         console.error('Failed to load fiscal receipts:', result.error)
       }
