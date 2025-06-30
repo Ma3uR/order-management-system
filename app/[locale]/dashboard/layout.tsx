@@ -18,7 +18,7 @@ import {
   BreadcrumbPage,
 } from '@/app/components/shared/ui/breadcrumb';
 import { Toaster } from "@/app/components/shared/ui/toaster";
-import { useSession } from "@/app/components/features/dashboard/useSession";
+import { useSession } from "@/app/hooks/useSession";
 
 export default function DashboardLayout({
   children,

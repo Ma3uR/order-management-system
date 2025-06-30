@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/shared/ui/table"
 import { Card, CardContent, CardHeader } from "@/app/components/shared/ui/card"
 import { format } from "date-fns"
@@ -56,7 +56,7 @@ export function ExpensesTable() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [expenseToEdit, setExpenseToEdit] = useState<ExtendedExpense | null>(null)
   
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -124,12 +124,12 @@ export function ExpensesTable() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t])
   
   // Initial data load
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
   
   // Add refresh on visibility change (when user returns to the tab)
   useEffect(() => {
@@ -156,7 +156,7 @@ export function ExpensesTable() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(intervalId);
     };
-  }, [lastRefreshed]);
+  }, [fetchData, lastRefreshed]);
   
   // Manual refresh button handler
   const handleManualRefresh = () => {
@@ -281,7 +281,7 @@ export function ExpensesTable() {
       document.removeEventListener(EXPENSE_ADDED_EVENT, handleExpenseAdded);
       document.removeEventListener(EXPENSE_UPDATED_EVENT, handleExpenseUpdated);
     };
-  }, [t]);
+  }, [fetchData, t]);
 
   return (
     <>

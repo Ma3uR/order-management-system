@@ -13,7 +13,7 @@ import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';
 import { ThemeToggle } from '@/app/components/shared/ui/ThemeToggle';
 import AnimatedWordCycle from '@/app/components/shared/ui/animated-text-cycle';
 import { useTheme } from 'next-themes';
-import { useAuth } from '@/app/hooks/useAuth';
+import { useSession } from '@/app/hooks/useSession';
 
 export default function LoginPage() {
   const t = useTranslations('Auth');
@@ -26,11 +26,15 @@ export default function LoginPage() {
   const [mounted, setMounted] = useState(false);
   
   // Check if user is already authenticated, redirect to dashboard if they are
-  const { isAuthenticated, isLoading } = useAuth({ 
-    required: false, 
-    redirectTo: '/dashboard',
-    redirectIfFound: true 
-  });
+  const { isAuthenticated, isLoading } = useSession();
+  
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      console.log('[LoginPage] User already authenticated, redirecting to dashboard');
+      window.location.href = `/${locale}/dashboard`;
+    }
+  }, [isAuthenticated, isLoading, locale]);
   
   // After hydration, we can access the theme
   useEffect(() => {
@@ -44,20 +48,22 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      console.log('[LoginPage] Login attempt for:', email);
+      console.log('🚀 [LoginPage] Login attempt for:', email);
       // Login with PocketBase
       const result = await loginUser(email, password);
       
-      if (result.success) {
-        // Navigate to dashboard after successful login
-        console.log('[LoginPage] Login successful, redirecting to dashboard');
-        window.location.href = `/${locale}/dashboard`;
-      } else {
-        console.log('[LoginPage] Login failed:', result.error);
-        setError(result.error || t('loginError'));
-      }
+      console.log('✅ [LoginPage] Login successful:', {
+        userId: result.user.id,
+        userEmail: result.user.email,
+        isAdmin: result.isAdmin
+      });
+      
+      // Navigate to dashboard after successful login
+      console.log('🎯 [LoginPage] Redirecting to dashboard');
+      window.location.href = `/${locale}/dashboard`;
+      
     } catch (err) {
-      console.error('[LoginPage] Login error:', err);
+      console.error('❌ [LoginPage] Login error:', err);
       setError(err instanceof Error ? err.message : t('loginFailed'));
     } finally {
       setLoading(false);

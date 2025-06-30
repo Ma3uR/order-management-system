@@ -14,7 +14,7 @@ import { Message, ToolInvocation } from 'ai';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { clearUserChat } from '@/app/lib/chat-store';
-import { useSession } from './useSession';
+import { useSession } from '@/app/hooks/useSession';
 import { AiToolRenderer } from './ai-tools-renderer';
 
 interface AiChatBoxProps {

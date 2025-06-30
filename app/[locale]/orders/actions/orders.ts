@@ -17,10 +17,21 @@ interface ProductItem {
 
 export const getOrders = async () => {
     try {
-        const orders = await authenticatedCall(() => pb.collection('orders').getFullList({
+        console.log('🔍 [getOrders] Fetching orders with user authentication');
+        
+        // Check if user is authenticated
+        if (!pb.authStore.isValid) {
+            throw new Error('User not authenticated');
+        }
+        
+        console.log('✅ [getOrders] User authenticated, fetching orders directly');
+        const orders = await pb.collection('orders').getFullList({
             sort: '-created',
             expand: 'deliveryMethod,paymentMethod,status,currency'
-        }));
+        });
+        
+        console.log(`✅ [getOrders] Successfully fetched ${orders.length} orders with user auth`);
+        
         const validatedOrders = orders.map(order => validatePocketbaseResponse({
             ...order,
             mergeSource: order.mergeSource === '' ? undefined : order.mergeSource,
@@ -33,10 +44,10 @@ export const getOrders = async () => {
         return { error: undefined, data: validatedOrders };
     } catch (error: unknown) {
         if (error instanceof Error) {   
-            console.error('Error fetching orders:', error.message);
+            console.error('❌ [getOrders] Error fetching orders:', error.message);
             return { error: error.message, data: undefined };
         }
-        console.error('Error fetching orders:', error);
+        console.error('❌ [getOrders] Error fetching orders:', error);
         return { error: 'Unknown error in getOrders', data: undefined };
     }
 }
@@ -136,6 +147,14 @@ export const checkDuplicateOrder = async (orderNumber: string)=>{
 
 export const getSettings = async () => {
     try {
+        console.log('🔍 [getSettings] Fetching settings with user authentication');
+        
+        // Check if user is authenticated
+        if (!pb.authStore.isValid) {
+            throw new Error('User not authenticated');
+        }
+        
+        console.log('✅ [getSettings] User authenticated, fetching settings directly');
         const [
             deliveryMethods,
             paymentMethods,
@@ -143,14 +162,16 @@ export const getSettings = async () => {
             statuses,
             sources
         ] = await Promise.all([
-            authenticatedCall(() => pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>()),
-            authenticatedCall(() => pb.collection('payment_options').getFullList<PaymentMethodsResponse>()),
-            authenticatedCall(() => pb.collection('currency_options').getFullList<CurrencyResponse>()),
-            authenticatedCall(() => pb.collection('status_options').getFullList<StatusResponse>({
+            pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>(),
+            pb.collection('payment_options').getFullList<PaymentMethodsResponse>(),
+            pb.collection('currency_options').getFullList<CurrencyResponse>(),
+            pb.collection('status_options').getFullList<StatusResponse>({
                 expand: 'source'
-            })),
-            authenticatedCall(() => pb.collection('sources').getFullList<SourcesResponse>())
+            }),
+            pb.collection('sources').getFullList<SourcesResponse>()
         ]);
+
+        console.log('✅ [getSettings] Successfully fetched all settings with user auth');
 
         const defaultCurrency = currencies.find(c => c.isDefault) || currencies[0] || {
             id: 'default',
@@ -186,10 +207,10 @@ export const getSettings = async () => {
         };
     } catch (error: unknown) {
         if (error instanceof Error) {
-            console.error('Error fetching settings:', error);
+            console.error('❌ [getSettings] Error fetching settings:', error.message);
             return { error: error.message, data: undefined };
         }
-        console.error('Error fetching settings:', error);
+        console.error('❌ [getSettings] Error fetching settings:', error);
         return { error: 'Unknown error in getSettings', data: undefined };
     }
 }
