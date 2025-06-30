@@ -1,6 +1,7 @@
 'use server'
 
 import axios from 'axios';
+import { checkBlackList } from '../../[locale]/blacklist/actions/black-list';
 
 export interface OrderData {
   orderNumber: string;
@@ -65,7 +66,7 @@ class TelegramService {
     return TelegramService.instance;
   }
 
-  private formatOrderMessage(orderData: OrderData): string {
+  private async formatOrderMessage(orderData: OrderData): Promise<string> {
     const { orderNumber, address, deliveryMethod, phoneNumber, fullName, products, paymentMethod, isPayed, source } = orderData;
     
     // Get source-specific emoji
@@ -82,6 +83,24 @@ class TelegramService {
       }
     };
     
+    // Check blacklist status
+    let blacklistIndicator = '';
+    if (fullName || phoneNumber) {
+      try {
+        const blacklistResult = await checkBlackList({
+          fullName: fullName || '',
+          phoneNumber: phoneNumber || ''
+        });
+        
+        if (blacklistResult.data?.isBlacklisted) {
+          blacklistIndicator = '🔴 КОРИСТУВАЧ У ЧОРНОМУ СПИСКУ';
+        }
+      } catch (error) {
+        console.error('Error checking blacklist:', error);
+        // Continue without blacklist check if there's an error
+      }
+    }
+    
     // Format products list
     const productsList = products.map(product => {
       return `${product.title} ${product.quantity} шт`;
@@ -90,6 +109,8 @@ class TelegramService {
     // Build message according to the specified template
     const messageParts = [
       `${getSourceEmoji(source)} №${orderNumber}`,
+      blacklistIndicator || null, // Add blacklist indicator if present
+      blacklistIndicator ? '' : null, // Add empty line after blacklist indicator
       address || '',
       deliveryMethod || '',
       phoneNumber ? `${phoneNumber.replace(/^380(\d{2})(\d{3})(\d{2})(\d{2})$/, '0$1 $2 $3 $4')}` : '',
@@ -106,8 +127,26 @@ class TelegramService {
     return messageParts.filter(part => part !== null && part !== undefined).join('\n');
   }
 
-  private formatCancellationMessage(cancellationData: CancellationData): string {
+  private async formatCancellationMessage(cancellationData: CancellationData): Promise<string> {
     const { orderNumber, previousStatusName, newStatusName, fullName, phoneNumber, totalAmount, currency, sourceName, products } = cancellationData;
+    
+    // Check blacklist status
+    let blacklistIndicator = '';
+    if (fullName || phoneNumber) {
+      try {
+        const blacklistResult = await checkBlackList({
+          fullName: fullName || '',
+          phoneNumber: phoneNumber || ''
+        });
+        
+        if (blacklistResult.data?.isBlacklisted) {
+          blacklistIndicator = '🔴 КОРИСТУВАЧ У ЧОРНОМУ СПИСКУ';
+        }
+      } catch (error) {
+        console.error('Error checking blacklist:', error);
+        // Continue without blacklist check if there's an error
+      }
+    }
     
     // Format products list if available
     const productsList = products && products.length > 0 
@@ -123,6 +162,8 @@ class TelegramService {
       '🚫 СКАСУВАННЯ ЗАМОВЛЕННЯ',
       '',
       `№${orderNumber}`,
+      blacklistIndicator || null, // Add blacklist indicator if present
+      blacklistIndicator ? '' : null, // Add empty line after blacklist indicator
       `Джерело: ${sourceName || 'Невідоме'}`,
       `Попередній статус: ${previousStatusName}`,
       `Клієнт: ${fullName}`,
@@ -151,7 +192,7 @@ class TelegramService {
     }
 
     try {
-      const message = this.formatOrderMessage(orderData);
+      const message = await this.formatOrderMessage(orderData);
       console.log('📱 Sending Telegram notification for order:', orderData.orderNumber);
       
       const response = await axios.post(
@@ -215,7 +256,7 @@ class TelegramService {
     }
 
     try {
-      const message = this.formatCancellationMessage(cancellationData);
+      const message = await this.formatCancellationMessage(cancellationData);
       console.log('🚫 Sending Telegram cancellation notification for order:', cancellationData.orderNumber);
       
       const response = await axios.post(

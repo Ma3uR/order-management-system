@@ -9,6 +9,8 @@ export enum Collections {
 	DeliveryOptions = "delivery_options",
 	Expenses = "expenses",
 	ExpensesCategories = "expenses_categories",
+	FiscalReceipts = "fiscal_receipts",
+	FiscalShifts = "fiscal_shifts",
 	Orders = "orders",
 	PaymentOptions = "payment_options",
 	Sources = "sources",
@@ -78,6 +80,46 @@ export type ExpensesRecord = {
 export type ExpensesCategoriesRecord = {
 	name: string
 	color?: string
+}
+
+export enum FiscalReceiptsReceiptTypeOptions {
+	"sale" = "sale",
+	"return" = "return",
+	"z_report" = "z_report",
+}
+
+export enum FiscalReceiptsStatusOptions {
+	"pending" = "pending",
+	"success" = "success",
+	"failed" = "failed",
+}
+
+export type FiscalReceiptsRecord<Tcasa_response = unknown, Tfiscal_data = unknown> = {
+	order_id?: RecordIdString
+	receipt_type?: FiscalReceiptsReceiptTypeOptions
+	fiscal_data?: null | Tfiscal_data
+	casa_response?: null | Tcasa_response
+	qr_code?: string
+	document_code?: string
+	shift_id?: RecordIdString
+	status?: FiscalReceiptsStatusOptions
+	error_message?: string
+}
+
+export enum FiscalShiftsStatusOptions {
+	"open" = "open",
+	"closed" = "closed",
+}
+
+export type FiscalShiftsRecord<Tz_report_data = unknown> = {
+	cashier: string
+	opened_at: IsoDateString
+	closed_at?: IsoDateString
+	status?: FiscalShiftsStatusOptions
+	z_report_data?: null | Tz_report_data
+	total_sales?: number
+	total_returns?: number
+	receipts_count?: number
 }
 
 export enum OrdersMergeStatusOptions {
@@ -166,6 +208,8 @@ export type UsersResponse = UsersRecord & AuthSystemFields
 export type SyncRecordsResponse = SyncRecordsRecord & BaseSystemFields
 export type ExpensesResponse = ExpensesRecord & BaseSystemFields
 export type ExpensesCategoriesResponse = ExpensesCategoriesRecord & BaseSystemFields
+export type FiscalReceiptsResponse<Tcasa_response = unknown, Tfiscal_data = unknown, Texpand = unknown> = Required<FiscalReceiptsRecord<Tcasa_response, Tfiscal_data>> & BaseSystemFields<Texpand>
+export type FiscalShiftsResponse<Tz_report_data = unknown, Texpand = unknown> = Required<FiscalShiftsRecord<Tz_report_data>> & BaseSystemFields<Texpand>
 // Types containing all Records and Responses, useful for creating typing helper functions
 
 export type CollectionRecords = {
@@ -175,6 +219,8 @@ export type CollectionRecords = {
 	delivery_options: DeliveryOptionsRecord
 	expenses: ExpensesRecord
 	expenses_categories: ExpensesCategoriesRecord
+	fiscal_receipts: FiscalReceiptsRecord
+	fiscal_shifts: FiscalShiftsRecord
 	orders: OrdersRecord
 	payment_options: PaymentOptionsRecord
 	sources: SourcesRecord
@@ -190,6 +236,8 @@ export type CollectionResponses = {
 	delivery_options: DeliveryOptionsResponse
 	expenses: ExpensesResponse
 	expenses_categories: ExpensesCategoriesResponse
+	fiscal_receipts: FiscalReceiptsResponse
+	fiscal_shifts: FiscalShiftsResponse
 	orders: OrdersResponse
 	payment_options: PaymentMethodsResponse
 	sources: SourcesResponse

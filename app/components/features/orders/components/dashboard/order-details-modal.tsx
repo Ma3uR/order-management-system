@@ -9,7 +9,7 @@ import { Badge } from "@/app/components/shared/ui/badge"
 import { Label } from "@/app/components/shared/ui/label"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/app/components/shared/ui/select"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/shared/ui/table"
-import { Phone, MessageSquare, Send, Copy, PlusCircle, Trash2, Edit3, Save, Truck, Package, Search, ChevronsUpDown, AlertCircle, X, Loader2 } from "lucide-react"
+import { Phone, MessageSquare, Send, Copy, PlusCircle, Trash2, Edit3, Save, Truck, Package, Search, ChevronsUpDown, AlertCircle, X, Loader2, Receipt, RotateCcw } from "lucide-react"
 import { format } from "date-fns"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/app/components/shared/ui/accordion"
 import { useEntities } from '@/app/hooks/useEntities'
@@ -26,6 +26,7 @@ import pb from '@/app/lib/pocketbase'
 import { formatCurrency } from "@/app/lib/utils"
 import { deleteInternetDocument } from '@/app/[locale]/orders/actions/nova-poshta'
 import { useTranslations } from 'next-intl'
+import { createSaleReceipt, createReturnReceipt, getFiscalReceiptsForOrder } from '@/app/[locale]/orders/actions/fiscal-receipts'
 
 // Add this type near the top of the file
 type OrderProduct = {
@@ -95,6 +96,9 @@ export function OrderDetailsModal({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showNotFoundDialog, setShowNotFoundDialog] = useState(false)
   const [notFoundError, setNotFoundError] = useState<string>("")
+  const [fiscalReceipts, setFiscalReceipts] = useState<any[]>([])
+  const [loadingFiscalReceipts, setLoadingFiscalReceipts] = useState(false)
+  const [creatingFiscalReceipt, setCreatingFiscalReceipt] = useState(false)
   const statusRef = useRef<HTMLDivElement>(null)
 
   // Translations
@@ -139,6 +143,11 @@ export function OrderDetailsModal({
     setOrder(initialOrder)
     setIsEditingNotes(false) // Reset notes editing state when order changes
     setValidationErrors({}) // Clear validation errors when order changes
+    
+    // Load fiscal receipts when order changes
+    if (initialOrder?.id) {
+      loadFiscalReceipts(initialOrder.id)
+    }
   }, [initialOrder])
 
   // Trigger validation whenever order changes
@@ -324,6 +333,99 @@ export function OrderDetailsModal({
     handleTtnDeleted()
     setShowNotFoundDialog(false)
     toast.success(t('ttnReferenceRemoved'))
+  }
+
+  // Load fiscal receipts for the order
+  const loadFiscalReceipts = async (orderId: string) => {
+    setLoadingFiscalReceipts(true)
+    try {
+      const result = await getFiscalReceiptsForOrder(orderId)
+      if (result.success && result.data) {
+        setFiscalReceipts(result.data)
+      } else {
+        console.error('Failed to load fiscal receipts:', result.error)
+      }
+    } catch (error) {
+      console.error('Error loading fiscal receipts:', error)
+    } finally {
+      setLoadingFiscalReceipts(false)
+    }
+  }
+
+  // Handle creating sale receipt
+  const handleCreateSaleReceipt = async () => {
+    if (!order?.id) return
+    
+    const cashierName = prompt('Enter cashier name:')
+    if (!cashierName?.trim()) {
+      toast.error('Cashier name is required')
+      return
+    }
+
+    setCreatingFiscalReceipt(true)
+    try {
+      const result = await createSaleReceipt(
+        order.id,
+        cashierName.trim(),
+        undefined, // customer email - optional
+        order.phoneNumber
+      )
+
+      if (result.success) {
+        toast.success('Sale receipt created successfully!')
+        // Reload fiscal receipts
+        await loadFiscalReceipts(order.id)
+      } else {
+        toast.error(`Failed to create sale receipt: ${result.error}`)
+      }
+    } catch (error) {
+      toast.error('Error creating sale receipt')
+      console.error('Error creating sale receipt:', error)
+    } finally {
+      setCreatingFiscalReceipt(false)
+    }
+  }
+
+  // Handle creating return receipt
+  const handleCreateReturnReceipt = async () => {
+    if (!order?.id) return
+    
+    const cashierName = prompt('Enter cashier name:')
+    if (!cashierName?.trim()) {
+      toast.error('Cashier name is required')
+      return
+    }
+
+    const returnAmountStr = prompt(`Enter return amount (max: ${formatCurrency(order.amount)}):`)
+    if (!returnAmountStr) return
+
+    const returnAmount = parseFloat(returnAmountStr)
+    if (isNaN(returnAmount) || returnAmount <= 0 || returnAmount > order.amount) {
+      toast.error('Invalid return amount')
+      return
+    }
+
+    setCreatingFiscalReceipt(true)
+    try {
+      const result = await createReturnReceipt(
+        order.id,
+        cashierName.trim(),
+        returnAmount
+      )
+
+      if (result.success) {
+        toast.success('Return receipt created successfully!')
+        // Reload fiscal receipts
+        await loadFiscalReceipts(order.id)
+      } else {
+        toast.error(`Failed to create return receipt: ${result.error}`)
+      }
+    } catch (error) {
+      toast.error('Error creating return receipt')
+      console.error('Error creating return receipt:', error)
+    } finally {
+      setCreatingFiscalReceipt(false)
+    }
   }
 
   const handleSaveChanges = async () => {
@@ -886,6 +988,127 @@ ${productsText}
                           )}
                         </Button>
                       </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Fiscal Receipts Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-gray-600 dark:text-gray-400">Casa.vchasno Fiscal Receipts</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreateSaleReceipt}
+                        disabled={creatingFiscalReceipt || !order.id}
+                        className="h-8 px-3 text-xs"
+                      >
+                        {creatingFiscalReceipt ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Receipt className="h-4 w-4 mr-1" />
+                        )}
+                        Sale Receipt
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreateReturnReceipt}
+                        disabled={creatingFiscalReceipt || !order.id}
+                        className="h-8 px-3 text-xs"
+                      >
+                        {creatingFiscalReceipt ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-4 w-4 mr-1" />
+                        )}
+                        Return Receipt
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {loadingFiscalReceipts ? (
+                    <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-md p-3">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-gray-600 dark:text-gray-400" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Loading fiscal receipts...</span>
+                      </div>
+                    </div>
+                  ) : fiscalReceipts.length > 0 ? (
+                    <div className="space-y-2">
+                      {fiscalReceipts.map((receipt, index) => (
+                        <div
+                          key={receipt.id || index}
+                          className={cn(
+                            "border rounded-md p-3",
+                            receipt.status === 'success' 
+                              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" 
+                              : receipt.status === 'failed'
+                              ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                              : "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {receipt.receipt_type === 'sale' ? (
+                                <Receipt className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              ) : (
+                                <RotateCcw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              )}
+                              <span className="text-sm font-medium capitalize">
+                                {receipt.receipt_type} Receipt
+                              </span>
+                              <Badge 
+                                variant={receipt.status === 'success' ? 'default' : receipt.status === 'failed' ? 'destructive' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {receipt.status}
+                              </Badge>
+                            </div>
+                            {receipt.qr_code && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(receipt.qr_code, '_blank')}
+                                className="h-6 px-2 text-xs"
+                              >
+                                View QR
+                              </Button>
+                            )}
+                          </div>
+                          
+                          {receipt.document_code && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                Document Code: <span className="font-mono">{receipt.document_code}</span>
+                              </p>
+                            </div>
+                          )}
+                          
+                          {receipt.error_message && (
+                            <div className="mt-2">
+                              <p className="text-xs text-red-600 dark:text-red-400">
+                                Error: {receipt.error_message}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {receipt.created && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500 dark:text-gray-500">
+                                Created: {format(new Date(receipt.created), "MMM d, yyyy HH:mm")}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : order.id ? (
+                    <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-md p-3">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                        No fiscal receipts created yet
+                      </p>
                     </div>
                   ) : null}
                 </div>

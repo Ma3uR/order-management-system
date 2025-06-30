@@ -284,6 +284,7 @@
     "status": "Status",
     "payment": "Payment",
     "delivery": "Delivery",
+    "fiscal": "Fiscal Management",
     "profile": "Profile",
     "currencies": "Currencies",
     "statuses": "Statuses",
