@@ -48,12 +48,12 @@ class CancellationNotificationService {
     
     // Check for various cancellation status names
     return (
-      statusName.includes('скасовано') ||
-      statusName.includes('cancelled') ||
-      statusName.includes('canceled') ||
-      statusName === 'скасовано' ||
-      statusName === 'cancelled' ||
-      statusName === 'canceled'
+      //prom
+      status.marketplace_code === '4' || statusName.includes('отменён') ||
+      //epicentr
+      status.marketplace_code === 'canceled' || statusName.includes('скасован') ||
+      //rozetka
+      status.marketplace_code === '45' || statusName.includes('скасовано покупцем') 
     );
   }
 

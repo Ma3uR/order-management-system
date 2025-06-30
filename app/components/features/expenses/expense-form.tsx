@@ -7,6 +7,7 @@ import { z } from "zod"
 import { CalendarIcon, ChevronDownIcon, PlusCircleIcon, DollarSignIcon, TagIcon, FileTextIcon } from "lucide-react"
 import { format } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTranslations } from 'next-intl'
 
 import { Button } from "@/app/components/shared/ui/button"
 import { Input } from "@/app/components/shared/ui/input"
@@ -21,29 +22,30 @@ import { addExpense } from "@/app/lib/services/expenses"
 import { ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
 import pb from "@/app/lib/pocketbase"
 
-const formSchema = z.object({
+const createFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().min(0, {
-    message: "Amount must be a positive number",
+    message: t('amountMustBePositive'),
   }),
   description: z.string().max(500, {
-    message: "Description must be less than 500 characters",
-  }),
+    message: t('descriptionMaxChars'),
+  }).optional(),
   date: z.date({
-    required_error: "Date is required",
+    required_error: t('dateRequired'),
   }),
   category: z
     .string()
     .max(100, {
-      message: "Category must be less than 100 characters",
+      message: t('categoryMaxChars'),
     })
     .optional(),
 })
 
-type ExpenseFormValues = z.infer<typeof formSchema>
+type ExpenseFormValues = z.infer<ReturnType<typeof createFormSchema>>
 
 // Sample initial categories - in a real app, these would be fetched from the database
 // and would be the same as those managed in the CategoryManager component
 export function ExpenseForm() {
+  const t = useTranslations('Expenses')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -59,7 +61,7 @@ export function ExpenseForm() {
   }, [])
 
   const form = useForm<ExpenseFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       amount: undefined,
       description: "",
@@ -79,7 +81,7 @@ export function ExpenseForm() {
       // Call the addExpense service function
       const result = await addExpense(
         values.amount,
-        values.description,
+        values.description || "",
         formattedDate,
         values.category
       )
@@ -126,7 +128,7 @@ export function ExpenseForm() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span>Expense added successfully!</span>
+              <span>{t('expenseAdded')}</span>
             </div>
           </motion.div>
         )}
@@ -171,7 +173,7 @@ export function ExpenseForm() {
               >
                 <PlusCircleIcon className="h-5 w-5" />
               </motion.div>
-              <h3 className="text-lg font-semibold">Add New Expense</h3>
+              <h3 className="text-lg font-semibold">{t('addNewExpense')}</h3>
             </div>
             <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }}>
               <ChevronDownIcon className="h-5 w-5 text-muted-foreground" />
@@ -203,7 +205,7 @@ export function ExpenseForm() {
                             <FormItem>
                               <FormLabel className="flex items-center gap-2">
                                 <DollarSignIcon className="h-4 w-4 text-violet-500" />
-                                Amount
+                                {t('amount')}
                               </FormLabel>
                               <FormControl>
                                 <div className="relative">
@@ -250,7 +252,7 @@ export function ExpenseForm() {
                                         !field.value && "text-muted-foreground",
                                       )}
                                     >
-                                      {field.value ? format(field.value, "yyyy-MM-dd") : <span>Pick a date</span>}
+                                      {field.value ? format(field.value, "yyyy-MM-dd") : <span>{t('pickDate')}</span>}
                                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                   </FormControl>
@@ -279,47 +281,17 @@ export function ExpenseForm() {
                     >
                       <FormField
                         control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <FileTextIcon className="h-4 w-4 text-violet-500" />
-                              Description
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="What was this expense for?"
-                                className="resize-none min-h-[80px] border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormDescription className="text-right">
-                              {field.value.length}/500 characters
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
-                    >
-                      <FormField
-                        control={form.control}
                         name="category"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="flex items-center gap-2">
                               <TagIcon className="h-4 w-4 text-violet-500" />
-                              Category
+                              {t('category')}
                             </FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger className="border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all">
-                                  <SelectValue placeholder="Select a category" />
+                                  <SelectValue placeholder={t('selectACategory')} />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -345,6 +317,36 @@ export function ExpenseForm() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <FileTextIcon className="h-4 w-4 text-violet-500" />
+                              {t('description')} ({t('optional')})
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder={t('whatWasExpenseFor')}
+                                className="resize-none min-h-[80px] border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-right">
+                              {(field.value || '').length}/500 {t('characters')}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.5 }}
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
@@ -361,10 +363,10 @@ export function ExpenseForm() {
                               animate={{ rotate: 360 }}
                               transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                             />
-                            Adding...
+                            {t('adding')}
                           </span>
                         ) : (
-                          "Add Expense"
+                          t('addExpense')
                         )}
                       </Button>
                     </motion.div>

@@ -18,18 +18,18 @@ import { Calendar } from "@/app/components/shared/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/shared/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select"
-import { ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
+import { ExpensesCategoriesResponse, ExpensesResponse } from "@/app/types/pocketbase-types"
 import pb, { authenticatedCall } from "@/app/lib/pocketbase"
-import { addExpense } from "@/app/lib/services/expenses"
+import { updateExpense } from "@/app/lib/services/expenses"
 import { toast } from "@/app/components/shared/ui/use-toast"
 
-// Create a custom event for expense added
-export const EXPENSE_ADDED_EVENT = 'expense:added';
+// Create a custom event for expense updated
+export const EXPENSE_UPDATED_EVENT = 'expense:updated'
 
 // Create a function to dispatch the event
-export function dispatchExpenseAddedEvent() {
-  const event = new CustomEvent(EXPENSE_ADDED_EVENT);
-  document.dispatchEvent(event);
+export function dispatchExpenseUpdatedEvent() {
+  const event = new CustomEvent(EXPENSE_UPDATED_EVENT)
+  document.dispatchEvent(event)
 }
 
 const createFormSchema = (t: (key: string) => string) => z.object({
@@ -52,12 +52,13 @@ const createFormSchema = (t: (key: string) => string) => z.object({
 
 type ExpenseFormValues = z.infer<ReturnType<typeof createFormSchema>>
 
-interface ExpenseFormDialogProps {
+interface EditExpenseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  expense: ExpensesResponse | null
 }
 
-export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps) {
+export function EditExpenseDialog({ open, onOpenChange, expense }: EditExpenseDialogProps) {
   const t = useTranslations('Expenses')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -69,17 +70,17 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
       try {
         const fetchedCategories = await authenticatedCall(async () => 
           pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
-        );
-        setCategories(fetchedCategories);
+        )
+        setCategories(fetchedCategories)
       } catch (error) {
-        console.error("Error fetching categories:", error);
+        console.error("Error fetching categories:", error)
       }
     }
     
     if (open) {
-      fetchCategories();
+      fetchCategories()
     }
-  }, [open]);
+  }, [open])
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(createFormSchema(t)),
@@ -91,7 +92,21 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
     },
   })
 
+  // Reset form when expense changes
+  useEffect(() => {
+    if (expense && open) {
+      form.reset({
+        amount: expense.amount || 0,
+        description: expense.description || "",
+        date: expense.date ? new Date(expense.date) : new Date(),
+        category: expense.category || "",
+      })
+    }
+  }, [expense, open, form])
+
   async function onSubmit(values: ExpenseFormValues) {
+    if (!expense) return
+    
     setIsSubmitting(true)
     setErrorMessage(null)
 
@@ -99,8 +114,9 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
       // Format date to ISO string (YYYY-MM-DD)
       const formattedDate = format(values.date, 'yyyy-MM-dd')
       
-      // Call the addExpense service function
-      const result = await addExpense(
+      // Call the updateExpense service function
+      const result = await updateExpense(
+        expense.id,
         values.amount,
         values.description || "",
         formattedDate,
@@ -115,36 +131,28 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
       setShowSuccess(true)
       
       // Dispatch the custom event to notify other components
-      dispatchExpenseAddedEvent();
+      dispatchExpenseUpdatedEvent()
       
       setTimeout(() => {
         setShowSuccess(false)
         onOpenChange(false)
       }, 1500)
-
-      // Reset form
-      form.reset({
-        amount: undefined,
-        description: "",
-        date: new Date(),
-        category: "",
-      })
       
       // Show a toast notification
       toast({
-        title: t('expenseAdded'),
-        description: t('expenseAddedSuccessfully'),
-      });
+        title: t('expenseUpdated'),
+        description: t('expenseUpdatedSuccessfully'),
+      })
     } catch (error) {
-      console.error('Error adding expense:', error)
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to add expense')
+      console.error('Error updating expense:', error)
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to update expense')
       
       // Show error toast
       toast({
-        title: t('errorAddingExpense'),
-        description: error instanceof Error ? error.message : t('failedToAddExpense'), 
+        title: t('errorUpdatingExpense'),
+        description: error instanceof Error ? error.message : t('failedToUpdateExpense'), 
         variant: "destructive"
-      });
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -171,7 +179,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span>{t('expenseAdded')}</span>
+                  <span>{t('expenseUpdated')}</span>
                 </div>
               </motion.div>
             )}
@@ -189,7 +197,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                 <span className="bg-black dark:bg-white dark:text-black text-white p-1.5 rounded-full">
                   <DollarSignIcon className="h-5 w-5" />
                 </span>
-                {t('addNewExpense')}
+                {t('editExpense')}
               </DialogTitle>
             </div>
           </DialogHeader>
@@ -287,7 +295,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                           <TagIcon className="h-4 w-4 text-black dark:text-white" />
                           {t('category')}
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all">
                               <SelectValue placeholder={t('selectACategory')} />
@@ -353,10 +361,10 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                         />
-                        {t('adding')}
+                        {t('updating')}
                       </span>
                     ) : (
-                      t('addExpense')
+                      t('updateExpense')
                     )}
                   </Button>
                 </motion.div>

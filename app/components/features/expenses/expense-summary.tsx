@@ -7,6 +7,7 @@ import { DollarSign, BarChart2, Clock, TrendingUp } from "lucide-react"
 import { useTranslations } from 'next-intl'
 import pb, { authenticatedCall } from "@/app/lib/pocketbase"
 import { ExpensesResponse, ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
+import { formatAmount } from "@/lib/utils"
 
 // Define the expanded type to include the category field
 type ExpensesResponseWithExpand = ExpensesResponse & {
@@ -172,7 +173,7 @@ export function ExpenseSummary() {
                 </div>
               </div>
               <div className={`text-3xl font-bold mb-1 ${isLoading ? "animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-24 rounded" : ""}`}>
-                {!isLoading && `₴${summaryData.totalSpent.toFixed(2)}`}
+                {!isLoading && `₴${formatAmount(summaryData.totalSpent)}`}
               </div>
               <div className="text-xs text-muted-foreground">{t('thisMonth')}</div>
             </div>
@@ -197,7 +198,7 @@ export function ExpenseSummary() {
                 </div>
               </div>
               <div className={`text-3xl font-bold mb-1 ${isLoading ? "animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-24 rounded" : ""}`}>
-                {!isLoading && `₴${summaryData.averagePerDay.toFixed(2)}`}
+                {!isLoading && `₴${formatAmount(summaryData.averagePerDay)}`}
               </div>
               <div className="text-xs text-muted-foreground">{t('perDay')}</div>
             </div>
@@ -233,7 +234,7 @@ export function ExpenseSummary() {
                 )}
               </div>
               <div className="text-xs text-muted-foreground">
-                {!isLoading && `₴${summaryData.highestCategoryAmount.toFixed(2)}`}
+                {!isLoading && `₴${formatAmount(summaryData.highestCategoryAmount)}`}
               </div>
             </div>
           </CardContent>

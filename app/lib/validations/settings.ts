@@ -27,8 +27,8 @@ export const currencySchema = z.object({
 export const statusSchema = z.object({
   name: z.string()
     .min(2, "Status name must be at least 2 characters")
-    .max(50, "Status name must be less than 50 characters")
-    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, forward slashes and periods are allowed"),
+    .max(100, "Status name must be less than 100 characters")
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, forward slashes, periods, colons and commas are allowed"),
   color: z.string()
     .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Invalid color format"),
   priority: z.number()
