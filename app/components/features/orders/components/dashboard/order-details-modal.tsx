@@ -532,6 +532,20 @@ ${productsText}
               <DialogTitle className="text-2xl font-bold text-foreground">
                 Order #{order.orderNumber}
               </DialogTitle>
+              {(() => {
+                const sourceName = sources.find(s => s.id === order.source)?.name;
+                return sourceName ? (
+                  <Badge 
+                    className="text-white text-xs"
+                    style={{
+                      backgroundColor: getSourceColor(order.source),
+                      borderColor: getSourceColor(order.source)
+                    }}
+                  >
+                    {sourceName}
+                  </Badge>
+                ) : null;
+              })()}
               <Button
                 variant="outline"
                 size="sm"
@@ -682,31 +696,6 @@ ${productsText}
                   </Button>
                 </div>
                 <div>
-                  <Label htmlFor="sourceModal" className="text-xs text-gray-600 dark:text-gray-400">
-                    Source/Marketplace
-                  </Label>
-                  <Select value={order.source} onValueChange={(value) => handleInputChange("source", value)}>
-                    <SelectTrigger className="w-full mt-1 text-base">
-                      <SelectValue placeholder="Select source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sources.map((src) => (
-                        <SelectItem key={src.id} value={src.id}>
-                          <Badge 
-                            className="text-white mr-2 text-xs"
-                            style={{
-                              backgroundColor: getSourceColor(src.id),
-                              borderColor: getSourceColor(src.id)
-                            }}
-                          >
-                            {src.name}
-                          </Badge>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
                   <Label htmlFor="statusModal" className="text-xs text-gray-600 dark:text-gray-400">
                     Status {isRozetkaOrder && (
                       <span className="text-green-600 dark:text-green-400 font-semibold">
@@ -790,6 +779,34 @@ ${productsText}
                     )}
                   </div>
                 </div>
+                {/* Source dropdown - only show during order creation */}
+                {(!order.id || order.id === "") && (
+                  <div>
+                    <Label htmlFor="sourceModal" className="text-xs text-gray-600 dark:text-gray-400">
+                      Source/Marketplace
+                    </Label>
+                    <Select value={order.source} onValueChange={(value) => handleInputChange("source", value)}>
+                      <SelectTrigger className="w-full mt-1 text-base">
+                        <SelectValue placeholder="Select source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sources.map((src) => (
+                          <SelectItem key={src.id} value={src.id}>
+                            <Badge 
+                              className="text-white mr-2 text-xs"
+                              style={{
+                                backgroundColor: getSourceColor(src.id),
+                                borderColor: getSourceColor(src.id)
+                              }}
+                            >
+                              {src.name}
+                            </Badge>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   Created:{" "}
                   <span className="font-medium text-gray-900 dark:text-gray-100">
