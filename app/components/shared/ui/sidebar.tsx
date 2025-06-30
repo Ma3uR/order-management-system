@@ -14,7 +14,7 @@ import {
 } from "@/app/components/shared/ui/dropdown-menu"
 import { LogOut, User } from "lucide-react"
 import { logoutUser } from "@/app/lib/pocketbase"
-import { useSession } from "@/app/components/features/dashboard/useSession"
+import { useSession } from "@/app/hooks/useSession"
 import { useRouter } from "next/navigation"
 
 import { useIsMobile } from "@/hooks/use-mobile"

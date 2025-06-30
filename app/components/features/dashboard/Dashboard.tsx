@@ -7,7 +7,6 @@ import { TrafficChannel } from "./TrafficChannel";
 import { AiChatBox } from "./AiChatBox";
 import { useEffect, useState, useRef, useCallback } from 'react';
 import pb from '@/app/lib/pocketbase';
-import { authenticatedCall } from '@/app/lib/pocketbase';
 
 interface Order {
   id: string;
@@ -75,16 +74,8 @@ export default function Dashboard() {
     let lastMonthRevenue = 0;
 
     try {
-      // First ensure we're authenticated as admin for this call
-      try {
-        await pb.admins.authWithPassword(
-          process.env.NEXT_PUBLIC_POCKETBASE_ADMIN_EMAIL || '',
-          process.env.NEXT_PUBLIC_POCKETBASE_ADMIN_PASSWORD || ''
-        );
-        console.log("Admin authentication successful for sources fetch");
-      } catch (authError) {
-        console.error("Admin authentication failed:", authError);
-      }
+      // No need to force admin authentication - use existing user auth
+      console.log("🔍 [Dashboard] Using existing user authentication for data fetch");
 
       // Declare this at the top level of the try block to make it accessible to all code
       const hardcodedSources: Record<string, { name: string; color: string }> = {
@@ -92,39 +83,23 @@ export default function Dashboard() {
         // Add other sources as needed
       };
 
-      // Try to load sources directly with a raw fetch to diagnose issues
+      // Try to load sources with existing authentication (don't force admin)
+      let sourcesRecords: Source[] = [];
       try {
-        console.log("Trying direct API fetch to troubleshoot sources access...");
-        const apiUrl = `${pb.baseUrl}/api/collections/sources/records?sort=created`;
-        const authToken = pb.authStore.token;
+        console.log("🔍 [Dashboard] Attempting to fetch sources with user auth...");
         
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': authToken ? `Bearer ${authToken}` : '',
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Direct API fetch results:", data);
+        if (pb.authStore.isValid) {
+          sourcesRecords = await pb.collection('sources').getFullList<Source>({
+            sort: 'name',
+            $autoCancel: false
+          });
+          console.log(`✅ [Dashboard] Successfully fetched ${sourcesRecords.length} sources with user auth`);
         } else {
-          console.error("Direct API fetch failed:", response.status, await response.text());
+          console.log("❌ [Dashboard] User not authenticated, using hardcoded sources");
         }
-      } catch (directError) {
-        console.error("Error in direct API fetch:", directError);
+      } catch (sourcesError) {
+        console.log("⚠️ [Dashboard] Failed to fetch sources with user auth, using hardcoded sources:", sourcesError);
       }
-
-      const sourcesRecords = await authenticatedCall(() => 
-        pb.collection('sources').getFullList<Source>({
-          sort: 'name',
-          $autoCancel: false
-        })
-      );
-
-      console.log('Sources records count:', sourcesRecords?.length || 0);
-      console.log('Sources records data:', JSON.stringify(sourcesRecords, null, 2));
 
       // Add a fallback source for the problematic ID if no sources found
       if (!sourcesRecords || sourcesRecords.length === 0) {
@@ -257,15 +232,22 @@ export default function Dashboard() {
 
     const fetchData = async () => {
       try {
-        const records = await authenticatedCall(() => 
-          pb.collection('orders').getFullList({
-            sort: '-created',
-            expand: 'currency',
-            fields: 'id,amount,source,created,expand.currency.symbol',
-            $autoCancel: false,
-            signal: abortController.signal
-          })
-        );
+        console.log('🔍 [Dashboard] Fetching orders with user authentication');
+        
+        // Check if user is authenticated
+        if (!pb.authStore.isValid) {
+          throw new Error('User not authenticated');
+        }
+        
+        const records = await pb.collection('orders').getFullList({
+          sort: '-created',
+          expand: 'currency',
+          fields: 'id,amount,source,created,expand.currency.symbol',
+          $autoCancel: false,
+          signal: abortController.signal
+        });
+
+        console.log(`✅ [Dashboard] Successfully fetched ${records.length} orders with user auth`);
 
         if (!mounted.current) return;
 
@@ -284,7 +266,7 @@ export default function Dashboard() {
             (error.message.includes('cancelled') || error.message.includes('aborted'))) {
           return;
         }
-        console.error('Error fetching orders:', error);
+        console.error('❌ [Dashboard] Error fetching orders:', error);
       } finally {
         if (mounted.current) {
           setIsLoading(false);

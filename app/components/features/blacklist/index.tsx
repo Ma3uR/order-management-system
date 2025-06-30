@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from '@/app/components/features/dashboard/useSession';
+import { useSession } from '@/app/hooks/useSession';
 import { useTranslations } from 'next-intl';
 import { createBlackList, deleteBlackList, getBlackListPaginated } from '@/app/[locale]/blacklist/actions/black-list';
 import { BlacklistForm } from './BlacklistForm';

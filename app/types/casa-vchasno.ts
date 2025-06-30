@@ -4,7 +4,8 @@
 export enum TaskType {
   SALE = 1,
   RETURN = 2,
-  Z_REPORT = 11
+  Z_REPORT = 11,
+  SHIFT_STATUS = 18
 }
 
 export enum PaymentType {
@@ -109,7 +110,7 @@ export interface ReceiptInfo {
   pays?: ZReportPaymentMethod[];
   money?: ZReportMoneyFlow[];
   cash?: ZReportCashFlow[];
-  money_transfer?: any[];
+  money_transfer?: unknown[];
 }
 
 export interface CasaVchasnoResponse {
@@ -123,9 +124,9 @@ export interface CasaVchasnoResponse {
   res: number;
   res_action: number;
   errortxt: string;
-  warnings: any[];
-  info: ReceiptInfo;
-  error_extra: any;
+  warnings: unknown[];
+  info: ReceiptInfo | ShiftStatusInfo;
+  error_extra: unknown;
 }
 
 // Z-Report specific types
@@ -198,6 +199,25 @@ export interface ZReportCashFlow {
   round_pd: number;
   round_mu: number;
   round_md: number;
+}
+
+// Shift Status types
+export enum ShiftStatus {
+  UNKNOWN = -1,
+  CLOSED = 0,
+  OPEN = 1,
+  BLOCKED = 2
+}
+
+export interface ShiftStatusInfo {
+  edrpou: string;
+  fisid: string;
+  isFis: number;
+  shift_status: ShiftStatus;
+  shift_dt: string;
+  online_status: number;
+  sign_status: number;
+  safe: number;
 }
 
 // Error handling

@@ -9,14 +9,17 @@ import { OrdersResponse, StatusResponse, CurrencyResponse, DeliveryOptionsRespon
  */
 export async function getOrdersCount() {
   try {
-    console.log('Executing getOrdersCount...');
-    const result = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 1, { sort: '-created' })
-    );
-    console.log('getOrdersCount result:', result.totalItems);
+    console.log('🔍 [getOrdersCount] Executing with user authentication...');
+    
+    if (!pb.authStore.isValid) {
+      throw new Error('User not authenticated');
+    }
+    
+    const result = await pb.collection('orders').getList(1, 1, { sort: '-created' });
+    console.log('✅ [getOrdersCount] result:', result.totalItems);
     return { count: result.totalItems };
   } catch (error) {
-    console.error('Error getting orders count:', error);
+    console.error('❌ [getOrdersCount] Error getting orders count:', error);
     return { error: 'Failed to get orders count', details: String(error) };
   }
 }
@@ -26,29 +29,31 @@ export async function getOrdersCount() {
  */
 export async function getLastOrder() {
   try {
-    console.log('Executing getLastOrder...');
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList<OrdersResponse<unknown, {
-        status: StatusResponse,
-        currency: CurrencyResponse,
-        paymentMethod: PaymentMethodsResponse,
-        deliveryMethod: DeliveryOptionsResponse
-      }>>(1, 1, { 
-        sort: '-created',
-        expand: 'status,currency,paymentMethod,deliveryMethod',
-        fields: 'id,created,orderNumber,fullName,phoneNumber,status,currency,paymentMethod,deliveryMethod,amount,products,numberOfItems,expand'
-      })
-    );
+    console.log('🔍 [getLastOrder] Executing with user authentication...');
+    
+    if (!pb.authStore.isValid) {
+      throw new Error('User not authenticated');
+    }
+    
+    const orders = await pb.collection('orders').getList<OrdersResponse<unknown, {
+      status: StatusResponse,
+      currency: CurrencyResponse,
+      paymentMethod: PaymentMethodsResponse,
+      deliveryMethod: DeliveryOptionsResponse
+    }>>(1, 1, { 
+      sort: '-created',
+      expand: 'status,currency,paymentMethod,deliveryMethod',
+      fields: 'id,created,orderNumber,fullName,phoneNumber,status,currency,paymentMethod,deliveryMethod,amount,products,numberOfItems,expand'
+    });
     
     if (orders.items.length === 0) {
-      console.log('No orders found');
+      console.log('❌ [getLastOrder] No orders found');
       return { message: 'No orders found' };
     }
     
     // Get the raw order data
     const order = orders.items[0];
-    console.log('Last order found:', order.id);
-    console.log('Order:', order);
+    console.log('✅ [getLastOrder] Last order found:', order.id);
     
     // Get expanded data
     const statusName = order.expand?.status?.name || 'Not specified';
@@ -90,7 +95,7 @@ export async function getLastOrder() {
       items: itemsInfo
     };
   } catch (error) {
-    console.error('Error getting last order:', error);
+    console.error('❌ [getLastOrder] Error getting last order:', error);
     return { error: 'Failed to get last order', details: String(error) };
   }
 }

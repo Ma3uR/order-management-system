@@ -17,8 +17,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/shared
 import { Calendar } from "@/app/components/shared/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/shared/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shared/ui/select"
-import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
 import { ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
 import pb, { authenticatedCall } from "@/app/lib/pocketbase"
 import { addExpense } from "@/app/lib/services/expenses"
@@ -84,7 +82,6 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
     if (!categoryDropdownRef.current) return
 
     const rect = categoryDropdownRef.current.getBoundingClientRect()
-    const modalRect = categoryDropdownRef.current.closest('.relative')?.getBoundingClientRect()
     const dropdownHeight = 250 // Approximate height including search input
     const spaceBelow = window.innerHeight - rect.bottom
     const spaceAbove = rect.top

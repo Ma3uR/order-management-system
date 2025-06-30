@@ -5,7 +5,6 @@ import { Button } from "@/app/components/shared/ui/button"
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/app/components/shared/ui/dialog"
 import { Badge } from "@/app/components/shared/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
-import { Separator } from "@/app/components/shared/ui/separator"
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/shared/ui/table"
 import { FileText, Download, Printer, DollarSign, Receipt, RotateCcw, TrendingUp, Calendar, User } from "lucide-react"
@@ -16,8 +15,8 @@ import { ZReportReceiptInfo, ZReportSummary, ZReportTaxDetail, ZReportPaymentMet
 interface ZReportViewerProps {
   isOpen: boolean
   onClose: () => void
-  zReportData: any
-  shiftData?: any
+  zReportData: unknown
+  shiftData?: unknown
 }
 
 export function ZReportViewer({ isOpen, onClose, zReportData, shiftData }: ZReportViewerProps) {

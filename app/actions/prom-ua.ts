@@ -258,7 +258,7 @@ class PromUaAPI {
   async getLastOrderId() {
     const orders = await authenticatedCall(async () => {
       return await pb.collection('orders').getList(1, 1, {
-        filter: 'source = "pj9sejm9vqtu8xq"',
+        filter: 'source = "gfzk8nxfokgu9ku"',
         sort: '-created'
       });
     });
@@ -323,22 +323,28 @@ const api = PromUaAPI.getInstance();
 
 async function mapPaymentMethod(paymentOptionId: number): Promise<MappedMethod> {
   try {
+    console.log(`🔍 [mapPaymentMethod] Looking for payment method with promId: ${paymentOptionId}`);
     const paymentMethod = await authenticatedCall(() => 
       pb.collection('payment_options').getList(1, 1, {
         filter: `promId = "${paymentOptionId}"`
       })
     );
 
+    console.log(`🔍 [mapPaymentMethod] Found ${paymentMethod.items.length} payment methods`);
     if (!paymentMethod.items.length) {
+      console.log(`⚠️ [mapPaymentMethod] No specific mapping found, using default payment method`);
       const defaultPaymentMethod = await authenticatedCall(() => pb.collection('payment_options').getList(1, 1, {
         filter: "isDefault = true"
       }));
       if (defaultPaymentMethod.items.length) {
+        console.log(`✅ [mapPaymentMethod] Using default payment method: ${defaultPaymentMethod.items[0].id}`);
         return {error: null, pbRecordId: defaultPaymentMethod.items[0].id};
       }
+      console.error(`❌ [mapPaymentMethod] No default payment method found`);
       throw new Error('Payment method not found');
     } 
 
+    console.log(`✅ [mapPaymentMethod] Using mapped payment method: ${paymentMethod.items[0].id}`);
     return {error: null, pbRecordId: paymentMethod.items[0].id};
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -351,24 +357,28 @@ async function mapPaymentMethod(paymentOptionId: number): Promise<MappedMethod> 
 
 async function mapDeliveryMethod(deliveryOptionId: number): Promise<MappedMethod> {
   try {
+    console.log(`🔍 [mapDeliveryMethod] Looking for delivery method with promId: ${deliveryOptionId}`);
     const deliveryMethod = await authenticatedCall(() => 
       pb.collection('delivery_options').getList(1, 1, {
         filter: `promId = "${deliveryOptionId}"`
       })
     );
 
-    console.log('deliveryMethod', deliveryMethod);
-    console.log('deliveryOptionId', deliveryOptionId);
+    console.log(`🔍 [mapDeliveryMethod] Found ${deliveryMethod.items.length} delivery methods`);
 
     if (!deliveryMethod.items.length) {
+      console.log(`⚠️ [mapDeliveryMethod] No specific mapping found, using default delivery method`);
       const defaultDeliveryMethod = await getDefaultDeliveryMethod();
-      console.log('defaultDeliveryMethod', defaultDeliveryMethod);
+      console.log(`🔍 [mapDeliveryMethod] Default delivery method result:`, defaultDeliveryMethod);
       if (!defaultDeliveryMethod.data?.id) {
+        console.error(`❌ [mapDeliveryMethod] No default delivery method found`);
         throw new Error('Delivery method not found');
       }
-      return {error: null, pbRecordId: defaultDeliveryMethod.data?.id};
+      console.log(`✅ [mapDeliveryMethod] Using default delivery method: ${defaultDeliveryMethod.data.id}`);
+      return {error: null, pbRecordId: defaultDeliveryMethod.data.id};
     }
 
+    console.log(`✅ [mapDeliveryMethod] Using mapped delivery method: ${deliveryMethod.items[0].id}`);
     return {error: null, pbRecordId: deliveryMethod.items[0].id};
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -380,7 +390,7 @@ async function mapDeliveryMethod(deliveryOptionId: number): Promise<MappedMethod
 }
 
 async function processOrder(promOrder: PromOrderResponse) {
-  console.log('promOrder', promOrder);
+  console.log(`🔍 [processOrder] Processing Prom.ua order ${promOrder.id}`);
   const existingOrders = await authenticatedCall(async () => {
     return await pb.collection('orders').getList(1, 1, {
       filter: `source = "gfzk8nxfokgu9ku" && orderNumber = "${promOrder.id}"`
@@ -430,6 +440,7 @@ async function processOrder(promOrder: PromOrderResponse) {
   }
 
   // Get status by matching promOrder.status with marketplace_code
+  console.log(`🔍 [processOrder] Looking for status mapping for code: ${promOrder.status}`);
   const statusResult = await authenticatedCall(async () => {
     return await pb.collection('status_options').getList(1, 50, {
       filter: `marketplace_code = "${promOrder.status}" && source = "gfzk8nxfokgu9ku"`,
@@ -437,12 +448,16 @@ async function processOrder(promOrder: PromOrderResponse) {
     });
   });
   
+  console.log(`🔍 [processOrder] Found ${statusResult.items.length} status mappings`);
   if (statusResult.items.length === 0) {
+    console.error(`❌ [processOrder] No matching status found for Prom.ua status code: ${promOrder.status}`);
     throw new Error(`No matching status found for Prom.ua status code: ${promOrder.status}`);
   }
   
   const orderStatus = statusResult.items[0].id;
+  console.log(`🔍 [processOrder] Mapping payment method ID: ${promOrder.payment_option.id}`);
   const paymentMethod = await mapPaymentMethod(promOrder.payment_option.id);
+  console.log(`🔍 [processOrder] Mapping delivery method ID: ${promOrder.delivery_option.id}`);
   const deliveryMethod = await mapDeliveryMethod(promOrder.delivery_option.id);
   const deliveryPostNumber = promOrder.delivery_address || '';
 
@@ -504,10 +519,26 @@ async function processOrder(promOrder: PromOrderResponse) {
 
 export async function syncOrders() {
   try {
+    console.log('🔄 [syncOrders] Starting Prom.ua orders sync...');
+    
+    // Check API configuration
+    const apiUrl = process.env.PROMUA_API_URL;
+    const token = process.env.PROM_UA_TOKEN;
+    console.log(`🔧 [syncOrders] API URL: ${apiUrl}`);
+    console.log(`🔧 [syncOrders] Token exists: ${!!token}`);
+    
     const promOrders = await getOrders();
-    if (!promOrders.data) {
-      throw new Error('Failed to fetch Prom.ua orders');
+    if (promOrders.error) {
+      console.error('❌ [syncOrders] Error fetching orders:', promOrders.error);
+      throw new Error(`Failed to fetch Prom.ua orders: ${promOrders.error}`);
     }
+    
+    if (!promOrders.data) {
+      console.error('❌ [syncOrders] No data returned from getOrders');
+      throw new Error('Failed to fetch Prom.ua orders: No data returned');
+    }
+    
+    console.log(`📥 [syncOrders] Retrieved ${promOrders.data.length} orders from Prom.ua`);
     
     let syncedOrders = 0;
     let failedOrders = 0;
@@ -515,10 +546,16 @@ export async function syncOrders() {
     // Process orders sequentially to avoid cancellation issues
     for (const order of promOrders.data) {
       try {
+        console.log(`⏳ [syncOrders] Processing order ${order.id}...`);
         await processOrder(order);
         syncedOrders++;
+        console.log(`✅ [syncOrders] Successfully processed order ${order.id}`);
       } catch (error) {
-        console.error(`Failed to process promua order ${order.id}:`, error);
+        console.error(`❌ [syncOrders] Failed to process order ${order.id}:`, error);
+        if (error instanceof Error) {
+          console.error(`❌ [syncOrders] Error details: ${error.message}`);
+          console.error(`❌ [syncOrders] Stack trace:`, error.stack);
+        }
         failedOrders++;
       }
     }

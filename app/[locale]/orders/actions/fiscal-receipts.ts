@@ -3,7 +3,7 @@
 import { casaVchasnoService } from '@/app/lib/services/casa-vchasno';
 import { authenticatedCall } from '@/app/lib/pocketbase';
 import pb from '@/app/lib/pocketbase';
-import { CasaVchasnoResponse } from '@/app/types/casa-vchasno';
+import { CasaVchasnoResponse, ShiftStatusInfo } from '@/app/types/casa-vchasno';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
 
 export interface FiscalReceiptResult {
@@ -14,7 +14,12 @@ export interface FiscalReceiptResult {
 
 export interface ShiftResult {
   success: boolean;
-  data?: any;
+  data?: {
+    items?: unknown[];
+    totalItems?: number;
+    page?: number;
+    perPage?: number;
+  };
   error?: string;
 }
 
@@ -196,7 +201,7 @@ export async function getCurrentShift(): Promise<ShiftResult> {
  */
 export async function getFiscalReceiptsForOrder(orderId: string): Promise<{
   success: boolean;
-  data?: any[];
+  data?: unknown[];
   error?: string;
 }> {
   try {
@@ -220,7 +225,12 @@ export async function getFiscalReceiptsForOrder(orderId: string): Promise<{
  */
 export async function getFiscalShifts(page: number = 1, perPage: number = 20): Promise<{
   success: boolean;
-  data?: any;
+  data?: {
+    items?: unknown[];
+    totalItems?: number;
+    page?: number;
+    perPage?: number;
+  };
   error?: string;
 }> {
   try {
@@ -248,7 +258,12 @@ export async function getFiscalShifts(page: number = 1, perPage: number = 20): P
  */
 export async function getFiscalReceipts(page: number = 1, perPage: number = 20): Promise<{
   success: boolean;
-  data?: any;
+  data?: {
+    items?: unknown[];
+    totalItems?: number;
+    page?: number;
+    perPage?: number;
+  };
   error?: string;
 }> {
   try {
@@ -278,7 +293,7 @@ export async function getFiscalReceipts(page: number = 1, perPage: number = 20):
 export async function getFiscalStatistics(): Promise<{
   success: boolean;
   data?: {
-    currentShift: any;
+    currentShift: unknown;
     todayReceipts: number;
     todaySales: number;
     todayReturns: number;
@@ -324,6 +339,30 @@ export async function getFiscalStatistics(): Promise<{
     };
   } catch (error) {
     console.error('[Fiscal Receipts] Error getting fiscal statistics:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+/**
+ * Check current shift status from Casa.vchasno
+ */
+export async function checkShiftStatus(): Promise<{
+  success: boolean;
+  data?: ShiftStatusInfo;
+  error?: string;
+}> {
+  try {
+    const shiftStatus = await casaVchasnoService.checkShiftStatus();
+
+    return {
+      success: true,
+      data: shiftStatus
+    };
+  } catch (error) {
+    console.error('[Fiscal Receipts] Error checking shift status:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

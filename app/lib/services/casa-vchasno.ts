@@ -10,7 +10,9 @@ import {
   Receipt,
   FiscalData,
   UserInfo,
-  CasaVchasnoError
+  CasaVchasnoError,
+  ShiftStatusInfo,
+  ShiftStatus
 } from '@/app/types/casa-vchasno';
 import { OrdersResponse, FiscalReceiptsReceiptTypeOptions, FiscalReceiptsStatusOptions, FiscalShiftsStatusOptions } from '@/app/types/pocketbase-types';
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
@@ -72,16 +74,19 @@ export class CasaVchasnoService {
   /**
    * Convert order products to Casa.vchasno receipt rows
    */
-  private orderProductsToReceiptRows(products: any[]): ReceiptRow[] {
-    return products.map((product, index) => ({
-      code: product.code || `PROD_${index + 1}`,
-      name: product.title || product.name || product.productName || `Product ${index + 1}`,
-      cnt: product.quantity || product.qty || 1,
-      price: product.price || 0,
-      disc: product.discount || 0,
-      taxgrp: product.taxGroup || TaxGroup.NO_VAT.toString(),
-      comment: product.comment || '',
-    }));
+  private orderProductsToReceiptRows(products: unknown[]): ReceiptRow[] {
+    return products.map((product, index) => {
+      const p = product as Record<string, unknown>;
+      return {
+        code: (p.code as string) || `PROD_${index + 1}`,
+        name: (p.title as string) || (p.name as string) || (p.productName as string) || `Product ${index + 1}`,
+        cnt: (p.quantity as number) || (p.qty as number) || 1,
+        price: (p.price as number) || 0,
+        disc: (p.discount as number) || 0,
+        taxgrp: (p.taxGroup as string) || TaxGroup.NO_VAT.toString(),
+        comment: (p.comment as string) || '',
+      };
+    });
   }
 
   /**
@@ -399,7 +404,7 @@ export class CasaVchasnoService {
   /**
    * Get current open shift
    */
-  async getCurrentShift(): Promise<any | null> {
+  async getCurrentShift(): Promise<unknown | null> {
     try {
       const shifts = await authenticatedCall(() =>
         pb.collection('fiscal_shifts').getList(1, 1, {
@@ -418,7 +423,7 @@ export class CasaVchasnoService {
   /**
    * Get fiscal receipts for order
    */
-  async getFiscalReceiptsForOrder(orderId: string): Promise<any[]> {
+  async getFiscalReceiptsForOrder(orderId: string): Promise<unknown[]> {
     try {
       const receipts = await authenticatedCall(() =>
         pb.collection('fiscal_receipts').getList(1, 50, {
@@ -431,6 +436,70 @@ export class CasaVchasnoService {
     } catch (error) {
       console.error('[Casa.vchasno] Error getting fiscal receipts:', error);
       return [];
+    }
+  }
+
+  /**
+   * Check shift status (Task 18)
+   */
+  async checkShiftStatus(): Promise<ShiftStatusInfo> {
+    try {
+      console.log('[Casa.vchasno] Checking shift status');
+
+      // Prepare fiscal data for shift status check
+      const fiscalData: FiscalData = {
+        task: TaskType.SHIFT_STATUS,
+        cashier: '', // Not required for status check
+      };
+
+      // Create request
+      const request: CasaVchasnoRequest = {
+        source: 'ORDER_MANAGEMENT_SYSTEM',
+        fiscal: fiscalData,
+      };
+
+      const response = await this.makeRequest('/fiscal/execute', request);
+      
+      // Return shift status info
+      return response.info as ShiftStatusInfo;
+    } catch (error) {
+      console.error('[Casa.vchasno] Error checking shift status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get human-readable shift status text
+   */
+  getShiftStatusText(status: ShiftStatus): string {
+    switch (status) {
+      case ShiftStatus.UNKNOWN:
+        return 'Unknown';
+      case ShiftStatus.CLOSED:
+        return 'Closed';
+      case ShiftStatus.OPEN:
+        return 'Open';
+      case ShiftStatus.BLOCKED:
+        return 'Blocked';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  /**
+   * Get shift status color for UI
+   */
+  getShiftStatusColor(status: ShiftStatus): string {
+    switch (status) {
+      case ShiftStatus.OPEN:
+        return 'green';
+      case ShiftStatus.CLOSED:
+        return 'gray';
+      case ShiftStatus.BLOCKED:
+        return 'red';
+      case ShiftStatus.UNKNOWN:
+      default:
+        return 'yellow';
     }
   }
 }

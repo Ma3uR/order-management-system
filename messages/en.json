@@ -51,6 +51,7 @@
     "welcome": "Welcome to the Order Management System",
     "reports": "Reports",
     "logout": "Log Out",
+    "fiscal": "Fiscal",
     "noOrderDataForDownload": "No order data for download",
     "noSalaryDataAvailable": "No salary data available",
     "popularProducts": {
@@ -488,6 +489,24 @@
     "expenseTrackingDescription1": "Tracking your expenses helps you understand your spending habits and make better financial decisions. Categorize your expenses to identify areas where you might be overspending.",
     "expenseTrackingDescription2": "Set budgets for different categories and regularly review your spending to stay on track with your financial goals. This tool makes it easy to monitor your finances in one place.",
     "recentExpenses": "Recent Expenses"
+  },
+  "Fiscal": {
+    "title": "Fiscal Management",
+    "description": "Manage fiscal receipts, shifts, and Casa.vchasno integration",
+    "shiftManagement": "Shift Management",
+    "shiftManagementDescription": "Open and close fiscal shifts, manage Z-reports",
+    "recentReceipts": "Recent Receipts",
+    "recentReceiptsDescription": "Latest fiscal receipts from Casa.vchasno",
+    "recentShifts": "Recent Shifts",
+    "recentShiftsDescription": "Latest fiscal shifts and Z-reports",
+    "quickStats": "Quick Statistics",
+    "quickStatsDescription": "Overview of fiscal activity",
+    "totalReceipts": "Total Receipts",
+    "successfulReceipts": "Successful",
+    "totalShifts": "Total Shifts",
+    "activeShifts": "Active Shifts",
+    "noRecentReceipts": "No recent receipts found",
+    "noRecentShifts": "No recent shifts found"
   },
   "Index": {
     "title": "Order Management System"

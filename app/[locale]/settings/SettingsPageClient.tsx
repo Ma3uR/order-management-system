@@ -8,7 +8,6 @@ import { StatusSettings } from "@/app/components/features/settings/StatusSetting
 import { PaymentMethodSettings } from "@/app/components/features/settings/PaymentMethodSettings";
 import { DeliveryMethodSettings } from "@/app/components/features/settings/DeliveryMethodSettings";
 import { SourceSettings } from "@/app/components/features/settings/SourceSettings";
-import { ShiftManagement } from "@/app/components/features/orders/components/shift-management";
 import { motion } from "framer-motion";
 import { Toaster } from 'sonner';
 import { Badge } from "@/app/components/shared/ui/badge";
@@ -117,7 +116,7 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
           <Card className="border shadow-sm bg-card w-full">
             <Tabs defaultValue="status" className="w-full">
               <TabsList className="flex h-10 items-center justify-start px-2 border-b overflow-x-auto w-full">
-                {["status", "payment", "delivery", "source", "fiscal"].map((tab, index) => (
+                {["status", "payment", "delivery", "source"].map((tab, index) => (
                   <motion.div
                     key={tab}
                     initial={{ opacity: 0, y: -20 }}
@@ -199,17 +198,6 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent value="fiscal" className="mt-0 border-0 p-0 w-full">
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                    className="w-full"
-                  >
-                    <ShiftManagement />
-                  </motion.div>
-                </TabsContent>
               </motion.div>
             </Tabs>
           </Card>

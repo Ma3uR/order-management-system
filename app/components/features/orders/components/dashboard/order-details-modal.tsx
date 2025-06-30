@@ -27,6 +27,8 @@ import { formatCurrency } from "@/app/lib/utils"
 import { deleteInternetDocument } from '@/app/[locale]/orders/actions/nova-poshta'
 import { useTranslations } from 'next-intl'
 import { createSaleReceipt, createReturnReceipt, getFiscalReceiptsForOrder } from '@/app/[locale]/orders/actions/fiscal-receipts'
+import { PermissionGate } from '@/app/components/auth/PermissionGate'
+import { PERMISSIONS } from '@/app/lib/auth/permissions'
 
 // Add this type near the top of the file
 type OrderProduct = {
@@ -96,7 +98,7 @@ export function OrderDetailsModal({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showNotFoundDialog, setShowNotFoundDialog] = useState(false)
   const [notFoundError, setNotFoundError] = useState<string>("")
-  const [fiscalReceipts, setFiscalReceipts] = useState<any[]>([])
+  const [fiscalReceipts, setFiscalReceipts] = useState<unknown[]>([])
   const [loadingFiscalReceipts, setLoadingFiscalReceipts] = useState(false)
   const [creatingFiscalReceipt, setCreatingFiscalReceipt] = useState(false)
   const statusRef = useRef<HTMLDivElement>(null)
@@ -640,8 +642,8 @@ ${productsText}
                   <Badge 
                     className="text-white text-xs"
                     style={{
-                      backgroundColor: getSourceColor(order.source),
-                      borderColor: getSourceColor(order.source)
+                      backgroundColor: getSourceColor(order.source || ''),
+                      borderColor: getSourceColor(order.source || '')
                     }}
                   >
                     {sourceName}
@@ -992,41 +994,42 @@ ${productsText}
                   ) : null}
                 </div>
 
-                {/* Fiscal Receipts Section */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs text-gray-600 dark:text-gray-400">Casa.vchasno Fiscal Receipts</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCreateSaleReceipt}
-                        disabled={creatingFiscalReceipt || !order.id}
-                        className="h-8 px-3 text-xs"
-                      >
-                        {creatingFiscalReceipt ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <Receipt className="h-4 w-4 mr-1" />
-                        )}
-                        Sale Receipt
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCreateReturnReceipt}
-                        disabled={creatingFiscalReceipt || !order.id}
-                        className="h-8 px-3 text-xs"
-                      >
-                        {creatingFiscalReceipt ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-4 w-4 mr-1" />
-                        )}
-                        Return Receipt
-                      </Button>
-                    </div>
-                  </div>
+                {/* Fiscal Receipts Section - Admin Only */}
+                <PermissionGate permission={PERMISSIONS.FISCAL_MANAGE}>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-gray-600 dark:text-gray-400">Casa.vchasno Fiscal Receipts</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCreateSaleReceipt}
+                          disabled={creatingFiscalReceipt || !order.id}
+                          className="h-8 px-3 text-xs"
+                        >
+                          {creatingFiscalReceipt ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Receipt className="h-4 w-4 mr-1" />
+                          )}
+                          Sale Receipt
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCreateReturnReceipt}
+                          disabled={creatingFiscalReceipt || !order.id}
+                          className="h-8 px-3 text-xs"
+                        >
+                          {creatingFiscalReceipt ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                          )}
+                          Return Receipt
+                        </Button>
+                      </div>
+                    )</div>
                   
                   {loadingFiscalReceipts ? (
                     <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-md p-3">
@@ -1111,7 +1114,8 @@ ${productsText}
                       </p>
                     </div>
                   ) : null}
-                </div>
+                  </div>
+                </PermissionGate>
                 
                 {order.deliveryPostNumber && (
                   <div>

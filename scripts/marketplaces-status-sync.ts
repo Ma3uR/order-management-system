@@ -158,7 +158,7 @@ async function syncPromStatuses(): Promise<{ synced: number; failed: number }> {
               await authenticatedCall(() =>
                 pb.collection('status_options').update(existingItem.id, {
                   name: statusName,
-                  marketplace_code: status.id
+                  marketplace_code: status.name
                 })
               );
               console.log(`🔄 Updated Prom.ua status: ${statusName} (code: ${status.id})`);

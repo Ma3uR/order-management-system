@@ -34,7 +34,7 @@ Generates a fiscal receipt for a sale transaction.
 | `userinfo.email` | string | Yes* | User email address (*required for sales) |
 | `userinfo.phone` | string | Yes* | User phone number (*required for sales) |
 | `fiscal` | object | Yes | Fiscal data container |
-| `fiscal.task` | number | Yes | Task type (1 = sale receipt, 2 = return receipt, 11 = Z-report) |
+| `fiscal.task` | number | Yes | Task type (1 = sale receipt, 2 = return receipt, 11 = Z-report, 18 = shift status) |
 | `fiscal.cashier` | string | Yes | Cashier name |
 | `fiscal.receipt` | object | Yes | Receipt details |
 
@@ -613,6 +613,85 @@ curl --location 'https://kasa.vchasno.ua/api/v3/fiscal/execute' \
 | `round_pu/pd` | number | Rounding up/down for sales |
 | `round_mu/md` | number | Rounding up/down for returns |
 
+---
+
+### Check Shift Status
+Retrieves the current status of the working shift and device information.
+
+**Endpoint:** `POST /fiscal/execute`
+
+**Content-Type:** `application/json`
+
+#### Key Features:
+- `fiscal.task` must be set to `18` for shift status check
+- No additional parameters required
+- Returns current shift status and device information
+
+#### Example Request
+
+```bash
+curl --location 'https://kasa.vchasno.ua/api/v3/fiscal/execute' \
+--header 'Authorization: VCHASNO_KASA_PRRO_TOKEN' \
+--header 'Content-Type: application/json' \
+--data '{
+    "fiscal": {
+        "task": 18
+    }
+}'
+```
+
+#### Example Response
+
+```json
+{
+  "task": 18,
+  "type": 1,
+  "ver": 6,
+  "source": "",
+  "device": "99999955555555",
+  "tag": "42fff4e7e105865f7155ac6a08cf3869",
+  "dt": "20250321093818",
+  "res": 0,
+  "res_action": 0,
+  "errortxt": "",
+  "warnings": [],
+  "info": {
+    "edrpou": "55555555",
+    "fisid": "99999955555555",
+    "isFis": 0,
+    "shift_status": -1,
+    "shift_dt": "",
+    "online_status": 0,
+    "sign_status": -1,
+    "safe": 0
+  },
+  "error_extra": null
+}
+```
+
+#### Shift Status Response Structure
+
+**Device Information (`info`)**
+| Field | Type | Description |
+|-------|------|-------------|
+| `edrpou` | string | Company tax identification number |
+| `fisid` | string | Fiscal device ID |
+| `isFis` | number | Fiscal device status (0 = not fiscal, 1 = fiscal) |
+| `shift_status` | number | Current shift status (see Shift Status Codes below) |
+| `shift_dt` | string | Shift date/time (empty if no active shift) |
+| `online_status` | number | Online connection status |
+| `sign_status` | number | Digital signature status |
+| `safe` | number | Current cash register safe amount |
+
+#### Shift Status Codes
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `-1` | Unknown | Shift status cannot be determined |
+| `0` | Closed | No active shift (shift is closed) |
+| `1` | Open | Active shift in progress |
+| `2` | Blocked | Shift is blocked and requires attention |
+
 ## Task Types
 
 | Task | Description |
@@ -620,3 +699,4 @@ curl --location 'https://kasa.vchasno.ua/api/v3/fiscal/execute' \
 | `1` | Sale receipt |
 | `2` | Return receipt |
 | `11` | Z-report (Close shift) |
+| `18` | Check shift status |
