@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { useTranslations } from 'next-intl'
 import { ShiftManagement } from "@/app/components/features/orders/components/shift-management"
 import { ZReportViewer } from "@/app/components/features/orders/components/z-report-viewer"
@@ -26,12 +26,12 @@ interface FiscalShift {
   status: 'open' | 'closed'
   opened_at: string
   closed_at?: string
-  z_report_data?: unknown
+  z_report_data?: Record<string, unknown>
 }
 
-export default function FiscalPage() {
+export default function FiscalPage(): JSX.Element {
   const t = useTranslations('Fiscal')
-  const [selectedZReport, setSelectedZReport] = useState<unknown>(null)
+  const [selectedZReport, setSelectedZReport] = useState<Record<string, unknown> | null>(null)
   const [showZReportViewer, setShowZReportViewer] = useState(false)
   const [recentReceipts, setRecentReceipts] = useState<FiscalReceipt[]>([])
   const [recentShifts, setRecentShifts] = useState<FiscalShift[]>([])
@@ -109,7 +109,6 @@ export default function FiscalPage() {
           </Card>
         </div>
 
-        {/* Recent Activity Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Fiscal Receipts */}
           <Card>

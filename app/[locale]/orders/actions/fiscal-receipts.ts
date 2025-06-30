@@ -19,6 +19,7 @@ export interface ShiftResult {
     totalItems?: number;
     page?: number;
     perPage?: number;
+    message?: string;
   };
   error?: string;
 }
@@ -185,7 +186,7 @@ export async function getCurrentShift(): Promise<ShiftResult> {
 
     return {
       success: true,
-      data: shift
+      data: shift ? { items: [shift] } : { items: [] }
     };
   } catch (error) {
     console.error('[Fiscal Receipts] Error getting current shift:', error);

@@ -14,7 +14,7 @@ import {
   ShiftStatusInfo,
   ShiftStatus
 } from '@/app/types/casa-vchasno';
-import { OrdersResponse, FiscalReceiptsReceiptTypeOptions, FiscalReceiptsStatusOptions, FiscalShiftsStatusOptions } from '@/app/types/pocketbase-types';
+import { OrdersResponse, FiscalReceiptsReceiptTypeOptions, FiscalReceiptsStatusOptions, FiscalShiftsStatusOptions, FiscalShiftsResponse } from '@/app/types/pocketbase-types';
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 
 export class CasaVchasnoService {
@@ -404,7 +404,7 @@ export class CasaVchasnoService {
   /**
    * Get current open shift
    */
-  async getCurrentShift(): Promise<unknown | null> {
+  async getCurrentShift(): Promise<FiscalShiftsResponse | null> {
     try {
       const shifts = await authenticatedCall(() =>
         pb.collection('fiscal_shifts').getList(1, 1, {
@@ -413,7 +413,7 @@ export class CasaVchasnoService {
         })
       );
 
-      return shifts.items.length > 0 ? shifts.items[0] : null;
+      return shifts.items.length > 0 ? shifts.items[0] as FiscalShiftsResponse : null;
     } catch (error) {
       console.error('[Casa.vchasno] Error getting current shift:', error);
       return null;
