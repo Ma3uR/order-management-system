@@ -293,7 +293,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                               <SelectValue placeholder={t('selectACategory')} />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="max-h-[200px] overflow-y-auto">
                             {categories.map((category) => (
                               <SelectItem key={category.id} value={category.id}>
                                 <div className="flex items-center gap-2">
