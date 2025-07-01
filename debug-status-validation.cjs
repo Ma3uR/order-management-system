@@ -2,8 +2,8 @@ const PocketBase = require('pocketbase').default;
 
 const pb = new PocketBase(process.env.POCKETBASE_URL || 'http://127.0.0.1:8090');
 
-// Regex from the validation schema
-const STATUS_NAME_REGEX = /^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:]+$/;
+// Regex from the validation schema (updated to include apostrophes)
+const STATUS_NAME_REGEX = /^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,']+$/;
 
 async function checkStatusNames() {
   try {
@@ -31,7 +31,7 @@ async function checkStatusNames() {
         failing.push({
           name: status.name,
           source: status.source,
-          chars: Array.from(status.name).filter(char => !/[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:]/.test(char))
+          chars: Array.from(status.name).filter(char => !/[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,']/.test(char))
         });
       }
     });

@@ -1,7 +1,7 @@
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 
-// Updated regex from statusSchema (now includes periods, colons and commas)
-const STATUS_NAME_REGEX = /^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,]+$/;
+// Updated regex from statusSchema (now includes periods, colons, commas and apostrophes)
+const STATUS_NAME_REGEX = /^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,']+$/;
 
 interface StatusRecord {
   id: string;
