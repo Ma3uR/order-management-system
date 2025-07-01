@@ -28,7 +28,7 @@ export const statusSchema = z.object({
   name: z.string()
     .min(2, "Status name must be at least 2 characters")
     .max(100, "Status name must be less than 100 characters")
-    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, forward slashes, periods, colons and commas are allowed"),
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,']+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, forward slashes, periods, colons, commas and apostrophes are allowed"),
   color: z.string()
     .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Invalid color format"),
   priority: z.number()
@@ -44,7 +44,7 @@ export const paymentMethodSchema = z.object({
   name: z.string()
     .min(2, "Payment method name must be at least 2 characters")
     .max(120, "Payment method name must be less than 50 characters")
-    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-(),/]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, commas and forward slashes are allowed"),
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,']+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, forward slashes, periods, colons, commas and apostrophes are allowed"),
   rozetkaId: z.number().optional(),
   promId: z.number().optional(),
   isDefault: z.boolean().optional()
@@ -55,7 +55,7 @@ export const deliveryMethodSchema = z.object({
   name: z.string()
     .min(2, "Delivery method name must be at least 2 characters")
     .max(120, "Delivery method name must be less than 50 characters")
-    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/]+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, commas and forward slashes are allowed"),
+    .regex(/^[a-zA-Z0-9\u0400-\u04FF\s\-()\/\.\:,']+$/, "Only letters, numbers, cyrillic characters, hyphens, parentheses, forward slashes, periods, colons, commas and apostrophes are allowed"),
   rozetkaId: z.number().optional(),
   promId: z.number().optional(),
   isDefault: z.boolean().optional()
