@@ -1,14 +1,11 @@
-import { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'AI Chat Assistant',
-  description: 'AI-powered assistant for order management system',
-};
+import DashboardLayout from '../dashboard/layout';
 
 export default function AiChatLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return <DashboardLayout>{children}</DashboardLayout>;
 } 

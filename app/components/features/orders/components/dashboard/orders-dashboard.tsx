@@ -47,6 +47,7 @@ import { getOrders, getSettings } from '@/app/[locale]/orders/actions/orders'
 import pb from '@/app/lib/pocketbase'
 import type { RecordSubscription } from 'pocketbase'
 import { toast, Toaster } from 'sonner'
+import { detectPotentialMerges, PotentialMerge, DEFAULT_MERGE_CONFIG } from '@/app/lib/mergeDetection'
 
 // Helper function to format currency
 const formatCurrency = (amount: number, currencyCode: string) => {
@@ -85,6 +86,8 @@ export function OrdersDashboard() {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
   const [potentialMergeOrders, setPotentialMergeOrders] = useState<OrdersResponse[]>([])
   const [isConfirmMergeModalOpen, setIsConfirmMergeModalOpen] = useState(false)
+  const [potentialMerges, setPotentialMerges] = useState<PotentialMerge[]>([])
+  const [dismissedMerges, setDismissedMerges] = useState<Set<string>>(new Set())
   const [copyNotification, setCopyNotification] = useState<{
     message: string
     rowId: string
@@ -103,6 +106,43 @@ export function OrdersDashboard() {
   const copyTimeoutIdRef = useRef<NodeJS.Timeout | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Function to detect potential merges and update state
+  const detectAndUpdateMerges = (ordersList: OrdersResponse[]) => {
+    try {
+      console.log('🔍 [OrdersDashboard] Running merge detection on orders');
+      
+      // Only run detection if we have statuses loaded
+      if (statuses.length === 0) {
+        console.log('🔍 [OrdersDashboard] Skipping merge detection - statuses not loaded yet');
+        return;
+      }
+      
+      const detectedMerges = detectPotentialMerges(ordersList, statuses, DEFAULT_MERGE_CONFIG);
+      
+      // Filter out dismissed merges
+      const activeMerges = detectedMerges.filter(merge => {
+        const mergeId = merge.orders.map(o => o.id).sort().join('-');
+        return !dismissedMerges.has(mergeId);
+      });
+      
+      setPotentialMerges(activeMerges);
+      
+      // Update the legacy potentialMergeOrders for backward compatibility
+      if (activeMerges.length > 0) {
+        // Flatten all orders from all merges
+        const allMergeOrders = activeMerges.flatMap(merge => merge.orders);
+        setPotentialMergeOrders(allMergeOrders);
+        
+        console.log(`📋 [OrdersDashboard] Found ${activeMerges.length} potential merges involving ${allMergeOrders.length} orders`);
+      } else {
+        setPotentialMergeOrders([]);
+        console.log('✅ [OrdersDashboard] No potential merges detected');
+      }
+    } catch (error) {
+      console.error('❌ [OrdersDashboard] Error during merge detection:', error);
+    }
+  };
+
   // Fetch data on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -116,7 +156,11 @@ export function OrdersDashboard() {
 
         const ordersResult = await getOrders()
         if (ordersResult.error) throw new Error(ordersResult.error)
-        setOrders(ordersResult.data as OrdersResponse[])
+        const ordersData = ordersResult.data as OrdersResponse[]
+        setOrders(ordersData)
+        
+        // Run merge detection on initial data load
+        detectAndUpdateMerges(ordersData)
       } catch (error) {
         setError(error instanceof Error ? error.message : "Failed to fetch data")
       } finally {
@@ -126,6 +170,14 @@ export function OrdersDashboard() {
 
     fetchData()
   }, [])
+
+  // Re-run merge detection when statuses are loaded or updated
+  useEffect(() => {
+    if (statuses.length > 0 && orders.length > 0) {
+      console.log('🔍 [OrdersDashboard] Statuses loaded, re-running merge detection');
+      detectAndUpdateMerges(orders);
+    }
+  }, [statuses, orders.length])
 
   // Real-time subscription effect
   useEffect(() => {
@@ -142,7 +194,12 @@ export function OrdersDashboard() {
                 toast.info("Order Deleted", {
                   description: `Order ${record.orderNumber} was deleted by another user`
                 });
-                setOrders(prev => prev.filter(o => o.id !== record.id));
+                setOrders(prev => {
+                  const newOrders = prev.filter(o => o.id !== record.id);
+                  // Re-run merge detection after order deletion
+                  detectAndUpdateMerges(newOrders);
+                  return newOrders;
+                });
               }
               break;
             case 'update':
@@ -153,7 +210,12 @@ export function OrdersDashboard() {
                     expand: 'currency,status,source'
                   });
                   if (isSubscribed) {
-                    setOrders(prev => prev.map(o => o.id === record.id ? updatedOrder : o));
+                    setOrders(prev => {
+                      const newOrders = prev.map(o => o.id === record.id ? updatedOrder : o);
+                      // Re-run merge detection after order update
+                      detectAndUpdateMerges(newOrders);
+                      return newOrders;
+                    });
                     toast.info("Order Updated", {
                       description: `Order ${record.orderNumber} was updated by another user`
                     });
@@ -175,7 +237,12 @@ export function OrdersDashboard() {
                   });
                   if (isSubscribed) {
                     // Insert the new order at the beginning since it's the newest
-                    setOrders(prev => [newOrder, ...prev]);
+                    setOrders(prev => {
+                      const newOrders = [newOrder, ...prev];
+                      // Re-run merge detection after new order creation
+                      detectAndUpdateMerges(newOrders);
+                      return newOrders;
+                    });
                     toast.info("New Order", {
                       description: `Order ${record.orderNumber} was created`
                     });
@@ -576,13 +643,19 @@ export function OrdersDashboard() {
       })
   }
 
-  const handleOpenMergeModal = () => {
-    setIsConfirmMergeModalOpen(true)
-  }
-
   const handleKeepSeparate = () => {
-    setPotentialMergeOrders([]) // Clear detected merges, effectively dismissing the notification
-    // TODO: Potentially mark these orders as "reviewed for merge" in backend to not show again immediately
+    // Mark all current potential merges as dismissed
+    const newDismissedMerges = new Set(dismissedMerges);
+    potentialMerges.forEach(merge => {
+      const mergeId = merge.orders.map(o => o.id).sort().join('-');
+      newDismissedMerges.add(mergeId);
+    });
+    
+    setDismissedMerges(newDismissedMerges);
+    setPotentialMergeOrders([]); // Clear detected merges, effectively dismissing the notification
+    setPotentialMerges([]); // Clear the detailed merge data
+    
+    console.log(`✅ [OrdersDashboard] Dismissed ${potentialMerges.length} potential merges`);
   }
 
   const handleConfirmMerge = (ordersToMerge: { id: string; orderNumber: string; fullName: string; phoneNumber: string; status: string; amount: number; source: string; created: string }[]) => {
@@ -676,7 +749,7 @@ export function OrdersDashboard() {
           {potentialMergeOrders.length > 0 && (
             <PotentialMergeNotification
               detectedOrdersCount={potentialMergeOrders.length}
-              onMergeClick={handleOpenMergeModal}
+              potentialMerges={potentialMerges}
               onKeepSeparateClick={handleKeepSeparate}
             />
           )}
