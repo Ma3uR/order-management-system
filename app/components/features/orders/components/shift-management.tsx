@@ -215,7 +215,7 @@ export function ShiftManagement() {
                   <div className="flex items-center gap-2 mt-1">
                     <Calendar className="h-4 w-4 text-gray-500" />
                     <span className="text-sm">
-                      {format(new Date(currentShift.opened_at), "MMM d, yyyy HH:mm")}
+                      {currentShift.opened_at ? format(new Date(currentShift.opened_at), "MMM d, yyyy HH:mm") : "-"}
                     </span>
                   </div>
                 </div>

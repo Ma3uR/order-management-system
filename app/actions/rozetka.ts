@@ -92,7 +92,7 @@ class RozetkaAPI {
     from?: string; 
     to?: string;
     page?: number;
-    type?: number;
+    types?: number;
   }) {
     try {
       const token = await this.ensureValidToken();
@@ -114,7 +114,7 @@ class RozetkaAPI {
         params: {
           page: params?.page || 1,
           sort: '-id',
-          type: params?.type || 1,
+          types: params?.types || 1,
           created_from: params?.from || defaultFrom,
           created_to: params?.to || defaultTo,
           expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed'
@@ -440,7 +440,7 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
 
 export async function syncOrders() {
   try {
-    const rozetkaOrders = await getOrders();
+    const rozetkaOrders = await getOrders({ types: 1 });
     if (!rozetkaOrders || !Array.isArray(rozetkaOrders)) {
       throw new Error('Failed to fetch Rozetka orders');
     }
@@ -523,7 +523,7 @@ export async function getOrders(params?: {
   from?: string; 
   to?: string;
   page?: number;
-  type?: number;
+  types?: number;
 }) {
   return api.getOrders(params);
 }
