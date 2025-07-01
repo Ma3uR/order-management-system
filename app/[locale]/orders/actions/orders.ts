@@ -17,20 +17,16 @@ interface ProductItem {
 
 export const getOrders = async () => {
     try {
-        console.log('🔍 [getOrders] Fetching orders with user authentication');
+        console.log('🔍 [getOrders] Fetching orders with authenticated call');
         
-        // Check if user is authenticated
-        if (!pb.authStore.isValid) {
-            throw new Error('User not authenticated');
-        }
+        const orders = await authenticatedCall(() => 
+            pb.collection('orders').getFullList({
+                sort: '-created',
+                expand: 'deliveryMethod,paymentMethod,status,currency'
+            })
+        );
         
-        console.log('✅ [getOrders] User authenticated, fetching orders directly');
-        const orders = await pb.collection('orders').getFullList({
-            sort: '-created',
-            expand: 'deliveryMethod,paymentMethod,status,currency'
-        });
-        
-        console.log(`✅ [getOrders] Successfully fetched ${orders.length} orders with user auth`);
+        console.log(`✅ [getOrders] Successfully fetched ${orders.length} orders`);
         
         const validatedOrders = orders.map(order => validatePocketbaseResponse({
             ...order,
@@ -45,10 +41,10 @@ export const getOrders = async () => {
     } catch (error: unknown) {
         if (error instanceof Error) {   
             console.error('❌ [getOrders] Error fetching orders:', error.message);
-            return { error: error.message, data: undefined };
+            return { error: `Не вдалося завантажити замовлення: ${error.message}`, data: undefined };
         }
         console.error('❌ [getOrders] Error fetching orders:', error);
-        return { error: 'Unknown error in getOrders', data: undefined };
+        return { error: 'Невідома помилка при завантаженні замовлень', data: undefined };
     }
 }
 
@@ -147,14 +143,8 @@ export const checkDuplicateOrder = async (orderNumber: string)=>{
 
 export const getSettings = async () => {
     try {
-        console.log('🔍 [getSettings] Fetching settings with user authentication');
+        console.log('🔍 [getSettings] Fetching settings with authenticated call');
         
-        // Check if user is authenticated
-        if (!pb.authStore.isValid) {
-            throw new Error('User not authenticated');
-        }
-        
-        console.log('✅ [getSettings] User authenticated, fetching settings directly');
         const [
             deliveryMethods,
             paymentMethods,
@@ -162,16 +152,16 @@ export const getSettings = async () => {
             statuses,
             sources
         ] = await Promise.all([
-            pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>(),
-            pb.collection('payment_options').getFullList<PaymentMethodsResponse>(),
-            pb.collection('currency_options').getFullList<CurrencyResponse>(),
-            pb.collection('status_options').getFullList<StatusResponse>({
+            authenticatedCall(() => pb.collection('delivery_options').getFullList<DeliveryOptionsResponse>()),
+            authenticatedCall(() => pb.collection('payment_options').getFullList<PaymentMethodsResponse>()),
+            authenticatedCall(() => pb.collection('currency_options').getFullList<CurrencyResponse>()),
+            authenticatedCall(() => pb.collection('status_options').getFullList<StatusResponse>({
                 expand: 'source'
-            }),
-            pb.collection('sources').getFullList<SourcesResponse>()
+            })),
+            authenticatedCall(() => pb.collection('sources').getFullList<SourcesResponse>())
         ]);
 
-        console.log('✅ [getSettings] Successfully fetched all settings with user auth');
+        console.log('✅ [getSettings] Successfully fetched all settings');
 
         const defaultCurrency = currencies.find(c => c.isDefault) || currencies[0] || {
             id: 'default',
@@ -208,10 +198,10 @@ export const getSettings = async () => {
     } catch (error: unknown) {
         if (error instanceof Error) {
             console.error('❌ [getSettings] Error fetching settings:', error.message);
-            return { error: error.message, data: undefined };
+            return { error: `Помилка завантаження налаштувань: ${error.message}`, data: undefined };
         }
         console.error('❌ [getSettings] Error fetching settings:', error);
-        return { error: 'Unknown error in getSettings', data: undefined };
+        return { error: 'Невідома помилка при завантаженні налаштувань', data: undefined };
     }
 }
 
