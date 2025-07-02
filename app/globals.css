@@ -185,7 +185,7 @@
 [data-radix-dropdown-menu-content],
 [data-radix-select-content],
 [data-radix-popover-content] {
-  z-index: 999999 !important;
+  z-index: 9999 !important;
   background-color: white !important;
 }
 
@@ -200,7 +200,7 @@
 [data-radix-dropdown-menu-trigger][data-state="open"] ~ [data-radix-dropdown-menu-content],
 [data-radix-select-trigger][data-state="open"] ~ [data-radix-select-content],
 [data-radix-popover-trigger][data-state="open"] ~ [data-radix-popover-content] {
-  z-index: 999999 !important;
+  z-index: 9999 !important;
   background-color: white !important;
 }
 
@@ -213,37 +213,27 @@
 /* Calendar component fix */
 .rdp {
   background-color: white !important;
+  pointer-events: auto !important;
 }
 
 .dark .rdp {
   background-color: rgb(30, 41, 59) !important;
 }
 
-/* Fix for calendar day selection */
-.rdp-day {
-  cursor: pointer !important;
+/* Ensure calendar elements are interactive */
+.rdp button {
   pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
-.rdp-day:hover {
-  background-color: hsl(var(--accent)) !important;
-  color: hsl(var(--accent-foreground)) !important;
+.rdp .rdp-day {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
-.rdp-day[aria-selected="true"] {
-  background-color: black !important;
-  color: white !important;
-}
-
-.dark .rdp-day[aria-selected="true"] {
-  background-color: white !important;
-  color: black !important;
-}
-
-.rdp-day_today {
-  background-color: hsl(var(--accent)) !important;
-  color: hsl(var(--accent-foreground)) !important;
-  font-weight: 600 !important;
+.rdp .rdp-nav_button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
 /* Nova Poshta Modal specific fixes */
@@ -283,7 +273,7 @@
 table [data-radix-dropdown-menu-content],
 .overflow-x-auto [data-radix-dropdown-menu-content],
 .overflow-hidden [data-radix-dropdown-menu-content] {
-  z-index: 999999 !important;
+  z-index: 9999 !important;
   background-color: white !important;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
 }
