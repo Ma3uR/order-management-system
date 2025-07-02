@@ -440,10 +440,54 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
 
 export async function syncOrders() {
   try {
-    const rozetkaOrders = await getOrders({ types: 1 });
-    if (!rozetkaOrders || !Array.isArray(rozetkaOrders)) {
-      throw new Error('Failed to fetch Rozetka orders');
+    console.log('🔄 Starting Rozetka orders sync with pagination...');
+    
+    // Fetch all orders across all pages
+    const allOrders: RozetkaOrderResponse[] = [];
+    let page = 1;
+    let totalPagesProcessed = 0;
+    const maxPages = 50; // Safety limit
+    
+    while (page <= maxPages) {
+      console.log(`📄 Fetching page ${page}...`);
+      
+      // Use 21-day date range for more recent orders only
+      const today = new Date();
+      const twentyOneDaysAgo = new Date(today.getTime() - 21 * 24 * 60 * 60 * 1000);
+      const from = twentyOneDaysAgo.toISOString().split('T')[0];
+      const to = today.toISOString().split('T')[0];
+      
+      const pageOrders = await getOrders({ 
+        types: 1, 
+        page,
+        from: from,
+        to: to
+      });
+      
+      if (!pageOrders || !Array.isArray(pageOrders) || pageOrders.length === 0) {
+        console.log(`✅ No more orders on page ${page}, stopping pagination`);
+        break;
+      }
+      
+      console.log(`✅ Page ${page}: Found ${pageOrders.length} orders`);
+      allOrders.push(...pageOrders);
+      totalPagesProcessed++;
+      page++;
+      
+      // Safety check: if we already have more than 200 orders, that's probably enough
+      if (allOrders.length > 200) {
+        console.log(`⏹️ Reached 200+ orders, stopping to avoid processing too many old orders`);
+        break;
+      }
     }
+    
+    console.log(`📊 Total orders fetched: ${allOrders.length} across ${totalPagesProcessed} pages`);
+    
+    if (allOrders.length === 0) {
+      throw new Error('No Rozetka orders found');
+    }
+    
+    const rozetkaOrders = allOrders;
     
     let syncedOrders = 0;
     let failedOrders = 0;
@@ -500,13 +544,17 @@ export async function syncOrders() {
       automation_errors: automationErrors
     });
     
+    console.log(`✅ Sync completed: ${syncedOrders} synced, ${failedOrders} failed, ${totalPagesProcessed} pages processed`);
+    
     return { 
       success: true, 
       syncedOrders, 
       failedOrders,
       automatedStatusChanges,
       telegramNotifications,
-      automationErrors
+      automationErrors,
+      totalOrdersFetched: allOrders.length,
+      pagesProcessed: totalPagesProcessed
     };
   } catch (error) {
     console.error('Failed to sync orders:', error);
