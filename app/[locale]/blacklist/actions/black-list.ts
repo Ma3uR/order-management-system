@@ -74,11 +74,32 @@ export const checkBlackList = async (data: BlacklistFormData)=>{
         const normalizedPhone = (data.phoneNumber || '').replace(/[^\d+]/g, '');
         const escapedFullName = data.fullName?.replace(/"/g, '\\"') || '';
         
+        // Handle Ukrainian phone number normalization
+        const phoneSearchPatterns = [];
+        if (normalizedPhone) {
+            phoneSearchPatterns.push(normalizedPhone);
+            
+            // If phone doesn't start with +380 or 380, and looks like Ukrainian number (starts with 0 and is 10 digits)
+            if (!normalizedPhone.startsWith('+380') && !normalizedPhone.startsWith('380') && 
+                normalizedPhone.startsWith('0') && normalizedPhone.length === 10) {
+                // Add 380 prefix (remove leading 0 and add 380)
+                const phoneWith380 = '380' + normalizedPhone.substring(1);
+                phoneSearchPatterns.push(phoneWith380);
+                phoneSearchPatterns.push('+' + phoneWith380);
+            }
+            
+            // Also try without leading + if it exists
+            if (normalizedPhone.startsWith('+')) {
+                phoneSearchPatterns.push(normalizedPhone.substring(1));
+            }
+        }
+        
         let filter = '';
-        if (normalizedPhone && escapedFullName) {
-            filter = `phoneNumber = "${normalizedPhone}" || fullName ~ "${escapedFullName}"`;
-        } else if (normalizedPhone) {
-            filter = `phoneNumber = "${normalizedPhone}"`;
+        if (phoneSearchPatterns.length > 0 && escapedFullName) {
+            const phoneFilters = phoneSearchPatterns.map(phone => `phoneNumber = "${phone}"`).join(' || ');
+            filter = `(${phoneFilters}) || fullName ~ "${escapedFullName}"`;
+        } else if (phoneSearchPatterns.length > 0) {
+            filter = phoneSearchPatterns.map(phone => `phoneNumber = "${phone}"`).join(' || ');
         } else if (escapedFullName) {
             filter = `fullName ~ "${escapedFullName}"`;
         }
