@@ -66,6 +66,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
   const [categoryOpen, setCategoryOpen] = useState(false)
   const categoryDropdownRef = useRef<HTMLDivElement>(null)
   const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
 
   // Helper function to get selected category
   const getSelectedCategory = (categoryId: string) => {
@@ -292,7 +293,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                             <CalendarIcon className="h-4 w-4 text-black dark:text-white" />
                             {t('date')}
                           </FormLabel>
-                          <Popover>
+                          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
@@ -307,12 +308,17 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="w-auto p-0 z-[9999]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                               <Calendar
                                 mode="single"
                                 selected={field.value}
-                                onSelect={field.onChange}
+                                onSelect={(date) => {
+                                  console.log('Date selected:', date);
+                                  field.onChange(date)
+                                  setDatePickerOpen(false)
+                                }}
                                 initialFocus
+                                disabled={false}
                                 className="rounded-md border-slate-200 dark:border-slate-700"
                               />
                             </PopoverContent>

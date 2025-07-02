@@ -29,7 +29,7 @@ async function testTypesParameter(typesValue: number | null): Promise<TestResult
       console.log(`  📄 Fetching page ${page} with types=${typesValue}...`);
       
       const orders = await getOrders({ 
-        types: typesValue, 
+        types: typesValue || undefined, 
         page: page 
       });
       
@@ -99,7 +99,7 @@ async function analyzeDatabaseOrders() {
     const dbStatusDistribution: Record<string, number> = {};
     const dbOrdersByStatus: Record<string, OrdersResponse[]> = {};
     
-    dbOrders.items.forEach((order: OrdersResponse) => {
+    dbOrders.items.forEach((order) => {
       const statusName = (order.expand?.status as any)?.name || 'Unknown Status';
       const statusId = order.status;
       
@@ -108,7 +108,7 @@ async function analyzeDatabaseOrders() {
       if (!dbOrdersByStatus[statusName]) {
         dbOrdersByStatus[statusName] = [];
       }
-      dbOrdersByStatus[statusName].push(order);
+      dbOrdersByStatus[statusName].push(order as OrdersResponse);
     });
     
     console.log('\n📈 Database Status Distribution:');
@@ -118,7 +118,7 @@ async function analyzeDatabaseOrders() {
     
     // Show recent orders
     console.log('\n📝 Recent Database Orders (last 10):');
-    dbOrders.items.slice(0, 10).forEach((order: OrdersResponse) => {
+    dbOrders.items.slice(0, 10).forEach((order) => {
       const statusName = (order.expand?.status as any)?.name || 'Unknown';
       console.log(`  Order #${order.orderNumber}: ${statusName} (Created: ${new Date(order.created).toLocaleDateString()})`);
     });
