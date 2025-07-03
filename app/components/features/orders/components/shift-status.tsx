@@ -135,13 +135,13 @@ export function ShiftStatusDisplay() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
+            <Clock className="h-5 w-5 text-green-600" />
             {t('shiftStatus')}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-green-700 dark:text-green-300">
             {t('currentFiscalShiftStatus')}
           </CardDescription>
         </CardHeader>
@@ -155,13 +155,13 @@ export function ShiftStatusDisplay() {
   }
 
   return (
-    <Card>
+    <Card className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
+        <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
+          <Clock className="h-5 w-5 text-green-600" />
           {t('shiftStatus')}
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-green-700 dark:text-green-300">
           {t('currentFiscalShiftStatus')}
         </CardDescription>
       </CardHeader>

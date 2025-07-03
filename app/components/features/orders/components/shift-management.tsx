@@ -13,27 +13,16 @@ import { Clock, DollarSign, Receipt, RotateCcw, User, Calendar, TrendingUp, Load
 import { format } from "date-fns"
 import { toast } from 'sonner'
 import { formatCurrency } from "@/app/lib/utils"
+import { ShiftStatusInfo, ShiftStatus } from '@/app/types/casa-vchasno'
 import {
   openShift,
-  getCurrentShift,
   createZReport,
-  getFiscalStatistics
+  getFiscalStatistics,
+  checkShiftStatus
 } from '@/app/[locale]/orders/actions/fiscal-receipts'
 
-interface ShiftData {
-  id: string;
-  cashier: string;
-  opened_at: string;
-  closed_at?: string;
-  status: 'open' | 'closed';
-  total_sales: number;
-  total_returns: number;
-  receipts_count: number;
-  z_report_data?: unknown;
-}
-
 interface FiscalStats {
-  currentShift: ShiftData | null;
+  currentShift: unknown;
   todayReceipts: number;
   todaySales: number;
   todayReturns: number;
@@ -41,7 +30,7 @@ interface FiscalStats {
 
 export function ShiftManagement() {
   const t = useTranslations('Fiscal')
-  const [currentShift, setCurrentShift] = useState<ShiftData | null>(null)
+  const [shiftStatus, setShiftStatus] = useState<ShiftStatusInfo | null>(null)
   const [fiscalStats, setFiscalStats] = useState<FiscalStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [isOpeningShift, setIsOpeningShift] = useState(false)
@@ -50,17 +39,38 @@ export function ShiftManagement() {
   const [showCloseShiftDialog, setShowCloseShiftDialog] = useState(false)
   const [cashierName, setCashierName] = useState("")
 
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return 'N/A'
+    
+    try {
+      // Parse Casa.vchasno datetime format (YYYYMMDDHHMMSS)
+      const year = dateString.substring(0, 4)
+      const month = dateString.substring(4, 6)
+      const day = dateString.substring(6, 8)
+      const hour = dateString.substring(8, 10)
+      const minute = dateString.substring(10, 12)
+      const second = dateString.substring(12, 14)
+      
+      const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`)
+      return format(date, 'MMM d, yyyy HH:mm')
+    } catch {
+      return dateString
+    }
+  }
+
   // Load current shift and fiscal statistics
   const loadShiftData = useCallback(async () => {
     setLoading(true)
     try {
       const [shiftResult, statsResult] = await Promise.all([
-        getCurrentShift(),
+        checkShiftStatus(),
         getFiscalStatistics()
       ])
 
-      if (shiftResult.success) {
-        setCurrentShift(shiftResult.data as ShiftData)
+      if (shiftResult.success && shiftResult.data) {
+        setShiftStatus(shiftResult.data)
+      } else {
+        setShiftStatus(null)
       }
 
       if (statsResult.success && statsResult.data) {
@@ -105,14 +115,18 @@ export function ShiftManagement() {
   }
 
   const handleCloseShift = async () => {
-    if (!currentShift) {
+    if (!shiftStatus || shiftStatus.shift_status !== ShiftStatus.OPEN) {
       toast.error(t('noActiveShiftToClose'))
       return
     }
 
+    // We need a cashier name for closing the shift
+    // For now, we'll use a default or ask the user
+    const cashierForClosing = cashierName || 'Default Cashier'
+
     setIsClosingShift(true)
     try {
-      const result = await createZReport(currentShift.cashier)
+      const result = await createZReport(cashierForClosing)
       
       if (result.success) {
         toast.success(t('shiftClosedSuccessfully'))
@@ -156,7 +170,7 @@ export function ShiftManagement() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              {currentShift ? (
+              {shiftStatus && shiftStatus.shift_status === ShiftStatus.OPEN ? (
                 <Button
                   onClick={() => setShowCloseShiftDialog(true)}
                   variant="destructive"
@@ -186,14 +200,14 @@ export function ShiftManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          {currentShift ? (
+          {shiftStatus && shiftStatus.shift_status === ShiftStatus.OPEN ? (
             <div className="space-y-4">
               <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
                 <Power className="h-4 w-4 text-green-600 dark:text-green-400" />
                 <AlertDescription className="text-green-800 dark:text-green-200">
                   <div className="flex items-center justify-between">
                     <span>
-                      <span dangerouslySetInnerHTML={{__html: t('shiftCurrentlyOpen')}} />
+                      Shift currently <strong>OPEN</strong>
                     </span>
                     <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                       {t('active')}
@@ -204,19 +218,19 @@ export function ShiftManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">{t('cashier')}</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <User className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{currentShift.cashier}</span>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">{t('openedAt')}</Label>
+                  <Label className="text-sm font-medium">{t('shiftDate')}</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Calendar className="h-4 w-4 text-gray-500" />
                     <span className="text-sm">
-                      {currentShift.opened_at ? format(new Date(currentShift.opened_at), "MMM d, yyyy HH:mm") : "-"}
+                      {shiftStatus.shift_dt ? formatDateTime(shiftStatus.shift_dt) : "-"}
                     </span>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">{t('fiscalId')}</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{shiftStatus.fisid || '-'}</span>
                   </div>
                 </div>
               </div>
@@ -225,28 +239,28 @@ export function ShiftManagement() {
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-sm font-medium">{t('sales')}</span>
+                    <span className="text-sm font-medium">{t('salesToday')}</span>
                   </div>
                   <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                    {formatCurrency(currentShift.total_sales || 0)}
+                    {fiscalStats ? formatCurrency(fiscalStats.todaySales) : '₴0.00'}
                   </p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <RotateCcw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm font-medium">{t('returns')}</span>
+                    <span className="text-sm font-medium">{t('returnsToday')}</span>
                   </div>
                   <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                    {formatCurrency(currentShift.total_returns || 0)}
+                    {fiscalStats ? formatCurrency(fiscalStats.todayReturns) : '₴0.00'}
                   </p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <Receipt className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                    <span className="text-sm font-medium">{t('receipts')}</span>
+                    <span className="text-sm font-medium">{t('totalReceipts')}</span>
                   </div>
                   <p className="text-lg font-bold text-gray-600 dark:text-gray-400">
-                    {currentShift.receipts_count || 0}
+                    {fiscalStats ? fiscalStats.todayReceipts : 0}
                   </p>
                 </div>
               </div>
@@ -361,26 +375,26 @@ export function ShiftManagement() {
             <DialogTitle>{t('closeCurrentShift')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {currentShift && (
+            {shiftStatus && (
               <div className="space-y-2">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   {t('closingShiftDescription')}
                 </p>
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm">{t('cashier')}:</span>
-                    <span className="text-sm font-medium">{currentShift.cashier}</span>
+                    <span className="text-sm">{t('fiscalId')}:</span>
+                    <span className="text-sm font-medium">{shiftStatus.fisid}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm">{t('totalSales')}:</span>
+                    <span className="text-sm">{t('salesToday')}:</span>
                     <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                      {formatCurrency(currentShift.total_sales || 0)}
+                      {fiscalStats ? formatCurrency(fiscalStats.todaySales) : '₴0.00'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm">{t('totalReturns')}:</span>
+                    <span className="text-sm">{t('returnsToday')}:</span>
                     <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                      {formatCurrency(currentShift.total_returns || 0)}
+                      {fiscalStats ? formatCurrency(fiscalStats.todayReturns) : '₴0.00'}
                     </span>
                   </div>
                 </div>
