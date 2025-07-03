@@ -379,9 +379,7 @@ export function OrderDetailsModal({
     try {
       const result = await createSaleReceipt(
         order.id,
-        cashierName.trim(),
-        undefined, // customer email - optional
-        order.phoneNumber
+        cashierName.trim()
       )
 
       if (result.success) {

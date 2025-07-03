@@ -30,8 +30,6 @@ export interface ShiftResult {
 export async function createSaleReceipt(
   orderId: string,
   cashierName: string,
-  customerEmail?: string,
-  customerPhone?: string
 ): Promise<FiscalReceiptResult> {
   try {
     // Get order details
@@ -52,8 +50,6 @@ export async function createSaleReceipt(
     const response = await casaVchasnoService.createSaleReceipt(
       order,
       cashierName,
-      customerEmail,
-      customerPhone
     );
 
     return {
@@ -310,21 +306,24 @@ export async function getFiscalStatistics(): Promise<{
     const receipts = await authenticatedCall(() =>
       pb.collection('fiscal_receipts').getList(1, 1000, {
         filter: `created >= "${today} 00:00:00"`,
-        fields: 'receipt_type,casa_response'
+        fields: 'receipt_type,fiscal_data'
       })
     );
+
+    console.log('Receipts:', JSON.stringify(receipts.items, null, 2))
 
     // Calculate statistics
     let todaySales = 0;
     let todayReturns = 0;
     const todayReceipts = receipts.items.length;
 
-    receipts.items.forEach(receipt => {
-      if (receipt.casa_response?.info?.receipt?.sum) {
+    receipts.items.forEach((receipt) => {
+      const sum = receipt.fiscal_data?.fiscal?.receipt?.sum;
+      if (sum) {
         if (receipt.receipt_type === 'sale') {
-          todaySales += receipt.casa_response.info.receipt.sum;
+          todaySales += sum;
         } else if (receipt.receipt_type === 'return') {
-          todayReturns += receipt.casa_response.info.receipt.sum;
+          todayReturns += sum;
         }
       }
     });
