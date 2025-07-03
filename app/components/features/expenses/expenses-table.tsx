@@ -453,7 +453,7 @@ export function ExpensesTable() {
                               whileHover={{ scale: 1.05 }}
                               transition={{ type: "spring", stiffness: 400, damping: 10 }}
                             >
-                              ${formatAmount(expense.amount || 0)}
+                              ₴{formatAmount(expense.amount || 0)}
                             </motion.span>
                           </TableCell>
                           <TableCell>
