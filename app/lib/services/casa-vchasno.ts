@@ -108,14 +108,11 @@ export class CasaVchasnoService {
   /**
    * Create payment array for receipt
    */
-  private createPaymentArray(amount: number, paymentMethodName: string): Payment[] {
-    const paymentType = this.getPaymentType(paymentMethodName);
-    
+  private createPaymentArray(amount: number): Payment[] {    
     return [{
-      type: paymentType,
+      type: PaymentType.CARD,
       sum: amount,
-      change: paymentType === PaymentType.CASH ? 0 : undefined,
-      comment: `Оплата через ${paymentMethodName}`,
+      change: 0,
     }];
   }
 
@@ -139,11 +136,8 @@ export class CasaVchasnoService {
       }
 
       // Prepare payment information
-      const expandData = order.expand as Record<string, unknown>;
-      const paymentMethodName = (expandData?.paymentMethod as Record<string, unknown>)?.name as string || 'Other';
       const payments = this.createPaymentArray(
-        order.amount || 0,
-        paymentMethodName
+        order.amount || 0
       );
 
       // Prepare receipt data
@@ -151,7 +145,7 @@ export class CasaVchasnoService {
         sum: order.amount || 0,
         round: 0,
         comment_up: `Замовлення: ${order.orderNumber}`,
-        comment_down: `Покупець: ${order.fullName}`,
+        comment_down: `Покупець: ${order.fullName}, дякуємо за покупку!`,
         disc: 0,
         disc_type: DiscountType.AMOUNT,
         rows: receiptRows,
@@ -208,11 +202,8 @@ export class CasaVchasnoService {
       const amount = returnAmount || order.amount || 0;
 
       // Prepare payment information
-      const expandData2 = order.expand as Record<string, unknown>;
-      const paymentMethodName2 = (expandData2?.paymentMethod as Record<string, unknown>)?.name as string || 'Other';
       const payments = this.createPaymentArray(
-        amount,
-        paymentMethodName2
+        amount
       );
 
       // Prepare receipt data
