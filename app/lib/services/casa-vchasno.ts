@@ -9,7 +9,6 @@ import {
   Payment,
   Receipt,
   FiscalData,
-  UserInfo,
   CasaVchasnoError,
   ShiftStatusInfo,
   ShiftStatus
@@ -116,7 +115,7 @@ export class CasaVchasnoService {
       type: paymentType,
       sum: amount,
       change: paymentType === PaymentType.CASH ? 0 : undefined,
-      comment: `Payment via ${paymentMethodName}`,
+      comment: `Оплата через ${paymentMethodName}`,
     }];
   }
 
@@ -126,8 +125,6 @@ export class CasaVchasnoService {
   async createSaleReceipt(
     order: OrdersResponse,
     cashierName: string,
-    customerEmail?: string,
-    customerPhone?: string
   ): Promise<CasaVchasnoResponse> {
     try {
       console.log('[Casa.vchasno] Creating sale receipt for order:', order.orderNumber);
@@ -153,20 +150,14 @@ export class CasaVchasnoService {
       const receipt: Receipt = {
         sum: order.amount || 0,
         round: 0,
-        comment_up: `Order: ${order.orderNumber}`,
-        comment_down: `Customer: ${order.fullName}`,
+        comment_up: `Замовлення: ${order.orderNumber}`,
+        comment_down: `Покупець: ${order.fullName}`,
         disc: 0,
         disc_type: DiscountType.AMOUNT,
         rows: receiptRows,
         pays: payments,
       };
 
-      // Prepare user info (required for sales)
-      const customerEmail_ = (expandData?.customer as Record<string, unknown>)?.email as string || 'noemail@example.com';
-      const userinfo: UserInfo = {
-        email: customerEmail || customerEmail_,
-        phone: customerPhone || order.phoneNumber || '+380000000000',
-      };
 
       // Prepare fiscal data
       const fiscalData: FiscalData = {
@@ -178,7 +169,6 @@ export class CasaVchasnoService {
       // Create request
       const request: CasaVchasnoRequest = {
         source: 'ORDER_MANAGEMENT_SYSTEM',
-        userinfo,
         fiscal: fiscalData,
       };
 
@@ -229,8 +219,8 @@ export class CasaVchasnoService {
       const receipt: Receipt = {
         sum: amount,
         round: 0,
-        comment_up: `Return for Order: ${order.orderNumber}`,
-        comment_down: `Customer: ${order.fullName}`,
+        comment_up: `Повернення за замовленням: ${order.orderNumber}`,
+        comment_down: `Покупець: ${order.fullName}`,
         disc: 0,
         disc_type: DiscountType.AMOUNT,
         rows: receiptRows,

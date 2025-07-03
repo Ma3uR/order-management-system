@@ -352,22 +352,59 @@ export function OrdersDashboard() {
 
   // Filter statuses based on selected sources
   const filteredStatuses = useMemo(() => {
-    if (filters.source.length === 0) {
-      // If no source is selected, show all statuses
-      return statuses
+    let statusesToShow = statuses
+    
+    if (filters.source.length > 0) {
+      // Filter statuses to only show those that belong to the selected sources
+      statusesToShow = statuses.filter(status => {
+        // Check if the status has a source property and if it matches any selected source
+        const statusSource = status.source
+        if (statusSource) {
+          return filters.source.includes(statusSource)
+        }
+        // If status doesn't have a source (general status), don't show it when sources are selected
+        // This prevents showing general statuses when specific sources are selected
+        return false
+      })
     }
     
-    // Filter statuses to only show those that belong to the selected sources
-    return statuses.filter(status => {
-      // Check if the status has a source property and if it matches any selected source
-      const statusSource = status.source
-      if (statusSource) {
-        return filters.source.includes(statusSource)
-      }
-      // If status doesn't have a source (general status), show it
-      return true
+    // Sort statuses: by source name first, then by status name
+    return statusesToShow.sort((a, b) => {
+      // Both have sources - sort by name
+      return a.name.localeCompare(b.name)
     })
   }, [statuses, filters.source])
+
+  // Calculate dynamic amount range based on actual order data
+  const dynamicAmountRange = useMemo(() => {
+    if (orders.length === 0) {
+      return { min: 0, max: 1000 }
+    }
+    
+    const amounts = orders.map(order => order.amount).filter(amount => amount > 0)
+    if (amounts.length === 0) {
+      return { min: 0, max: 1000 }
+    }
+    
+    const min = Math.min(...amounts)
+    const max = Math.max(...amounts)
+    
+    // Round to nice numbers
+    const roundedMin = Math.floor(min / 10) * 10
+    const roundedMax = Math.ceil(max / 10) * 10
+    
+    return { min: roundedMin, max: roundedMax }
+  }, [orders])
+
+  // Update amount range when orders change
+  useEffect(() => {
+    if (orders.length > 0) {
+      setFilters(prev => ({
+        ...prev,
+        amountRange: [dynamicAmountRange.min, dynamicAmountRange.max]
+      }))
+    }
+  }, [dynamicAmountRange.min, dynamicAmountRange.max])
 
   const activeFilterCount = useMemo(() => {
     let count = 0
@@ -590,7 +627,7 @@ export function OrdersDashboard() {
       status: [],
       source: [],
       dateRange: undefined, // Ensure this is reset
-      amountRange: [0, 1000],
+      amountRange: [dynamicAmountRange.min, dynamicAmountRange.max],
       showArchived: false,
     })
   }
@@ -772,12 +809,12 @@ export function OrdersDashboard() {
                 <>
                   {/* Transparent Backdrop */}
                   <div 
-                    className="fixed inset-0 bg-transparent z-[999997]"
+                    className="fixed inset-0 bg-transparent z-[9997]"
                     onClick={() => setIsFiltersSidebarOpen(false)}
                   />
                   
                   {/* Sidebar Content */}
-                  <div className="fixed inset-y-0 right-0 h-full w-full sm:max-w-xs bg-white dark:bg-slate-800 shadow-lg z-[999998]">
+                  <div className="fixed inset-y-0 right-0 h-full w-full sm:max-w-xs bg-white dark:bg-slate-800 shadow-lg z-[9998]">
                     <div className="flex flex-col h-full">
                       <div className="p-6 pb-4">
                         <div className="flex items-center justify-between">
@@ -805,7 +842,7 @@ export function OrdersDashboard() {
                                 <ChevronDown className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[999999]">
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] max-h-[300px] overflow-y-auto">
                               {filteredStatuses.map((status) => (
                                 <DropdownMenuCheckboxItem
                                   key={status.id}
@@ -845,7 +882,7 @@ export function OrdersDashboard() {
                                 <ChevronDown className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[999999]">
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
                               {sources.map((source) => (
                                 <DropdownMenuCheckboxItem
                                   key={source.id}
@@ -862,8 +899,8 @@ export function OrdersDashboard() {
                                         if (statusSource) {
                                           return newSources.includes(statusSource)
                                         }
-                                        // Keep general statuses (those without a source)
-                                        return true
+                                        // Only keep general statuses if no sources are selected
+                                        return newSources.length === 0
                                       }).map(s => s.id)
                                       
                                       const filteredStatusSelections = prev.status.filter(statusId => 
@@ -921,7 +958,7 @@ export function OrdersDashboard() {
                                 )}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 z-[999999]" align="start">
+                            <PopoverContent className="w-auto p-0 z-[10000]" align="start">
                               <Calendar
                                 initialFocus
                                 mode="range"
@@ -940,8 +977,8 @@ export function OrdersDashboard() {
                         <div>
                           <Label className="text-sm font-medium">{t('amountRange')}</Label>
                           <Slider
-                            min={0}
-                            max={1000} // TODO: Set max dynamically based on data
+                            min={dynamicAmountRange.min}
+                            max={dynamicAmountRange.max}
                             step={10}
                             value={filters.amountRange}
                             onValueChange={(value) =>
@@ -952,6 +989,10 @@ export function OrdersDashboard() {
                           <div className="flex justify-between text-xs text-muted-foreground mt-1">
                             <span>{filters.amountRange[0]} UAH</span>
                             <span>{filters.amountRange[1]} UAH</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>Min: {dynamicAmountRange.min} UAH</span>
+                            <span>Max: {dynamicAmountRange.max} UAH</span>
                           </div>
                         </div>
                         {/* Archive Toggle */}

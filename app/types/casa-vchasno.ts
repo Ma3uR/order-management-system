@@ -28,8 +28,8 @@ export enum DiscountType {
 
 // Request Types
 export interface UserInfo {
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface ReceiptRow {
