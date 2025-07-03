@@ -119,9 +119,8 @@ class TelegramService {
       productsList,
       '',
       `${products.reduce((sum, product) => sum + product.quantity, 0)} ${products.reduce((sum, product) => sum + product.quantity, 0) === 1 ? 'позиція' : 'позиції'}`,
-      `💳 ${paymentMethod || 'Не вказано'}`,
-      isPayed !== undefined ? `💰 ${isPayed ? 'Оплачено' : 'Не оплачено'}` : '',
-      
+      isPayed ? `ЕВО: ${orderData.totalAmount.toLocaleString('uk-UA')} ${orderData.currency || '₴'}` : `💳 ${paymentMethod || 'Не вказано'}`,
+      isPayed !== undefined && !isPayed ? `💰 Не оплачено` : '',
     ];
 
     return messageParts.filter(part => part !== null && part !== undefined).join('\n');

@@ -173,7 +173,7 @@ export function ExpenseSummary() {
                 </div>
               </div>
               <div className={`text-3xl font-bold mb-1 ${isLoading ? "animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-24 rounded" : ""}`}>
-                {!isLoading && `₴${formatAmount(summaryData.totalSpent)}`}
+                {!isLoading && `₴ ${formatAmount(summaryData.totalSpent)}`}
               </div>
               <div className="text-xs text-muted-foreground">{t('thisMonth')}</div>
             </div>
@@ -198,7 +198,7 @@ export function ExpenseSummary() {
                 </div>
               </div>
               <div className={`text-3xl font-bold mb-1 ${isLoading ? "animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-24 rounded" : ""}`}>
-                {!isLoading && `₴${formatAmount(summaryData.averagePerDay)}`}
+                {!isLoading && `₴ ${formatAmount(summaryData.averagePerDay)}`}
               </div>
               <div className="text-xs text-muted-foreground">{t('perDay')}</div>
             </div>
@@ -234,7 +234,7 @@ export function ExpenseSummary() {
                 )}
               </div>
               <div className="text-xs text-muted-foreground">
-                {!isLoading && `₴${formatAmount(summaryData.highestCategoryAmount)}`}
+                {!isLoading && `₴ ${formatAmount(summaryData.highestCategoryAmount)}`}
               </div>
             </div>
           </CardContent>

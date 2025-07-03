@@ -9,7 +9,6 @@ import {
   Payment,
   Receipt,
   FiscalData,
-  UserInfo,
   CasaVchasnoError,
   ShiftStatusInfo,
   ShiftStatus
@@ -109,14 +108,11 @@ export class CasaVchasnoService {
   /**
    * Create payment array for receipt
    */
-  private createPaymentArray(amount: number, paymentMethodName: string): Payment[] {
-    const paymentType = this.getPaymentType(paymentMethodName);
-    
+  private createPaymentArray(amount: number): Payment[] {    
     return [{
-      type: paymentType,
+      type: PaymentType.CARD,
       sum: amount,
-      change: paymentType === PaymentType.CASH ? 0 : undefined,
-      comment: `Payment via ${paymentMethodName}`,
+      change: 0,
     }];
   }
 
@@ -126,8 +122,6 @@ export class CasaVchasnoService {
   async createSaleReceipt(
     order: OrdersResponse,
     cashierName: string,
-    customerEmail?: string,
-    customerPhone?: string
   ): Promise<CasaVchasnoResponse> {
     try {
       console.log('[Casa.vchasno] Creating sale receipt for order:', order.orderNumber);
@@ -142,31 +136,22 @@ export class CasaVchasnoService {
       }
 
       // Prepare payment information
-      const expandData = order.expand as Record<string, unknown>;
-      const paymentMethodName = (expandData?.paymentMethod as Record<string, unknown>)?.name as string || 'Other';
       const payments = this.createPaymentArray(
-        order.amount || 0,
-        paymentMethodName
+        order.amount || 0
       );
 
       // Prepare receipt data
       const receipt: Receipt = {
         sum: order.amount || 0,
         round: 0,
-        comment_up: `Order: ${order.orderNumber}`,
-        comment_down: `Customer: ${order.fullName}`,
+        comment_up: `Замовлення: ${order.orderNumber}`,
+        comment_down: `Покупець: ${order.fullName}, дякуємо за покупку!`,
         disc: 0,
         disc_type: DiscountType.AMOUNT,
         rows: receiptRows,
         pays: payments,
       };
 
-      // Prepare user info (required for sales)
-      const customerEmail_ = (expandData?.customer as Record<string, unknown>)?.email as string || 'noemail@example.com';
-      const userinfo: UserInfo = {
-        email: customerEmail || customerEmail_,
-        phone: customerPhone || order.phoneNumber || '+380000000000',
-      };
 
       // Prepare fiscal data
       const fiscalData: FiscalData = {
@@ -178,7 +163,6 @@ export class CasaVchasnoService {
       // Create request
       const request: CasaVchasnoRequest = {
         source: 'ORDER_MANAGEMENT_SYSTEM',
-        userinfo,
         fiscal: fiscalData,
       };
 
@@ -218,19 +202,16 @@ export class CasaVchasnoService {
       const amount = returnAmount || order.amount || 0;
 
       // Prepare payment information
-      const expandData2 = order.expand as Record<string, unknown>;
-      const paymentMethodName2 = (expandData2?.paymentMethod as Record<string, unknown>)?.name as string || 'Other';
       const payments = this.createPaymentArray(
-        amount,
-        paymentMethodName2
+        amount
       );
 
       // Prepare receipt data
       const receipt: Receipt = {
         sum: amount,
         round: 0,
-        comment_up: `Return for Order: ${order.orderNumber}`,
-        comment_down: `Customer: ${order.fullName}`,
+        comment_up: `Повернення за замовленням: ${order.orderNumber}`,
+        comment_down: `Покупець: ${order.fullName}`,
         disc: 0,
         disc_type: DiscountType.AMOUNT,
         rows: receiptRows,
