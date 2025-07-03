@@ -381,7 +381,7 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
       price: parseFloat(item.item_price)
     })) || [],
     numberOfItems: rozetkaOrder.total_quantity || 0,
-    amount: parseFloat(rozetkaOrder.amount),
+    amount: parseFloat(rozetkaOrder.amount_with_discount),
     paymentMethod: defaultPaymentMethod.items[0].id,
     deliveryMethod: defaultDeliveryMethod.data.id,
     status: orderStatus,
