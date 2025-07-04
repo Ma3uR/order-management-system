@@ -3,7 +3,6 @@ import {
   CasaVchasnoResponse,
   TaskType,
   PaymentType,
-  TaxGroup,
   DiscountType,
   ReceiptRow,
   Payment,
@@ -82,27 +81,10 @@ export class CasaVchasnoService {
         cnt: (p.quantity as number) || (p.qty as number) || 1,
         price: (p.price as number) || 0,
         disc: (p.discount as number) || 0,
-        taxgrp: (p.taxGroup as string) || TaxGroup.NO_VAT.toString(),
+        taxgrp: 2, // Always use tax group 2 (no VAT) info from casa.vchasno support
         comment: (p.comment as string) || '',
       };
     });
-  }
-
-  /**
-   * Convert payment method to Casa.vchasno payment type
-   */
-  private getPaymentType(paymentMethodName: string): PaymentType {
-    const lowerPayment = paymentMethodName.toLowerCase();
-    
-    if (lowerPayment.includes('cash') || lowerPayment.includes('готівка') || lowerPayment.includes('наличные')) {
-      return PaymentType.CASH;
-    }
-    
-    if (lowerPayment.includes('card') || lowerPayment.includes('картка') || lowerPayment.includes('карта')) {
-      return PaymentType.CARD;
-    }
-    
-    return PaymentType.OTHER;
   }
 
   /**
@@ -490,5 +472,51 @@ export class CasaVchasnoService {
   }
 }
 
-// Export singleton instance
-export const casaVchasnoService = new CasaVchasnoService();
+// Lazy singleton instance - only instantiate when needed on server side
+let _casaVchasnoService: CasaVchasnoService | null = null;
+
+export const casaVchasnoService = {
+  getInstance(): CasaVchasnoService {
+    if (!_casaVchasnoService) {
+      _casaVchasnoService = new CasaVchasnoService();
+    }
+    return _casaVchasnoService;
+  },
+  
+  // Proxy methods to the singleton instance
+  async createSaleReceipt(order: OrdersResponse, cashierName: string) {
+    return this.getInstance().createSaleReceipt(order, cashierName);
+  },
+  
+  async createReturnReceipt(order: OrdersResponse, cashierName: string, returnAmount?: number) {
+    return this.getInstance().createReturnReceipt(order, cashierName, returnAmount);
+  },
+  
+  async createZReport(cashierName: string) {
+    return this.getInstance().createZReport(cashierName);
+  },
+  
+  async openShift(cashierName: string) {
+    return this.getInstance().openShift(cashierName);
+  },
+  
+  async getCurrentShift() {
+    return this.getInstance().getCurrentShift();
+  },
+  
+  async getFiscalReceiptsForOrder(orderId: string) {
+    return this.getInstance().getFiscalReceiptsForOrder(orderId);
+  },
+  
+  async checkShiftStatus() {
+    return this.getInstance().checkShiftStatus();
+  },
+  
+  getShiftStatusText(status: ShiftStatus) {
+    return this.getInstance().getShiftStatusText(status);
+  },
+  
+  getShiftStatusColor(status: ShiftStatus) {
+    return this.getInstance().getShiftStatusColor(status);
+  }
+};

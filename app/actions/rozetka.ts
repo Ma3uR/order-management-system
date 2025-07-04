@@ -117,7 +117,7 @@ class RozetkaAPI {
           types: params?.types || 1,
           created_from: params?.from || defaultFrom,
           created_to: params?.to || defaultTo,
-          expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed'
+          expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed, prro_receipt_status'
         }
       });
 

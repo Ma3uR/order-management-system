@@ -9,7 +9,7 @@ import { Badge } from "@/app/components/shared/ui/badge"
 import { Label } from "@/app/components/shared/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/shared/ui/card"
 import { Alert, AlertDescription } from "@/app/components/shared/ui/alert"
-import { Clock, DollarSign, Receipt, RotateCcw, User, Calendar, TrendingUp, Loader2, Power, PowerOff, FileText } from "lucide-react"
+import { Clock, DollarSign, Receipt, RotateCcw, User, Calendar, Loader2, Power, PowerOff, FileText } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from 'sonner'
 import { formatCurrency } from "@/app/lib/utils"
@@ -38,6 +38,7 @@ export function ShiftManagement() {
   const [showOpenShiftDialog, setShowOpenShiftDialog] = useState(false)
   const [showCloseShiftDialog, setShowCloseShiftDialog] = useState(false)
   const [cashierName, setCashierName] = useState("")
+  const [closingCashierName, setClosingCashierName] = useState("")
 
   const formatDateTime = (dateString: string) => {
     if (!dateString) return 'N/A'
@@ -120,17 +121,19 @@ export function ShiftManagement() {
       return
     }
 
-    // We need a cashier name for closing the shift
-    // For now, we'll use a default or ask the user
-    const cashierForClosing = cashierName || 'Default Cashier'
+    if (!closingCashierName.trim()) {
+      toast.error(t('cashierNameRequired'))
+      return
+    }
 
     setIsClosingShift(true)
     try {
-      const result = await createZReport(cashierForClosing)
+      const result = await createZReport(closingCashierName.trim())
       
       if (result.success) {
         toast.success(t('shiftClosedSuccessfully'))
         setShowCloseShiftDialog(false)
+        setClosingCashierName("")
         await loadShiftData()
       } else {
         toast.error(`${t('failedToCloseShift')}: ${result.error}`)
@@ -276,49 +279,38 @@ export function ShiftManagement() {
         </CardContent>
       </Card>
 
-      {/* Today's Statistics */}
-      {fiscalStats && (
+      {/* Shift Operations */}
+      {shiftStatus && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              {t('todaysFiscalStatistics')}
+              <Clock className="h-5 w-5" />
+              Shift Operations
             </CardTitle>
             <CardDescription>
-              {t('fiscalReceiptStatistics')}
+              Quick actions for shift management
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <Receipt className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">{t('totalReceipts')}</span>
-                </div>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {fiscalStats.todayReceipts}
-                </p>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                onClick={() => setShowOpenShiftDialog(true)}
+                disabled={shiftStatus.shift_status === ShiftStatus.OPEN || isOpeningShift}
+                className="h-16 flex flex-col items-center justify-center gap-2"
+              >
+                <Power className="h-5 w-5" />
+                <span className="text-sm">{t('openNewShift')}</span>
+              </Button>
               
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  <span className="text-sm font-medium text-green-800 dark:text-green-200">{t('salesToday')}</span>
-                </div>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {formatCurrency(fiscalStats.todaySales)}
-                </p>
-              </div>
-              
-              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <RotateCcw className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                  <span className="text-sm font-medium text-orange-800 dark:text-orange-200">{t('returnsToday')}</span>
-                </div>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  {formatCurrency(fiscalStats.todayReturns)}
-                </p>
-              </div>
+              <Button
+                onClick={() => setShowCloseShiftDialog(true)}
+                disabled={shiftStatus.shift_status !== ShiftStatus.OPEN || isClosingShift}
+                variant="outline"
+                className="h-16 flex flex-col items-center justify-center gap-2"
+              >
+                <PowerOff className="h-5 w-5" />
+                <span className="text-sm">{t('closeCurrentShift')}</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -369,12 +361,31 @@ export function ShiftManagement() {
       </Dialog>
 
       {/* Close Shift Dialog */}
-      <Dialog open={showCloseShiftDialog} onOpenChange={setShowCloseShiftDialog}>
+      <Dialog open={showCloseShiftDialog} onOpenChange={(open) => {
+        setShowCloseShiftDialog(open)
+        if (!open) {
+          setClosingCashierName("")
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('closeCurrentShift')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div>
+              <Label htmlFor="closingCashierName">{t('cashierName')}</Label>
+              <Input
+                id="closingCashierName"
+                value={closingCashierName}
+                onChange={(e) => setClosingCashierName(e.target.value)}
+                placeholder={t('enterCashierName')}
+                className="mt-1"
+                disabled={isClosingShift}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {t('mustMatchOpeningCashier')}
+              </p>
+            </div>
             {shiftStatus && (
               <div className="space-y-2">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -410,7 +421,10 @@ export function ShiftManagement() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setShowCloseShiftDialog(false)}
+              onClick={() => {
+                setShowCloseShiftDialog(false)
+                setClosingCashierName("")
+              }}
               disabled={isClosingShift}
             >
               {t('cancel')}
@@ -418,7 +432,7 @@ export function ShiftManagement() {
             <Button
               variant="destructive"
               onClick={handleCloseShift}
-              disabled={isClosingShift}
+              disabled={isClosingShift || !closingCashierName.trim()}
             >
               {isClosingShift && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('closeShiftAndGenerateZReport')}
