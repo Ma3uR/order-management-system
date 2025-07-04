@@ -14,6 +14,7 @@ import {
 } from '@/app/types/casa-vchasno';
 import { OrdersResponse, FiscalReceiptsReceiptTypeOptions, FiscalReceiptsStatusOptions, FiscalShiftsStatusOptions, FiscalShiftsResponse } from '@/app/types/pocketbase-types';
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import { createRozetkaReceipt } from '@/app/actions/rozetka';
 
 export class CasaVchasnoService {
   private readonly baseUrl = 'https://kasa.vchasno.ua/api/v3';
@@ -153,6 +154,9 @@ export class CasaVchasnoService {
       // Save receipt data to database
       await this.saveFiscalReceipt(order.id, FiscalReceiptsReceiptTypeOptions.sale, request, response);
       
+      // If this is a Rozetka order and receipt was successful, create receipt on Rozetka side
+      await this.handleRozetkaReceiptCreation(order, response);
+      
       return response;
     } catch (error) {
       console.error('[Casa.vchasno] Error creating sale receipt:', error);
@@ -281,6 +285,65 @@ export class CasaVchasnoService {
     } catch (error) {
       console.error('[Casa.vchasno] Error saving fiscal receipt:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Handle Rozetka receipt creation after successful local fiscal receipt
+   */
+  private async handleRozetkaReceiptCreation(
+    order: OrdersResponse,
+    casaResponse: CasaVchasnoResponse
+  ): Promise<void> {
+    try {
+      // Check if this is a successful receipt creation
+      if (casaResponse.res !== 0) {
+        console.log('[Casa.vchasno] Skipping Rozetka receipt - Casa.vchasno receipt failed');
+        return;
+      }
+
+      // Get order source to check if it's Rozetka (source ID: 4tvf116a5aitwmb)
+      const orderWithSource = await authenticatedCall(() =>
+        pb.collection('orders').getOne(order.id, {
+          expand: 'source'
+        })
+      );
+
+      const sourceId = orderWithSource.source;
+      const isRozetkaOrder = sourceId === '4tvf116a5aitwmb';
+
+      if (!isRozetkaOrder) {
+        console.log(`[Casa.vchasno] Skipping Rozetka receipt - not a Rozetka order (source: ${sourceId})`);
+        return;
+      }
+
+      // Extract QR code URL from Casa.vchasno response
+      const qrCodeUrl = (casaResponse.info as unknown as Record<string, unknown>)?.qr as string;
+      
+      console.log(`[Casa.vchasno] Creating Rozetka receipt for order ${orderWithSource.orderNumber}...`);
+      
+      // Create receipt on Rozetka side
+      const rozetkaResult = await createRozetkaReceipt(orderWithSource.orderNumber, qrCodeUrl);
+      
+      if (rozetkaResult.error) {
+        console.error(`[Casa.vchasno] Failed to create Rozetka receipt for order ${orderWithSource.orderNumber}:`, rozetkaResult.error);
+        // Don't throw error - continue even if Rozetka API fails
+        return;
+      }
+
+      // Update local order prro_receipt_status to true
+      await authenticatedCall(() =>
+        pb.collection('orders').update(orderWithSource.id, {
+          prro_receipt_status: true,
+          updated: new Date().toISOString()
+        })
+      );
+
+      console.log(`✅ [Casa.vchasno] Successfully created Rozetka receipt and updated local status for order ${orderWithSource.orderNumber}`);
+      
+    } catch (error) {
+      console.error('[Casa.vchasno] Error handling Rozetka receipt creation:', error);
+      // Don't throw error - this is a non-critical operation
     }
   }
 

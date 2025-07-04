@@ -617,9 +617,10 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
     console.log('🔍 Loading completed orders without receipts...');
     
     // Get all orders with completed statuses that don't have successful fiscal receipts
+    // and have prro_receipt_status = false (no receipt created on Rozetka side)
     const orders = await authenticatedCall(() =>
       pb.collection('orders').getList(1, 500, {
-        filter: `archived = false`,
+        filter: `archived = false && (prro_receipt_status = false || prro_receipt_status = null)`,
         expand: 'status,source',
         sort: '-created'
       })

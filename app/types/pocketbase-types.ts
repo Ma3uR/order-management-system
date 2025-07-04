@@ -157,6 +157,7 @@ notes?: string
 	productionCost?: number
 	invoice_data?: null | Tinvoice_data
 	created_at_marketplace?: IsoDateString
+	prro_receipt_status?: boolean
 }
 
 export type PaymentOptionsRecord = {
