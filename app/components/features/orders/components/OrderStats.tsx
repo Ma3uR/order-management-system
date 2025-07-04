@@ -34,7 +34,7 @@ export function OrderStats({ orders, translations }: OrderStatsProps) {
 
     const dayAmount = activeOrders
       .filter(order => {
-        const orderDate = new Date(order.created)
+        const orderDate = new Date(order.created_at_marketplace || order.created)
         return orderDate >= dayStart && orderDate <= dayEnd
       })
       .reduce((sum, order) => sum + Number(order.amount), 0)
@@ -54,7 +54,7 @@ export function OrderStats({ orders, translations }: OrderStatsProps) {
     return {
       date: date.toISOString().split('T')[0],
       count: activeOrders.filter(order => {
-        const orderDate = new Date(order.created)
+        const orderDate = new Date(order.created_at_marketplace || order.created)
         return orderDate >= dayStart && orderDate <= dayEnd
       }).length
     }

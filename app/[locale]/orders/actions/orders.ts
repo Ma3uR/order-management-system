@@ -21,7 +21,7 @@ export const getOrders = async () => {
         
         const orders = await authenticatedCall(() => 
             pb.collection('orders').getFullList({
-                sort: '-created',
+                sort: '-created_at_marketplace,-created',
                 expand: 'deliveryMethod,paymentMethod,status,currency'
             })
         );
