@@ -38,6 +38,8 @@ export const orderSchema = z.object({
   archived: z.boolean().optional(),
   productionCost: z.number().min(0, "Production cost must be non-negative").optional(),
   invoice_data: z.union([invoiceDataSchema, z.null()]).optional(),
+  created_at_marketplace: z.string().optional(),
+  prro_receipt_status: z.boolean().optional(),
 }) satisfies z.ZodType<OrdersRecord>;
 
 export type OrderFormData = z.infer<typeof orderSchema>;

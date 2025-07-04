@@ -28,6 +28,7 @@ interface CompletedOrder {
   phoneNumber?: string
   amount: number
   created: string
+  created_at_marketplace?: string
   products: Array<{
     title?: string
     name?: string
@@ -355,7 +356,7 @@ export function CompletedOrdersTab(): JSX.Element {
                         </div>
                       </td>
                       <td className="p-3 text-sm text-muted-foreground">
-                        {format(new Date(order.created), "MMM d, HH:mm")}
+                        {format(new Date(order.created_at_marketplace || order.created), "MMM d, HH:mm")}
                       </td>
                       <td className="p-3">
                         <Button

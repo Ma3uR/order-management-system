@@ -622,7 +622,7 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
       pb.collection('orders').getList(1, 500, {
         filter: `archived = false && (prro_receipt_status = false || prro_receipt_status = null)`,
         expand: 'status,source',
-        sort: '-created'
+        sort: '-created_at_marketplace,-created'
       })
     );
 

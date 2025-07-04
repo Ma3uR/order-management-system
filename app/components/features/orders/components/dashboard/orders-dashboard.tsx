@@ -1299,12 +1299,15 @@ export function OrdersDashboard() {
                               </Badge>
                             </TableCell>
                             <TableCell>{(() => {
-                              const dateValue = order.created_at_marketplace || order.created;
+                              const marketplaceDate = order.created_at_marketplace;
+                              const defaultDate = order.created;
+                              const dateValue = marketplaceDate || defaultDate;
                               const dateObj = new Date(dateValue);
                               console.log(`🔍 Order ${order.orderNumber}:`, {
-                                raw: dateValue,
-                                dateObj: dateObj.toISOString(),
-                                formatted: format(dateObj, "MMM d, yyyy HH:mm:ss")
+                                created_at_marketplace: marketplaceDate,
+                                created: defaultDate,
+                                using: dateValue,
+                                formatted: format(dateObj, "MMM d, yyyy HH:mm")
                               });
                               return format(dateObj, "MMM d, yyyy HH:mm");
                             })()}</TableCell>
