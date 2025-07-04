@@ -117,7 +117,7 @@ class RozetkaAPI {
           types: params?.types || 1,
           created_from: params?.from || defaultFrom,
           created_to: params?.to || defaultTo,
-          expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed'
+          expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed, prro_receipt_status'
         }
       });
 
@@ -309,18 +309,23 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     if (statusResult.items.length > 0) {
       const newStatusId = statusResult.items[0].id;
       
-      // Only update if status has changed
-      if (existingOrder.status !== newStatusId) {
-        console.log(`Updating order ${rozetkaOrder.id} status from ${existingOrder.status} to ${newStatusId}`);
+      // Check if status or prro_receipt_status has changed
+      const newPrroReceiptStatus = rozetkaOrder.prro_receipt_status || false;
+      const statusChanged = existingOrder.status !== newStatusId;
+      const prroStatusChanged = existingOrder.prro_receipt_status !== newPrroReceiptStatus;
+      
+      if (statusChanged || prroStatusChanged) {
+        console.log(`Updating order ${rozetkaOrder.id}${statusChanged ? ` status from ${existingOrder.status} to ${newStatusId}` : ''}${prroStatusChanged ? ` prro_receipt_status to ${newPrroReceiptStatus}` : ''}`);
         
         await authenticatedCall(async () => {
           return await pb.collection('orders').update(existingOrder.id, {
             status: newStatusId,
+            prro_receipt_status: newPrroReceiptStatus,
             updated: new Date().toISOString()
           });
         });
         
-        console.log(`Order ${rozetkaOrder.id} status updated successfully`);
+        console.log(`Order ${rozetkaOrder.id} updated successfully`);
       }
     }
     return;
@@ -393,6 +398,7 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     archived: false,
     productionCost: 0,
     created_at_marketplace: rozetkaOrder.created,
+    prro_receipt_status: rozetkaOrder.prro_receipt_status || false,
   };
 
   const validationResult = orderSchema.safeParse({
@@ -594,6 +600,48 @@ export async function getOrderStatuses() {
 
 export async function setOrderStatus(orderId: string, statusCode: string): Promise<{ error: string | null, data: boolean | null }> {
   return api.setOrderStatus(orderId, statusCode);
+}
+
+/**
+ * Create receipt on Rozetka side after local fiscal receipt creation
+ */
+export async function createRozetkaReceipt(
+  orderId: string, 
+  qrCodeUrl?: string
+): Promise<{ error: string | null, data: boolean | null }> {
+  try {
+    const token = await api.ensureValidToken();
+    
+    console.log(`📄 Creating Rozetka receipt for order ${orderId}${qrCodeUrl ? ` with QR: ${qrCodeUrl}` : ''}`);
+    
+    const payload = {
+      order_id: parseInt(orderId),
+      payment_method_type: "card",
+      ...(qrCodeUrl && { url: qrCodeUrl })
+    };
+    
+    const response = await axios.post(
+      `${ROZETKA_API_BASE}/prro/create-receipt`,
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    console.log(`✅ Rozetka receipt created successfully for order ${orderId}:`, response.data);
+    return { error: null, data: true };
+    
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error(`❌ Failed to create Rozetka receipt for order ${orderId}:`, error.message);
+      return { error: error.message, data: null };
+    }
+    console.error(`❌ Failed to create Rozetka receipt for order ${orderId}:`, error);
+    return { error: 'Failed to create Rozetka receipt', data: null };
+  }
 }
 
 /**

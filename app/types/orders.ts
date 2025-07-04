@@ -114,4 +114,5 @@ export interface RozetkaOrderResponse {
   }>;
   payment_method_id: number;
   is_payed?: boolean;
+  prro_receipt_status?: number | boolean;
 }

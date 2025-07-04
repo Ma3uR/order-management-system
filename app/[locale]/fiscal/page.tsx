@@ -9,10 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Button } from "@/app/components/shared/ui/button"
 import { Badge } from "@/app/components/shared/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/app/components/shared/ui/dialog"
-import { Calculator, Receipt, FileText, TrendingUp, Clock, Copy, CheckCircle, XCircle, QrCode } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/shared/ui/tabs"
+import { Calculator, Receipt, FileText, TrendingUp, Clock, Copy, CheckCircle, XCircle, QrCode, RotateCcw, ListChecks, ExternalLink } from "lucide-react"
+import { BillReturnModal } from "@/app/components/features/orders/components/bill-return-modal"
 import { getFiscalReceipts, getFiscalShifts, getFiscalStatistics } from '@/app/[locale]/orders/actions/fiscal-receipts'
 import { useEffect } from 'react'
 import { format } from 'date-fns'
+import { CompletedOrdersTab } from "@/app/components/features/fiscal/completed-orders-tab"
 
 interface FiscalReceipt {
   id: string
@@ -83,6 +86,10 @@ export default function FiscalPage(): JSX.Element {
     todayReturns: number;
   } | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
+  const [showBillReturnModal, setShowBillReturnModal] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMoreReceipts, setHasMoreReceipts] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   // Load recent fiscal data
   useEffect(() => {
@@ -98,6 +105,9 @@ export default function FiscalPage(): JSX.Element {
 
         if (receiptsResult.success && receiptsResult.data) {
           setRecentReceipts((receiptsResult.data.items || []) as FiscalReceipt[])
+          const totalPages = Math.ceil((receiptsResult.data.totalItems || 0) / (receiptsResult.data.perPage || 10))
+          setHasMoreReceipts(totalPages > 1)
+          setCurrentPage(1)
         }
 
         if (shiftsResult.success && shiftsResult.data) {
@@ -122,6 +132,35 @@ export default function FiscalPage(): JSX.Element {
     loadFiscalData()
   }, [])
 
+  // Load more receipts for infinite scroll
+  const loadMoreReceipts = async () => {
+    if (loadingMore || !hasMoreReceipts) return
+    setLoadingMore(true)
+    try {
+      const nextPage = currentPage + 1
+      const receiptsResult = await getFiscalReceipts(nextPage, 10)
+      if (receiptsResult.success && receiptsResult.data) {
+        const newReceipts = (receiptsResult.data.items || []) as FiscalReceipt[]
+        setRecentReceipts(prev => [...prev, ...newReceipts])
+        setCurrentPage(nextPage)
+        const totalPages = Math.ceil((receiptsResult.data.totalItems || 0) / (receiptsResult.data.perPage || 10))
+        setHasMoreReceipts(nextPage < totalPages)
+      }
+    } catch (error) {
+      console.error('Error loading more receipts:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  // Handle scroll to load more receipts
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop <= clientHeight + 10) {
+      loadMoreReceipts()
+    }
+  }
+
   const handleViewZReport = (shift: FiscalShift) => {
     if (shift.z_report_data) {
       setSelectedZReport(shift.z_report_data)
@@ -142,6 +181,47 @@ export default function FiscalPage(): JSX.Element {
     }
   }
 
+  const handleReturnCreated = () => {
+    // Refresh fiscal data after a return is created
+    const loadFiscalData = async () => {
+      setLoading(true)
+      setStatsLoading(true)
+      try {
+        const [receiptsResult, shiftsResult, statsResult] = await Promise.all([
+          getFiscalReceipts(1, 10),
+          getFiscalShifts(1, 5),
+          getFiscalStatistics()
+        ])
+
+        if (receiptsResult.success && receiptsResult.data) {
+          setRecentReceipts((receiptsResult.data.items || []) as FiscalReceipt[])
+          const totalPages = Math.ceil((receiptsResult.data.totalItems || 0) / (receiptsResult.data.perPage || 10))
+          setHasMoreReceipts(totalPages > 1)
+          setCurrentPage(1)
+        }
+
+        if (shiftsResult.success && shiftsResult.data) {
+          setRecentShifts((shiftsResult.data.items || []) as FiscalShift[])
+        }
+
+        if (statsResult.success && statsResult.data) {
+          setFiscalStats({
+            todayReceipts: statsResult.data.todayReceipts,
+            todaySales: statsResult.data.todaySales,
+            todayReturns: statsResult.data.todayReturns
+          })
+        }
+      } catch (error) {
+        console.error('Error loading fiscal data:', error)
+      } finally {
+        setLoading(false)
+        setStatsLoading(false)
+      }
+    }
+
+    loadFiscalData()
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4 space-y-6">
@@ -156,12 +236,96 @@ export default function FiscalPage(): JSX.Element {
               {t('description')}
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowBillReturnModal(true)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Process Return
+            </Button>
+          </div>
         </div>
 
-        {/* Shift Management and Recent Receipts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Fiscal Management Tabs */}
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <Calculator className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="receipt-management" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              {t('receiptManagement')}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            {/* Today's Fiscal Statistics */}
+            <Card className="border-green-200 dark:border-green-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  {t('todaysFiscalStatistics')}
+                </CardTitle>
+                <CardDescription className="text-green-700 dark:text-green-300">
+                  {t('todaysFiscalStatisticsDescription')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {statsLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-20 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                          {t('salesToday')}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {fiscalStats ? `${fiscalStats.todaySales.toFixed(0)} грн` : '0 грн'}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Receipt className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                        <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                          {t('returnsToday')}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                        {fiscalStats ? `${fiscalStats.todayReturns.toFixed(0)} грн` : '0 грн'}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                          {t('totalReceipts')}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {fiscalStats ? fiscalStats.todayReceipts : 0}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Shift Management and Recent Receipts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[500px]">
           {/* Recent Fiscal Receipts */}
-          <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/30">
+          <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/30 flex flex-col h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-purple-800 dark:text-purple-200">
                 <Receipt className="h-5 w-5 text-purple-600" />
@@ -171,7 +335,7 @@ export default function FiscalPage(): JSX.Element {
                 {t('recentReceiptsDescription')}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 overflow-hidden">
               {loading ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => (
@@ -179,8 +343,9 @@ export default function FiscalPage(): JSX.Element {
                   ))}
                 </div>
               ) : recentReceipts.length > 0 ? (
-                <div className="space-y-3">
-                  {recentReceipts.slice(0, 5).map((receipt) => (
+                <div className="max-h-[700px] overflow-y-auto" onScroll={handleScroll}>
+                  <div className="space-y-3 pr-2">
+                    {recentReceipts.map((receipt) => (
                     <div 
                       key={receipt.id} 
                       className="flex items-start gap-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg cursor-pointer hover:bg-white/70 dark:hover:bg-gray-700/50 transition-colors"
@@ -199,6 +364,20 @@ export default function FiscalPage(): JSX.Element {
                             {receipt.receipt_type} Receipt
                           </p>
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            {receipt.receipt_type === 'sale' && receipt.status === 'success' && receipt.order_id && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowBillReturnModal(true)
+                                }}
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                title="Process Return"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                              </Button>
+                            )}
                             {receipt.qr_code && (
                               <Button
                                 variant="ghost"
@@ -240,10 +419,17 @@ export default function FiscalPage(): JSX.Element {
                       </div>
                     </div>
                   ))}
-                  {recentReceipts.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Receipt className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>{t('noRecentReceipts')}</p>
+                  </div>
+                  {loadingMore && (
+                    <div className="space-y-2 mt-3">
+                      {[...Array(2)].map((_, i) => (
+                        <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                      ))}
+                    </div>
+                  )}
+                  {!hasMoreReceipts && recentReceipts.length > 10 && (
+                    <div className="text-center py-2 text-xs text-muted-foreground">
+                      No more receipts to load
                     </div>
                   )}
                 </div>
@@ -257,7 +443,7 @@ export default function FiscalPage(): JSX.Element {
           </Card>
           
           {/* Shift Management */}
-          <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/30">
+          <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/30 flex flex-col h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
                 <Clock className="h-5 w-5 text-blue-600" />
@@ -267,133 +453,76 @@ export default function FiscalPage(): JSX.Element {
                 {t('shiftManagementDescription')}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 overflow-auto">
               <ShiftManagement />
+              
+              {/* Recent Shifts Section */}
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                  <h3 className="font-medium text-blue-800 dark:text-blue-200">{t('recentShifts')}</h3>
+                </div>
+                <div className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+                  {t('recentShiftsDescription')}
+                </div>
+                {loading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-12 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                    ))}
+                  </div>
+                ) : recentShifts.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {recentShifts.slice(0, 4).map((shift) => (
+                      <div key={shift.id} className="flex items-center justify-between p-2 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3 w-3 text-gray-600 dark:text-gray-400" />
+                          <div>
+                            <p className="text-xs font-medium">{shift.cashier}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {shift.opened_at && !isNaN(new Date(shift.opened_at).getTime()) ? format(new Date(shift.opened_at), "MMM d, HH:mm") : 'N/A'}
+                              {shift.closed_at && !isNaN(new Date(shift.closed_at).getTime()) && ` - ${format(new Date(shift.closed_at), "HH:mm")}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge 
+                            variant={shift.status === 'open' ? 'default' : 'secondary'}
+                            className="text-xs h-4"
+                          >
+                            {shift.status}
+                          </Badge>
+                          {shift.status === 'closed' && shift.z_report_data && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewZReport(shift)}
+                              className="h-4 px-1 text-xs"
+                            >
+                              Z-Report
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <FileText className="h-8 w-8 mx-auto mb-1 opacity-50" />
+                    <p className="text-xs">{t('noRecentShifts')}</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
+          </TabsContent>
 
-        {/* Today's Fiscal Statistics */}
-        <Card className="border-green-200 dark:border-green-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              {t('todaysFiscalStatistics')}
-            </CardTitle>
-            <CardDescription className="text-green-700 dark:text-green-300">
-              {t('todaysFiscalStatisticsDescription')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-20 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                      {t('salesToday')}
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {fiscalStats ? `₴${fiscalStats.todaySales.toFixed(2)}` : '₴0.00'}
-                  </p>
-                </div>
-                
-                <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Receipt className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                    <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                      {t('returnsToday')}
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                    {fiscalStats ? `₴${fiscalStats.todayReturns.toFixed(2)}` : '₴0.00'}
-                  </p>
-                </div>
-                
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                      {t('totalReceipts')}
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {fiscalStats ? fiscalStats.todayReceipts : 0}
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Shifts & Z-Reports */}
-        <Card className="border-gray-200 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {t('recentShifts')}
-            </CardTitle>
-            <CardDescription>
-              {t('recentShiftsDescription')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : recentShifts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {recentShifts.slice(0, 6).map((shift) => (
-                  <div key={shift.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium">{shift.cashier}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {shift.opened_at && !isNaN(new Date(shift.opened_at).getTime()) ? format(new Date(shift.opened_at), "MMM d, HH:mm") : 'N/A'}
-                          {shift.closed_at && !isNaN(new Date(shift.closed_at).getTime()) && ` - ${format(new Date(shift.closed_at), "HH:mm")}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge 
-                        variant={shift.status === 'open' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {shift.status}
-                      </Badge>
-                      {shift.status === 'closed' && shift.z_report_data && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewZReport(shift)}
-                          className="h-5 px-1 text-xs"
-                        >
-                          Z-Report
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>{t('noRecentShifts')}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* Receipt Management Tab */}
+          <TabsContent value="receipt-management">
+            <CompletedOrdersTab />
+          </TabsContent>
+        </Tabs>
 
         {/* Z-Report Viewer Modal */}
         {selectedZReport && (
@@ -410,7 +539,7 @@ export default function FiscalPage(): JSX.Element {
         {/* Receipt Details Modal */}
         {selectedReceipt && (
           <Dialog open={showReceiptDetails} onOpenChange={setShowReceiptDetails}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   {selectedReceipt.receipt_type === 'sale' ? (
@@ -496,17 +625,30 @@ export default function FiscalPage(): JSX.Element {
                   </div>
                 )}
 
-                {/* Order ID */}
+                {/* Order Details */}
                 {selectedReceipt.order_id && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Order ID:</span>
+                    <span className="text-sm font-medium">Order:</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono">{selectedReceipt.order_id}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const ordersUrl = `/${window.location.pathname.split('/')[1]}/orders?openModal=${selectedReceipt.order_id}`
+                          window.open(ordersUrl, '_blank')
+                        }}
+                        className="h-6 px-2 text-sm font-mono text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="View Order Details"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        {selectedReceipt.order_id}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => copyToClipboard(selectedReceipt.order_id || '')}
                         className="h-6 w-6 p-0"
+                        title="Copy Order ID"
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
@@ -626,10 +768,29 @@ export default function FiscalPage(): JSX.Element {
                 >
                   Close
                 </Button>
+                {selectedReceipt.receipt_type === 'sale' && selectedReceipt.status === 'success' && selectedReceipt.order_id && (
+                  <Button
+                    onClick={() => {
+                      setShowReceiptDetails(false)
+                      setShowBillReturnModal(true)
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Create Return
+                  </Button>
+                )}
               </DialogFooter>
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Bill Return Modal */}
+        <BillReturnModal
+          isOpen={showBillReturnModal}
+          onClose={() => setShowBillReturnModal(false)}
+          onReturnCreated={handleReturnCreated}
+        />
       </div>
     </div>
   )

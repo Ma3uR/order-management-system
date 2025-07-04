@@ -3,7 +3,6 @@ import {
   CasaVchasnoResponse,
   TaskType,
   PaymentType,
-  TaxGroup,
   DiscountType,
   ReceiptRow,
   Payment,
@@ -15,6 +14,7 @@ import {
 } from '@/app/types/casa-vchasno';
 import { OrdersResponse, FiscalReceiptsReceiptTypeOptions, FiscalReceiptsStatusOptions, FiscalShiftsStatusOptions, FiscalShiftsResponse } from '@/app/types/pocketbase-types';
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import { createRozetkaReceipt } from '@/app/actions/rozetka';
 
 export class CasaVchasnoService {
   private readonly baseUrl = 'https://kasa.vchasno.ua/api/v3';
@@ -82,27 +82,10 @@ export class CasaVchasnoService {
         cnt: (p.quantity as number) || (p.qty as number) || 1,
         price: (p.price as number) || 0,
         disc: (p.discount as number) || 0,
-        taxgrp: (p.taxGroup as string) || TaxGroup.NO_VAT.toString(),
+        taxgrp: 2, // Always use tax group 2 (no VAT) info from casa.vchasno support
         comment: (p.comment as string) || '',
       };
     });
-  }
-
-  /**
-   * Convert payment method to Casa.vchasno payment type
-   */
-  private getPaymentType(paymentMethodName: string): PaymentType {
-    const lowerPayment = paymentMethodName.toLowerCase();
-    
-    if (lowerPayment.includes('cash') || lowerPayment.includes('готівка') || lowerPayment.includes('наличные')) {
-      return PaymentType.CASH;
-    }
-    
-    if (lowerPayment.includes('card') || lowerPayment.includes('картка') || lowerPayment.includes('карта')) {
-      return PaymentType.CARD;
-    }
-    
-    return PaymentType.OTHER;
   }
 
   /**
@@ -170,6 +153,9 @@ export class CasaVchasnoService {
       
       // Save receipt data to database
       await this.saveFiscalReceipt(order.id, FiscalReceiptsReceiptTypeOptions.sale, request, response);
+      
+      // If this is a Rozetka order and receipt was successful, create receipt on Rozetka side
+      await this.handleRozetkaReceiptCreation(order, response);
       
       return response;
     } catch (error) {
@@ -299,6 +285,65 @@ export class CasaVchasnoService {
     } catch (error) {
       console.error('[Casa.vchasno] Error saving fiscal receipt:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Handle Rozetka receipt creation after successful local fiscal receipt
+   */
+  private async handleRozetkaReceiptCreation(
+    order: OrdersResponse,
+    casaResponse: CasaVchasnoResponse
+  ): Promise<void> {
+    try {
+      // Check if this is a successful receipt creation
+      if (casaResponse.res !== 0) {
+        console.log('[Casa.vchasno] Skipping Rozetka receipt - Casa.vchasno receipt failed');
+        return;
+      }
+
+      // Get order source to check if it's Rozetka (source ID: 4tvf116a5aitwmb)
+      const orderWithSource = await authenticatedCall(() =>
+        pb.collection('orders').getOne(order.id, {
+          expand: 'source'
+        })
+      );
+
+      const sourceId = orderWithSource.source;
+      const isRozetkaOrder = sourceId === '4tvf116a5aitwmb';
+
+      if (!isRozetkaOrder) {
+        console.log(`[Casa.vchasno] Skipping Rozetka receipt - not a Rozetka order (source: ${sourceId})`);
+        return;
+      }
+
+      // Extract QR code URL from Casa.vchasno response
+      const qrCodeUrl = (casaResponse.info as unknown as Record<string, unknown>)?.qr as string;
+      
+      console.log(`[Casa.vchasno] Creating Rozetka receipt for order ${orderWithSource.orderNumber}...`);
+      
+      // Create receipt on Rozetka side
+      const rozetkaResult = await createRozetkaReceipt(orderWithSource.orderNumber, qrCodeUrl);
+      
+      if (rozetkaResult.error) {
+        console.error(`[Casa.vchasno] Failed to create Rozetka receipt for order ${orderWithSource.orderNumber}:`, rozetkaResult.error);
+        // Don't throw error - continue even if Rozetka API fails
+        return;
+      }
+
+      // Update local order prro_receipt_status to true
+      await authenticatedCall(() =>
+        pb.collection('orders').update(orderWithSource.id, {
+          prro_receipt_status: true,
+          updated: new Date().toISOString()
+        })
+      );
+
+      console.log(`✅ [Casa.vchasno] Successfully created Rozetka receipt and updated local status for order ${orderWithSource.orderNumber}`);
+      
+    } catch (error) {
+      console.error('[Casa.vchasno] Error handling Rozetka receipt creation:', error);
+      // Don't throw error - this is a non-critical operation
     }
   }
 
@@ -490,5 +535,51 @@ export class CasaVchasnoService {
   }
 }
 
-// Export singleton instance
-export const casaVchasnoService = new CasaVchasnoService();
+// Lazy singleton instance - only instantiate when needed on server side
+let _casaVchasnoService: CasaVchasnoService | null = null;
+
+export const casaVchasnoService = {
+  getInstance(): CasaVchasnoService {
+    if (!_casaVchasnoService) {
+      _casaVchasnoService = new CasaVchasnoService();
+    }
+    return _casaVchasnoService;
+  },
+  
+  // Proxy methods to the singleton instance
+  async createSaleReceipt(order: OrdersResponse, cashierName: string) {
+    return this.getInstance().createSaleReceipt(order, cashierName);
+  },
+  
+  async createReturnReceipt(order: OrdersResponse, cashierName: string, returnAmount?: number) {
+    return this.getInstance().createReturnReceipt(order, cashierName, returnAmount);
+  },
+  
+  async createZReport(cashierName: string) {
+    return this.getInstance().createZReport(cashierName);
+  },
+  
+  async openShift(cashierName: string) {
+    return this.getInstance().openShift(cashierName);
+  },
+  
+  async getCurrentShift() {
+    return this.getInstance().getCurrentShift();
+  },
+  
+  async getFiscalReceiptsForOrder(orderId: string) {
+    return this.getInstance().getFiscalReceiptsForOrder(orderId);
+  },
+  
+  async checkShiftStatus() {
+    return this.getInstance().checkShiftStatus();
+  },
+  
+  getShiftStatusText(status: ShiftStatus) {
+    return this.getInstance().getShiftStatusText(status);
+  },
+  
+  getShiftStatusColor(status: ShiftStatus) {
+    return this.getInstance().getShiftStatusColor(status);
+  }
+};

@@ -1,417 +1,232 @@
-# Task Master AI - Claude Code Integration Guide
+# CLAUDE.md
 
-## Essential Commands
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-### Core Workflow Commands
+## Core Development Commands
 
+### Build & Development
 ```bash
-# Project Setup
-task-master init                                    # Initialize Task Master in current project
-task-master parse-prd .taskmaster/docs/prd.txt      # Generate tasks from PRD document
-task-master models --setup                        # Configure AI models interactively
-
-# Daily Development Workflow
-task-master list                                   # Show all tasks with status
-task-master next                                   # Get next available task to work on
-task-master show <id>                             # View detailed task information (e.g., task-master show 1.2)
-task-master set-status --id=<id> --status=done    # Mark task complete
-
-# Task Management
-task-master add-task --prompt="description" --research        # Add new task with AI assistance
-task-master expand --id=<id> --research --force              # Break task into subtasks
-task-master update-task --id=<id> --prompt="changes"         # Update specific task
-task-master update --from=<id> --prompt="changes"            # Update multiple tasks from ID onwards
-task-master update-subtask --id=<id> --prompt="notes"        # Add implementation notes to subtask
-
-# Analysis & Planning
-task-master analyze-complexity --research          # Analyze task complexity
-task-master complexity-report                      # View complexity analysis
-task-master expand --all --research               # Expand all eligible tasks
-
-# Dependencies & Organization
-task-master add-dependency --id=<id> --depends-on=<id>       # Add task dependency
-task-master move --from=<id> --to=<id>                       # Reorganize task hierarchy
-task-master validate-dependencies                            # Check for dependency issues
-task-master generate                                         # Update task markdown files (usually auto-called)
+npm run dev          # Start development server - ONLY run when explicitly requested
+npm run build        # Build production version - ONLY run when explicitly requested
+npm run start        # Start production server - ONLY run when explicitly requested
+npm run lint         # Run ESLint with auto-fix - USE THIS to check for errors instead of build
 ```
 
-## Key Files & Project Structure
+### Command Usage Rules
+**IMPORTANT**: Claude Code should follow these strict rules:
+- **NEVER** run `npm run dev` or `npm run build` unless explicitly asked by the user
+- **ALWAYS** use `npm run lint` to check for code errors and syntax issues
+- **NEVER** start development servers automatically
+- **ASK PERMISSION** before running any long-running processes
+- Use `npm run lint` as the primary method to validate code changes
 
-### Core Files
-
-- `.taskmaster/tasks/tasks.json` - Main task data file (auto-managed)
-- `.taskmaster/config.json` - AI model configuration (use `task-master models` to modify)
-- `.taskmaster/docs/prd.txt` - Product Requirements Document for parsing
-- `.taskmaster/tasks/*.txt` - Individual task files (auto-generated from tasks.json)
-- `.env` - API keys for CLI usage
-
-### Claude Code Integration Files
-
-- `CLAUDE.md` - Auto-loaded context for Claude Code (this file)
-- `.claude/settings.json` - Claude Code tool allowlist and preferences
-- `.claude/commands/` - Custom slash commands for repeated workflows
-- `.mcp.json` - MCP server configuration (project-specific)
-
-### Directory Structure
-
-```
-project/
-├── .taskmaster/
-│   ├── tasks/              # Task files directory
-│   │   ├── tasks.json      # Main task database
-│   │   ├── task-1.md      # Individual task files
-│   │   └── task-2.md
-│   ├── docs/              # Documentation directory
-│   │   ├── prd.txt        # Product requirements
-│   ├── reports/           # Analysis reports directory
-│   │   └── task-complexity-report.json
-│   ├── templates/         # Template files
-│   │   └── example_prd.txt  # Example PRD template
-│   └── config.json        # AI models & settings
-├── .claude/
-│   ├── settings.json      # Claude Code configuration
-│   └── commands/         # Custom slash commands
-├── .env                  # API keys
-├── .mcp.json            # MCP configuration
-└── CLAUDE.md            # This file - auto-loaded by Claude Code
-```
-
-## MCP Integration
-
-Task Master provides an MCP server that Claude Code can connect to. Configure in `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "task-master-ai": {
-      "command": "npx",
-      "args": ["-y", "--package=task-master-ai", "task-master-ai"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your_key_here",
-        "PERPLEXITY_API_KEY": "your_key_here",
-        "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
-        "GOOGLE_API_KEY": "GOOGLE_API_KEY_HERE",
-        "XAI_API_KEY": "XAI_API_KEY_HERE",
-        "OPENROUTER_API_KEY": "OPENROUTER_API_KEY_HERE",
-        "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
-        "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
-        "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE"
-      }
-    }
-  }
-}
-```
-
-### Essential MCP Tools
-
-```javascript
-help; // = shows available taskmaster commands
-// Project setup
-initialize_project; // = task-master init
-parse_prd; // = task-master parse-prd
-
-// Daily workflow
-get_tasks; // = task-master list
-next_task; // = task-master next
-get_task; // = task-master show <id>
-set_task_status; // = task-master set-status
-
-// Task management
-add_task; // = task-master add-task
-expand_task; // = task-master expand
-update_task; // = task-master update-task
-update_subtask; // = task-master update-subtask
-update; // = task-master update
-
-// Analysis
-analyze_project_complexity; // = task-master analyze-complexity
-complexity_report; // = task-master complexity-report
-```
-
-## Claude Code Workflow Integration
-
-### Standard Development Workflow
-
-#### 1. Project Initialization
-
+### Database & Scripts
 ```bash
-# Initialize Task Master
-task-master init
-
-# Create or obtain PRD, then parse it
-task-master parse-prd .taskmaster/docs/prd.txt
-
-# Analyze complexity and expand tasks
-task-master analyze-complexity --research
-task-master expand --all --research
+npm run sync:orders    # Sync orders from marketplaces
+npm run sync:statuses  # Sync marketplace statuses
+npm run sync:all       # Run both order and status sync
 ```
 
-If tasks already exist, another PRD can be parsed (with new information only!) using parse-prd with --append flag. This will add the generated tasks to the existing list of tasks..
-
-#### 2. Daily Development Loop
-
+### Testing & Utilities
 ```bash
-# Start each session
-task-master next                           # Find next available task
-task-master show <id>                     # Review task details
-
-# During implementation, check in code context into the tasks and subtasks
-task-master update-subtask --id=<id> --prompt="implementation notes..."
-
-# Complete tasks
-task-master set-status --id=<id> --status=done
+tsx scripts/test-rozetka-sync.ts    # Test Rozetka API integration
+tsx scripts/test-automation.ts      # Test automation workflows
 ```
 
-#### 3. Multi-Claude Workflows
+## Architecture Overview
 
-For complex projects, use multiple Claude Code sessions:
+### Tech Stack
+- **Framework**: Next.js 14+ with App Router
+- **Database**: PocketBase (self-hosted backend)
+- **Authentication**: Custom PocketBase auth with role-based access
+- **UI**: Custom components with Tailwind CSS and shadcn/ui
+- **Internationalization**: next-intl (Ukrainian/English)
+- **AI**: OpenAI integration for order management assistance
 
-```bash
-# Terminal 1: Main implementation
-cd project && claude
-
-# Terminal 2: Testing and validation
-cd project-test-worktree && claude
-
-# Terminal 3: Documentation updates
-cd project-docs-worktree && claude
+### Key Project Structure
+```
+app/
+├── [locale]/               # Internationalized routes
+│   ├── orders/            # Order management pages
+│   ├── settings/          # System configuration
+│   ├── fiscal/            # Fiscal receipt management
+│   └── dashboard/         # Analytics dashboard
+├── components/features/    # Business logic components
+├── lib/                   # Shared utilities
+│   ├── pocketbase.ts      # Database client
+│   ├── services/          # External API integrations
+│   └── ai/               # AI tools and prompts
+└── types/                 # TypeScript definitions
 ```
 
-### Custom Slash Commands
+## Core Business Logic
 
-Create `.claude/commands/taskmaster-next.md`:
+### Order Management System
+The application manages e-commerce orders from multiple marketplaces (Rozetka, Epicentr, Prom.ua) with these key features:
 
-```markdown
-Find the next available Task Master task and show its details.
+1. **Multi-marketplace Integration**: Syncs orders from different platforms
+2. **Status Mapping**: Maps marketplace-specific statuses to internal system statuses
+3. **Order Merging**: Automatically detects and merges duplicate orders from the same customer
+4. **Delivery Integration**: Manages Nova Poshta and UkrPoshta delivery tracking
+5. **Fiscal Integration**: Casa.vchasno integration for receipt generation
 
-Steps:
+### Order Merging Workflow
+Key files: `app/lib/mergeDetection.ts`, `app/lib/mergeUtils.ts`
 
-1. Run `task-master next` to get the next task
-2. If a task is available, run `task-master show <id>` for full details
-3. Provide a summary of what needs to be implemented
-4. Suggest the first implementation step
+The system detects duplicate orders by:
+- Matching customer phone numbers and names
+- Comparing order timestamps and product overlaps
+- Providing user confirmation for merge decisions
+- Combining product arrays and marketplace IDs
+- Syncing status changes across all merged orders
+
+### PocketBase Integration
+Key file: `app/lib/pocketbase.ts`
+
+- Handles authentication for both admin and regular users
+- Manages real-time subscriptions for order updates
+- Provides smart auth wrapper that preserves user sessions
+- Includes error handling and retry logic
+
+## Key Configuration Files
+
+### Cursor Rules (.cursorrules)
+Contains comprehensive project structure and feature descriptions. Key sections:
+- **Internationalization**: Next-intl setup with namespace support
+- **Feature Descriptions**: Detailed breakdown of order management, delivery integration, billing
+- **Integration APIs**: Rozetka, Epicentr, Prom.ua, Nova Poshta, UkrPoshta, Casa.vchasno
+- **Data Flow**: Order processing, status updates, merging workflow
+
+### Component Patterns
+- Use `useTranslations` hook for internationalization
+- Components follow feature-based organization
+- Shared UI components in `components/shared/ui/`
+- Business logic in `components/features/`
+
+## Database Schema (PocketBase)
+
+### Core Collections
+- `orders`: Main order data with marketplace integration
+- `status_options`: Status mapping for different sources
+- `sources`: Marketplace and order source definitions
+- `users`: User management with role-based access
+- `fiscal_receipts`: Casa.vchasno integration
+- `blacklist_entries`: Customer blacklist management
+
+### Key Types
+Located in `app/types/pocketbase-types.ts` - auto-generated from PocketBase schema.
+
+## External API Integrations
+
+### Marketplace APIs
+- **Rozetka**: Order sync, status updates
+- **Epicentr**: Order sync, status updates  
+- **Prom.ua**: Order sync, status updates
+
+### Delivery Services
+- **Nova Poshta**: TTN generation, tracking
+- **UkrPoshta**: TTN generation, tracking
+
+### Fiscal Services
+- **Casa.vchasno**: Receipt generation, shift management
+
+## Development Guidelines
+
+### Code Quality Standards
+
+**Simplicity & Clarity**
+- Write simple, readable code over clever solutions
+- Use descriptive variable and function names
+- Keep functions small (max 20-30 lines)
+- Avoid deep nesting (max 3 levels)
+- Extract complex logic into separate functions
+
+**TypeScript Best Practices**
+- Always use proper TypeScript types (avoid `any`)
+- Use type imports: `import type { User } from './types'`
+- Define interfaces for complex objects
+- Use enums for string constants
+- Add return types to functions
+
+**React Component Standards**
+- Use functional components with hooks
+- Keep components focused on single responsibility
+- Extract custom hooks for reusable logic
+- Use proper dependency arrays in useEffect
+- Prefer early returns to reduce nesting
+
+**Error Handling**
+- Always handle async operations with try-catch
+- Use proper error boundaries for React components
+- Log errors with context information
+- Provide meaningful error messages to users
+- Use optional chaining (`?.`) for safe property access
+
+**Performance Guidelines**
+- Use React.memo for expensive components
+- Implement proper loading states
+- Use useMemo/useCallback for expensive calculations
+- Optimize database queries with proper fields selection
+- Implement proper pagination for large datasets
+
+### File Organization
+- Actions in `app/[locale]/*/actions/` for server-side operations
+- Components in `app/components/features/` by business domain
+- Utilities in `app/lib/` for shared logic
+- Types in `app/types/` for TypeScript definitions
+
+### Authentication Patterns
+- Use `authenticatedCall()` wrapper for PocketBase operations
+- Respect user sessions - avoid switching to admin auth unnecessarily
+- Handle both admin and regular user permissions
+
+### Internationalization
+- Use `useTranslations` hook with namespace parameter
+- Translation files in `messages/{locale}.json`
+- Support for Ukrainian (ua) and English (en)
+
+### Error Handling
+- Console logging with emoji prefixes for debugging
+- Comprehensive error boundaries in React components
+- Graceful fallbacks for API failures
+
+## AI Integration
+
+### Tools Available
+Located in `app/lib/ai/tools/`:
+- Order queries and search
+- Financial calculations
+- Product popularity analysis
+- Weather information
+
+### Usage Pattern
+```typescript
+const tools = [
+  getLastOrderTool,
+  calculateBalanceTool,
+  // ... other tools
+];
 ```
 
-Create `.claude/commands/taskmaster-complete.md`:
+## Common Workflows
 
-```markdown
-Complete a Task Master task: $ARGUMENTS
+### Adding New Marketplace Integration
+1. Create API service in `app/lib/services/`
+2. Add status mapping in database
+3. Create sync script in `scripts/`
+4. Update order sync logic
 
-Steps:
+### Extending Order Management
+1. Update PocketBase schema if needed
+2. Regenerate types with
+  npx pocketbase-typegen@1.1.9 \
+  --url http://pocketbase-d04wg4wgw0cs8kcwoww88w0k.78.47.226.230.sslip.io \
+  --email andriimazurenko99@gmail.com \
+  --password QWEqweqwe382846382846
+3. Add validation schemas in `app/lib/validations/`
+4. Create/update components in `app/components/features/orders/`
 
-1. Review the current task with `task-master show $ARGUMENTS`
-2. Verify all implementation is complete
-3. Run any tests related to this task
-4. Mark as complete: `task-master set-status --id=$ARGUMENTS --status=done`
-5. Show the next available task with `task-master next`
-```
-
-## Tool Allowlist Recommendations
-
-Add to `.claude/settings.json`:
-
-```json
-{
-  "allowedTools": [
-    "Edit",
-    "Bash(task-master *)",
-    "Bash(git commit:*)",
-    "Bash(git add:*)",
-    "Bash(npm run *)",
-    "mcp__task_master_ai__*"
-  ]
-}
-```
-
-## Configuration & Setup
-
-### API Keys Required
-
-At least **one** of these API keys must be configured:
-
-- `ANTHROPIC_API_KEY` (Claude models) - **Recommended**
-- `PERPLEXITY_API_KEY` (Research features) - **Highly recommended**
-- `OPENAI_API_KEY` (GPT models)
-- `GOOGLE_API_KEY` (Gemini models)
-- `MISTRAL_API_KEY` (Mistral models)
-- `OPENROUTER_API_KEY` (Multiple models)
-- `XAI_API_KEY` (Grok models)
-
-An API key is required for any provider used across any of the 3 roles defined in the `models` command.
-
-### Model Configuration
-
-```bash
-# Interactive setup (recommended)
-task-master models --setup
-
-# Set specific models
-task-master models --set-main claude-3-5-sonnet-20241022
-task-master models --set-research perplexity-llama-3.1-sonar-large-128k-online
-task-master models --set-fallback gpt-4o-mini
-```
-
-## Task Structure & IDs
-
-### Task ID Format
-
-- Main tasks: `1`, `2`, `3`, etc.
-- Subtasks: `1.1`, `1.2`, `2.1`, etc.
-- Sub-subtasks: `1.1.1`, `1.1.2`, etc.
-
-### Task Status Values
-
-- `pending` - Ready to work on
-- `in-progress` - Currently being worked on
-- `done` - Completed and verified
-- `deferred` - Postponed
-- `cancelled` - No longer needed
-- `blocked` - Waiting on external factors
-
-### Task Fields
-
-```json
-{
-  "id": "1.2",
-  "title": "Implement user authentication",
-  "description": "Set up JWT-based auth system",
-  "status": "pending",
-  "priority": "high",
-  "dependencies": ["1.1"],
-  "details": "Use bcrypt for hashing, JWT for tokens...",
-  "testStrategy": "Unit tests for auth functions, integration tests for login flow",
-  "subtasks": []
-}
-```
-
-## Claude Code Best Practices with Task Master
-
-### Context Management
-
-- Use `/clear` between different tasks to maintain focus
-- This CLAUDE.md file is automatically loaded for context
-- Use `task-master show <id>` to pull specific task context when needed
-
-### Iterative Implementation
-
-1. `task-master show <subtask-id>` - Understand requirements
-2. Explore codebase and plan implementation
-3. `task-master update-subtask --id=<id> --prompt="detailed plan"` - Log plan
-4. `task-master set-status --id=<id> --status=in-progress` - Start work
-5. Implement code following logged plan
-6. `task-master update-subtask --id=<id> --prompt="what worked/didn't work"` - Log progress
-7. `task-master set-status --id=<id> --status=done` - Complete task
-
-### Complex Workflows with Checklists
-
-For large migrations or multi-step processes:
-
-1. Create a markdown PRD file describing the new changes: `touch task-migration-checklist.md` (prds can be .txt or .md)
-2. Use Taskmaster to parse the new prd with `task-master parse-prd --append` (also available in MCP)
-3. Use Taskmaster to expand the newly generated tasks into subtasks. Consdier using `analyze-complexity` with the correct --to and --from IDs (the new ids) to identify the ideal subtask amounts for each task. Then expand them.
-4. Work through items systematically, checking them off as completed
-5. Use `task-master update-subtask` to log progress on each task/subtask and/or updating/researching them before/during implementation if getting stuck
-
-### Git Integration
-
-Task Master works well with `gh` CLI:
-
-```bash
-# Create PR for completed task
-gh pr create --title "Complete task 1.2: User authentication" --body "Implements JWT auth system as specified in task 1.2"
-
-# Reference task in commits
-git commit -m "feat: implement JWT auth (task 1.2)"
-```
-
-### Parallel Development with Git Worktrees
-
-```bash
-# Create worktrees for parallel task development
-git worktree add ../project-auth feature/auth-system
-git worktree add ../project-api feature/api-refactor
-
-# Run Claude Code in each worktree
-cd ../project-auth && claude    # Terminal 1: Auth work
-cd ../project-api && claude     # Terminal 2: API work
-```
-
-## Troubleshooting
-
-### AI Commands Failing
-
-```bash
-# Check API keys are configured
-cat .env                           # For CLI usage
-
-# Verify model configuration
-task-master models
-
-# Test with different model
-task-master models --set-fallback gpt-4o-mini
-```
-
-### MCP Connection Issues
-
-- Check `.mcp.json` configuration
-- Verify Node.js installation
-- Use `--mcp-debug` flag when starting Claude Code
-- Use CLI as fallback if MCP unavailable
-
-### Task File Sync Issues
-
-```bash
-# Regenerate task files from tasks.json
-task-master generate
-
-# Fix dependency issues
-task-master fix-dependencies
-```
-
-DO NOT RE-INITIALIZE. That will not do anything beyond re-adding the same Taskmaster core files.
-
-## Important Notes
-
-### AI-Powered Operations
-
-These commands make AI calls and may take up to a minute:
-
-- `parse_prd` / `task-master parse-prd`
-- `analyze_project_complexity` / `task-master analyze-complexity`
-- `expand_task` / `task-master expand`
-- `expand_all` / `task-master expand --all`
-- `add_task` / `task-master add-task`
-- `update` / `task-master update`
-- `update_task` / `task-master update-task`
-- `update_subtask` / `task-master update-subtask`
-
-### File Management
-
-- Never manually edit `tasks.json` - use commands instead
-- Never manually edit `.taskmaster/config.json` - use `task-master models`
-- Task markdown files in `tasks/` are auto-generated
-- Run `task-master generate` after manual changes to tasks.json
-
-### Claude Code Session Management
-
-- Use `/clear` frequently to maintain focused context
-- Create custom slash commands for repeated Task Master workflows
-- Configure tool allowlist to streamline permissions
-- Use headless mode for automation: `claude -p "task-master next"`
-
-### Multi-Task Updates
-
-- Use `update --from=<id>` to update multiple future tasks
-- Use `update-task --id=<id>` for single task updates
-- Use `update-subtask --id=<id>` for implementation logging
-
-### Research Mode
-
-- Add `--research` flag for research-based AI enhancement
-- Requires a research model API key like Perplexity (`PERPLEXITY_API_KEY`) in environment
-- Provides more informed task creation and updates
-- Recommended for complex technical tasks
-
----
-
-_This guide ensures Claude Code has immediate access to Task Master's essential functionality for agentic development workflows._
+### Testing Integrations
+- Use scripts in `scripts/` directory for API testing
+- Check logs for detailed debugging information
+- Test both success and failure scenarios

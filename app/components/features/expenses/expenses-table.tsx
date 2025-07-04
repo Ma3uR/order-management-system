@@ -30,6 +30,7 @@ import { deleteExpense } from "@/app/lib/services/expenses"
 import { toast } from "@/app/components/shared/ui/use-toast"
 import { EXPENSE_ADDED_EVENT } from "./expense-form-dialog"
 import { EditExpenseDialog, EXPENSE_UPDATED_EVENT } from "./edit-expense-dialog"
+import { OrderPagination } from "@/app/components/features/orders/components/OrderPagination"
 
 // Define an extended expense type to include the category info
 interface ExtendedExpense extends ExpensesResponse {
@@ -41,6 +42,7 @@ interface ExtendedExpense extends ExpensesResponse {
 
 export function ExpensesTable() {
   const t = useTranslations('Expenses')
+  const tOrders = useTranslations('Orders')
   const [expenses, setExpenses] = useState<ExtendedExpense[]>([])
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [categoriesMap, setCategories] = useState<{[key: string]: ExpensesCategoriesResponse}>({})
@@ -55,6 +57,11 @@ export function ExpensesTable() {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [expenseToEdit, setExpenseToEdit] = useState<ExtendedExpense | null>(null)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [totalItems, setTotalItems] = useState(0)
   
   const fetchData = useCallback(async () => {
     try {
@@ -240,6 +247,33 @@ export function ExpensesTable() {
     return matchesSearch && matchesDateRange
   })
 
+  // Update total items when filtered expenses change
+  useEffect(() => {
+    setTotalItems(filteredExpenses.length)
+  }, [filteredExpenses.length])
+
+  // Pagination logic
+  const totalPages = Math.ceil(totalItems / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedExpenses = filteredExpenses.slice(startIndex, endIndex)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, dateRange, sortConfig])
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Handle page size change
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size)
+    setCurrentPage(1)
+  }
+
   // Request sort
   const requestSort = (key: string) => {
     let direction: "ascending" | "descending" = "ascending"
@@ -404,8 +438,8 @@ export function ExpensesTable() {
                 </TableHeader>
                 <TableBody>
                   <AnimatePresence>
-                    {filteredExpenses.length > 0 ? (
-                      filteredExpenses.map((expense, index) => (
+                    {paginatedExpenses.length > 0 ? (
+                      paginatedExpenses.map((expense, index) => (
                         <motion.tr
                           key={expense.id}
                           initial={{ opacity: 0, y: 10 }}
@@ -505,6 +539,31 @@ export function ExpensesTable() {
             )}
           </div>
         </CardContent>
+        
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <div className="px-4 pb-4">
+            <OrderPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              startIndex={startIndex}
+              endIndex={endIndex}
+              totalItems={totalItems}
+              onPageChange={handlePageChange}
+              pageSize={pageSize}
+              onPageSizeChange={handlePageSizeChange}
+              pageSizeOptions={[5, 10, 20, 50]}
+              translations={{
+                showing: tOrders('showing'),
+                of: tOrders('of'),
+                results: tOrders('results'),
+                previous: tOrders('previous'),
+                next: tOrders('next'),
+                page: tOrders('page')
+              }}
+            />
+          </div>
+        )}
       </Card>
       
       {/* Delete Confirmation Dialog */}

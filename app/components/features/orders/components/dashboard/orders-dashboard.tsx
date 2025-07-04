@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTranslations } from 'next-intl'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from "@/app/components/shared/ui/button"
 import { Input } from "@/app/components/shared/ui/input"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/shared/ui/table"
@@ -71,6 +72,8 @@ const getSourceColor = (sourceId: string) => {
 export function OrdersDashboard() {
   const t = useTranslations('Orders')
   const tDashboard = useTranslations('Dashboard')
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [filters, setFilters] = useState({
     status: [] as string[],
@@ -178,6 +181,28 @@ export function OrdersDashboard() {
       detectAndUpdateMerges(orders);
     }
   }, [statuses, orders.length])
+
+  // Auto-open order modal based on URL parameters
+  useEffect(() => {
+    if (orders.length > 0 && !isLoading) {
+      const orderId = searchParams.get('orderId') || searchParams.get('openModal')
+      if (orderId) {
+        const order = orders.find(o => o.id === orderId)
+        if (order) {
+          console.log('🔍 [OrdersDashboard] Auto-opening modal for order:', orderId)
+          setSelectedOrder(order)
+          setIsOrderModalOpen(true)
+          // Remove the orderId/openModal from URL after opening the modal
+          const newUrl = new URL(window.location.href)
+          newUrl.searchParams.delete('orderId')
+          newUrl.searchParams.delete('openModal')
+          router.replace(newUrl.pathname + newUrl.search)
+        } else {
+          console.warn('🔍 [OrdersDashboard] Order not found for ID:', orderId)
+        }
+      }
+    }
+  }, [orders, isLoading, searchParams, router])
 
   // Real-time subscription effect
   useEffect(() => {

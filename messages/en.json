@@ -410,7 +410,8 @@
     "orders": "Orders",
     "settings": "Settings",
     "blacklist": "Blacklist",
-    "logout": "Logout"
+    "logout": "Logout",
+    "fiscal": "Fiscal"
   },
   "Calendar": {
     "months": {
@@ -536,6 +537,7 @@
     "openShift": "Open Shift",
     "noActiveShift": "No active shift. Open a shift to start fiscal operations.",
     "todaysFiscalStatistics": "Today's Fiscal Statistics",
+    "todaysFiscalStatisticsDescription": "Today's fiscal receipt statistics",
     "fiscalReceiptStatistics": "Today's fiscal receipt statistics",
     "salesToday": "Sales Today",
     "returnsToday": "Returns Today",
@@ -556,6 +558,7 @@
     "closingShiftWarning": "This action will generate a Z-report and cannot be undone. Make sure all transactions for this shift are completed.",
     "cancel": "Cancel",
     "closeShiftAndGenerateZReport": "Close Shift and Generate Z-Report",
+    "mustMatchOpeningCashier": "Must match the cashier who opened the shift",
     "failedToLoadShiftData": "Failed to load shift data",
     "cashierNameRequired": "Cashier name is required",
     "shiftOpenedSuccessfully": "Shift opened successfully!",
@@ -567,7 +570,34 @@
     "errorClosingShift": "Error closing shift",
     "shiftCurrentlyOpen": "Shift currently <strong>OPEN</strong>",
     "totalSales": "Total Sales",
-    "totalReturns": "Total Returns"
+    "totalReturns": "Total Returns",
+    "receiptManagement": "Receipt Management",
+    "completedOrdersWithoutReceipts": "Completed Orders Without Fiscal Receipts",
+    "completedOrdersDescription": "Select completed orders to generate fiscal receipts. Orders with marketplace code 6 (delivered/completed status) are shown here.",
+    "searchOrdersPlaceholder": "Search by order number, customer name, or phone...",
+    "filterByMarketplace": "Filter by marketplace",
+    "allMarketplaces": "All Marketplaces",
+    "marketplaceCode": "Marketplace Code {code}",
+    "selectAllOrders": "Select all {count} orders",
+    "ordersSelected": "{count} of {total} selected",
+    "generateReceipts": "Generate {count} Receipt{count, plural, one {} other {s}}",
+    "generating": "Generating...",
+    "order": "Order",
+    "customer": "Customer",
+    "amount": "Amount",
+    "status": "Status",
+    "date": "Date",
+    "actions": "Actions",
+    "viewOrderDetails": "View Order Details",
+    "allOrdersHaveReceipts": "All orders have fiscal receipts",
+    "noCompletedOrders": "No completed orders found",
+    "allCompletedOrdersHaveReceipts": "All completed orders already have fiscal receipts generated",
+    "ordersWithoutReceipts": "{count} completed orders without fiscal receipts",
+    "totalValue": "Total value: ₴{amount}",
+    "loadingCompletedOrders": "Loading completed orders...",
+    "generateReceiptsSuccess": "Successfully generated {count} fiscal receipts",
+    "generateReceiptsError": "Failed to generate {count} fiscal receipts",
+    "pleaseSelectOrders": "Please select at least one order"
   },
   "Index": {
     "title": "Order Management System"

@@ -418,7 +418,8 @@
     "orders": "Замовлення",
     "settings": "Налаштування",
     "blacklist": "Чорний список",
-    "logout": "Вийти"
+    "logout": "Вийти",
+    "fiscal": "Фіскальне"
   },
   "Calendar": {
     "months": {
@@ -601,6 +602,7 @@
     "openShift": "Відкрити зміну",
     "noActiveShift": "Немає активної зміни. Відкрийте зміну, щоб почати фіскальні операції.",
     "todaysFiscalStatistics": "Сьогоднішня фіскальна статистика",
+    "todaysFiscalStatisticsDescription": "Статистика фіскальних чеків на сьогодні",
     "fiscalReceiptStatistics": "Статистика фіскальних чеків на сьогодні",
     "totalReceipts": "Всього чеків",
     "salesToday": "Продажі сьогодні",
@@ -622,6 +624,7 @@
     "closingShiftWarning": "Ця дія згенерує Z-звіт і не може бути скасована. Переконайтеся, що всі транзакції для цієї зміни завершено.",
     "cancel": "Скасувати",
     "closeShiftAndGenerateZReport": "Закрити зміну та згенерувати Z-звіт",
+    "mustMatchOpeningCashier": "Повинно збігатися з касиром, який відкривав зміну",
     "failedToLoadShiftData": "Не вдалося завантажити дані зміни",
     "cashierNameRequired": "Ім'я касира обов'язкове",
     "shiftOpenedSuccessfully": "Зміну успішно відкрито!",
@@ -633,7 +636,22 @@
     "errorClosingShift": "Помилка закриття зміни",
     "shiftCurrentlyOpen": "Зміна наразі <strong>ВІДКРИТА</strong>",
     "totalSales": "Загальні продажі",
-    "totalReturns": "Загальні повернення"
+    "totalReturns": "Загальні повернення",
+    "receiptManagement": "Керування чеками",
+    "completedOrdersWithoutReceipts": "Завершені замовлення без фіскальних чеків",
+    "completedOrdersDescription": "Виберіть завершені замовлення для генерації фіскальних чеків",
+    "searchOrdersPlaceholder": "Пошук за номером замовлення, ім'ям або телефоном...",
+    "allMarketplaces": "Всі маркетплейси",
+    "selectAllOrders": "Вибрати всі замовлення",
+    "generateReceipts": "Згенерувати чеки",
+    "order": "Замовлення",
+    "customer": "Клієнт",
+    "amount": "Сума",
+    "status": "Статус",
+    "date": "Дата",
+    "actions": "Дії",
+    "ordersWithoutReceipts": "Замовлення без чеків",
+    "totalValue": "Загальна вартість"
   },
   "Index": {
     "title": "Система управління замовленнями"
