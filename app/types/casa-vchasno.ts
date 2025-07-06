@@ -79,6 +79,7 @@ export interface FiscalData {
   task: TaskType;
   cashier: string;
   receipt?: Receipt;
+  dtype?: number; // 0 for test mode, 1 for production mode
 }
 
 export interface CasaVchasnoRequest {

@@ -144,6 +144,7 @@ export class CasaVchasnoService {
         task: TaskType.SALE,
         cashier: cashierName,
         receipt,
+        dtype: 0, // Test mode
       };
 
       // Create request
@@ -258,6 +259,7 @@ export class CasaVchasnoService {
         task: TaskType.RETURN,
         cashier: cashierName,
         receipt,
+        dtype: 0, // Test mode
       };
 
       // Create request
@@ -332,6 +334,7 @@ export class CasaVchasnoService {
       const fiscalData: FiscalData = {
         task: TaskType.Z_REPORT,
         cashier: cashierName,
+        dtype: 0, // Test mode
       };
 
       // Create request
@@ -573,6 +576,7 @@ export class CasaVchasnoService {
       const fiscalData: FiscalData = {
         task: TaskType.SHIFT_STATUS,
         cashier: '', // Not required for status check
+        dtype: 0, // Test mode
       };
 
       // Create request

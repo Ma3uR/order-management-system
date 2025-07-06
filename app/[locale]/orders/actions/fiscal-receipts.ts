@@ -599,6 +599,30 @@ export async function validateReturnAmount(
 }
 
 /**
+ * Check current shift status
+ */
+export async function checkShiftStatus(): Promise<{
+  success: boolean;
+  data?: ShiftStatusInfo;
+  error?: string;
+}> {
+  try {
+    const shiftStatus = await casaVchasnoService.checkShiftStatus();
+
+    return {
+      success: true,
+      data: shiftStatus
+    };
+  } catch (error) {
+    console.error('[Fiscal Receipts] Error checking shift status:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+/**
  * Get fiscal statistics for dashboard
  */
 export async function getFiscalStatistics(): Promise<{
@@ -745,27 +769,3 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
   }
 }
 
-/**
- * Check current shift status from Casa.vchasno
- */
-export async function checkShiftStatus(): Promise<{
-  success: boolean;
-  data?: ShiftStatusInfo;
-  error?: string;
-}> {
-  'use server'
-  try {
-    const shiftStatus = await casaVchasnoService.checkShiftStatus();
-
-    return {
-      success: true,
-      data: shiftStatus
-    };
-  } catch (error) {
-    console.error('[Fiscal Receipts] Error checking shift status:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
-  }
-}
