@@ -10,16 +10,19 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "add-test-user": "node scripts/addTestUser.js",
     "prisma:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
     "db:seed": "prisma db seed",
-    "add-pb-user": "node scripts/add-test-pocketbase-user.js",
     "seed:pb": "node scripts/seed-pocketbase.js",
     "import-excel": "tsx scripts/import-excel-data.ts",
     "sync:orders": "tsx scripts/orders-sync.ts",
     "sync:statuses": "tsx scripts/marketplaces-status-sync.ts",
-    "sync:all": "tsx scripts/orders-sync.ts && tsx scripts/marketplaces-status-sync.ts",
-    "test:rozetka-receipt": "tsx scripts/test-rozetka-receipt.ts"
+    "sync:all": "tsx scripts/orders-sync.ts \u0026\u0026 tsx scripts/marketplaces-status-sync.ts",
+    "test:rozetka-receipt": "tsx scripts/test-rozetka-receipt.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:sale-receipts-lite": "tsx scripts/test-sale-receipts-lite.ts",
+    "test:completed-status": "tsx scripts/test-completed-status-functionality.ts",
+    "test:automation": "tsx scripts/test-automation.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
@@ -91,6 +94,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
+    "@types/jest": "^29.5.8",
     "@types/lodash": "^4.17.13",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -102,8 +106,11 @@
     "autoprefixer": "^10.4.14",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.15",
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
     "postcss": "^8",
     "prisma": "^5.21.1",
+    "ts-jest": "^29.1.1",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.19.2",
     "typescript": "^5"

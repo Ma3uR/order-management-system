@@ -4,6 +4,7 @@ import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { setOrderStatus as setEpicentrOrderStatus } from './epicentr';
 import { setOrderStatus as setPromOrderStatus } from './prom-ua';
 import { setOrderStatus as setRozetkaOrderStatus } from './rozetka';
+import { processFiscalAutomation } from '@/app/lib/services/fiscal-automation';
 import type { OrdersResponse, StatusResponse } from '@/app/types/pocketbase-types';
 
 interface MarketplaceSyncResult {
@@ -100,6 +101,9 @@ export async function updateOrderStatusWithSync(
         updated: new Date().toISOString()
       }) as OrdersResponse;
     });
+
+    // Process fiscal automation after local DB update succeeds
+    await processFiscalAutomation(updatedOrder.id, newStatusId);
 
     // Sync to marketplace
     console.log(`🔄 Syncing to marketplace for order ${orderId}`);

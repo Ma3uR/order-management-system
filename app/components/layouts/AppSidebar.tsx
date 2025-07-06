@@ -14,7 +14,7 @@ import {
   Settings,
   Bot,
   Receipt,
-  Calculator
+  Calculator,
 } from 'lucide-react';
 import { ThemeToggle } from '@/app/components/shared/ui/theme-toggle';
 import LanguageSwitcher from '@/app/components/shared/ui/LanguageSwitcher';

@@ -6,6 +6,7 @@ import { setOrderStatus as setEpicentrStatus } from '@/app/actions/epicentr';
 import { sendOrderNotification, type OrderData } from './telegram';
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { RozetkaOrderResponse } from '@/app/types/orders';
+import { processFiscalAutomation } from './fiscal-automation';
 
 // Generic order interface for automation
 interface AutomationOrder {
@@ -349,6 +350,10 @@ class StatusAutomationService {
 
         statusChanged = true;
         console.log(`✅ Local database order ${orderId} status updated to processing`);
+        
+        // Step 2.1: Process fiscal automation (fallback hook for marketplace → local automation)
+        await processFiscalAutomation(orderDbId, config.processingStatusId);
+        
       } catch (error) {
         console.error(`❌ Failed to update local database status for order ${orderId}:`, error);
         return { 

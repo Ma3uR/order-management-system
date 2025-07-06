@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { loginUser } from '@/app/lib/pocketbase';
+import { loginUser } from '@/app/lib/pocketbase.client';
 import { Card } from "@/app/components/shared/ui/card";
 import { Input } from "@/app/components/shared/ui/input";
 import { Button } from "@/app/components/shared/ui/button";

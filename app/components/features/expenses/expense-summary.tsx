@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/app/components/shared/ui/card"
 import { motion } from "framer-motion"
 import { DollarSign, BarChart2, Clock, TrendingUp } from "lucide-react"
 import { useTranslations } from 'next-intl'
-import pb, { authenticatedCall } from "@/app/lib/pocketbase"
+import pb from "@/app/lib/pocketbase.client"
 import { ExpensesResponse, ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
 import { formatAmount } from "@/lib/utils"
 
@@ -34,9 +34,7 @@ export function ExpenseSummary() {
         setLoading(true)
         
         // Fetch categories for lookup
-        const categories = await authenticatedCall(async () => 
-          pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
-        )
+        const categories = await pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
         const categoryMap: {[key: string]: ExpensesCategoriesResponse} = {}
         categories.forEach(cat => {
           categoryMap[cat.id] = cat
@@ -55,20 +53,16 @@ export function ExpenseSummary() {
         const formatDate = (date: Date) => date.toISOString().split('T')[0]
         
         // Fetch current month expenses with expanded category relations
-        const currentMonthExpenses = await authenticatedCall(async () => 
-          pb.collection('expenses').getFullList<ExpensesResponseWithExpand>({
-            filter: `date >= "${formatDate(currentMonthStart)}" && date <= "${formatDate(currentMonthEnd)}"`,
-            expand: 'category'
-          })
-        )
+        const currentMonthExpenses = await pb.collection('expenses').getFullList<ExpensesResponseWithExpand>({
+          filter: `date >= "${formatDate(currentMonthStart)}" && date <= "${formatDate(currentMonthEnd)}"`,
+          expand: 'category'
+        })
         
         // Fetch previous month expenses
-        const prevMonthExpenses = await authenticatedCall(async () => 
-          pb.collection('expenses').getFullList<ExpensesResponseWithExpand>({
-            filter: `date >= "${formatDate(prevMonthStart)}" && date <= "${formatDate(prevMonthEnd)}"`,
-            expand: 'category'
-          })
-        )
+        const prevMonthExpenses = await pb.collection('expenses').getFullList<ExpensesResponseWithExpand>({
+          filter: `date >= "${formatDate(prevMonthStart)}" && date <= "${formatDate(prevMonthEnd)}"`,
+          expand: 'category'
+        })
         
         // Calculate total spent this month
         const totalSpent = currentMonthExpenses.reduce((sum, expense) => 

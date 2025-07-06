@@ -13,7 +13,7 @@ import { useChat } from '@ai-sdk/react';
 import { Message, ToolInvocation } from 'ai';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
-import { clearUserChat } from '@/app/lib/chat-store';
+import { clearUserChat } from '@/app/lib/chat-store.client';
 import { useSession } from '@/app/hooks/useSession';
 import { AiToolRenderer } from './ai-tools-renderer';
 

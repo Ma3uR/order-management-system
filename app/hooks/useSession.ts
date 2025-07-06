@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import pb from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase.client';
 import { getUserRole } from '@/app/lib/auth/user-roles';
 import { UsersRoleOptions } from '@/app/types/pocketbase-types';
 

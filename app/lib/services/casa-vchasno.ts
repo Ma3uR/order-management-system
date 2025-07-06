@@ -106,6 +106,9 @@ export class CasaVchasnoService {
     order: OrdersResponse,
     cashierName: string,
   ): Promise<CasaVchasnoResponse> {
+    let request: CasaVchasnoRequest | null = null;
+    let apiReached = false;
+    
     try {
       console.log('[Casa.vchasno] Creating sale receipt for order:', order.orderNumber);
 
@@ -144,11 +147,13 @@ export class CasaVchasnoService {
       };
 
       // Create request
-      const request: CasaVchasnoRequest = {
+      request = {
         source: 'ORDER_MANAGEMENT_SYSTEM',
         fiscal: fiscalData,
       };
 
+      // Mark that we're about to reach the API
+      apiReached = true;
       const response = await this.makeRequest('/fiscal/execute', request);
       
       // Save receipt data to database
@@ -160,6 +165,47 @@ export class CasaVchasnoService {
       return response;
     } catch (error) {
       console.error('[Casa.vchasno] Error creating sale receipt:', error);
+      
+      // If API was reached but failed, save failed receipt record
+      if (apiReached && request) {
+        try {
+          const failedResponse: CasaVchasnoResponse = {
+            task: -1,
+            type: -1,
+            ver: 1,
+            source: 'ORDER_MANAGEMENT_SYSTEM',
+            device: '',
+            tag: '',
+            dt: new Date().toISOString(),
+            res: -1,
+            res_action: -1,
+            errortxt: error instanceof Error ? error.message : 'Unknown error',
+            warnings: [],
+            info: {
+              task: -1,
+              fisid: '',
+              dataid: -1,
+              doccode: '',
+              dt: new Date().toISOString(),
+              cashier: '',
+              dtype: -1,
+              isprint: 0,
+              isoffline: false,
+              safe: 0,
+              shift_link: 0,
+              docno: 0,
+              cancelid: '',
+              qr: '',
+              mac: ''
+            },
+            error_extra: null
+          };
+          await this.saveFiscalReceipt(order.id, FiscalReceiptsReceiptTypeOptions.sale, request, failedResponse);
+        } catch (saveError) {
+          console.error('[Casa.vchasno] Failed to save failed receipt record:', saveError);
+        }
+      }
+      
       throw error;
     }
   }
@@ -172,6 +218,9 @@ export class CasaVchasnoService {
     cashierName: string,
     returnAmount?: number
   ): Promise<CasaVchasnoResponse> {
+    let request: CasaVchasnoRequest | null = null;
+    let apiReached = false;
+    
     try {
       console.log('[Casa.vchasno] Creating return receipt for order:', order.orderNumber);
 
@@ -212,11 +261,13 @@ export class CasaVchasnoService {
       };
 
       // Create request
-      const request: CasaVchasnoRequest = {
+      request = {
         source: 'ORDER_MANAGEMENT_SYSTEM',
         fiscal: fiscalData,
       };
 
+      // Mark that we're about to reach the API
+      apiReached = true;
       const response = await this.makeRequest('/fiscal/execute', request);
       
       // Save receipt data to database
@@ -225,6 +276,47 @@ export class CasaVchasnoService {
       return response;
     } catch (error) {
       console.error('[Casa.vchasno] Error creating return receipt:', error);
+      
+      // If API was reached but failed, save failed receipt record
+      if (apiReached && request) {
+        try {
+          const failedResponse: CasaVchasnoResponse = {
+            task: -1,
+            type: -1,
+            ver: 1,
+            source: 'ORDER_MANAGEMENT_SYSTEM',
+            device: '',
+            tag: '',
+            dt: new Date().toISOString(),
+            res: -1,
+            res_action: -1,
+            errortxt: error instanceof Error ? error.message : 'Unknown error',
+            warnings: [],
+            info: {
+              task: -1,
+              fisid: '',
+              dataid: -1,
+              doccode: '',
+              dt: new Date().toISOString(),
+              cashier: '',
+              dtype: -1,
+              isprint: 0,
+              isoffline: false,
+              safe: 0,
+              shift_link: 0,
+              docno: 0,
+              cancelid: '',
+              qr: '',
+              mac: ''
+            },
+            error_extra: null
+          };
+          await this.saveFiscalReceipt(order.id, FiscalReceiptsReceiptTypeOptions.return, request, failedResponse);
+        } catch (saveError) {
+          console.error('[Casa.vchasno] Failed to save failed receipt record:', saveError);
+        }
+      }
+      
       throw error;
     }
   }

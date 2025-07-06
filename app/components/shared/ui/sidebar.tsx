@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger 
 } from "@/app/components/shared/ui/dropdown-menu"
 import { LogOut, User } from "lucide-react"
-import { logoutUser } from "@/app/lib/pocketbase"
+import { logoutUser } from "@/app/lib/pocketbase.client"
 import { useSession } from "@/app/hooks/useSession"
 import { useRouter } from "next/navigation"
 
