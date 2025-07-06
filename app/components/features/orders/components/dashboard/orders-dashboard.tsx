@@ -486,8 +486,6 @@ export function OrdersDashboard() {
       const order = orders.find(o => o.id === orderId);
       if (!order) throw new Error('Order not found');
 
-      // Store previous status for cancellation notification
-      const previousStatusId = order.status;
 
       // Validate products before update
       if (!Array.isArray(order.products) || order.products.length === 0) {
@@ -558,29 +556,6 @@ export function OrdersDashboard() {
         prevOrders.map(o => o.id === orderId ? result.data! : o) as OrdersResponse[]
       );
 
-      // Check for cancellation notification
-      try {
-        const { processCancellationNotification } = await import('@/app/lib/services/cancellation-notifications');
-        const cancellationResult = await processCancellationNotification(
-          orderId,
-          previousStatusId,
-          newStatusId,
-          result.data!
-        );
-
-        if (cancellationResult.notificationSent) {
-          console.log(`🚫 Cancellation notification sent for order ${order.orderNumber}`);
-        } else if (cancellationResult.reason) {
-          console.log(`🚫 Cancellation notification skipped for order ${order.orderNumber}: ${cancellationResult.reason}`);
-        }
-
-        if (cancellationResult.error) {
-          console.warn(`⚠️ Cancellation notification failed for order ${order.orderNumber}:`, cancellationResult.error);
-        }
-      } catch (cancellationError) {
-        console.warn('⚠️ Error processing cancellation notification:', cancellationError);
-        // Don't fail the main operation if cancellation notification fails
-      }
 
       // Show appropriate success message
       if (result.error) {

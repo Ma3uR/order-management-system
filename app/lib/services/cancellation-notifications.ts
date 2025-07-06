@@ -46,15 +46,22 @@ class CancellationNotificationService {
     
     const statusName = status.name.toLowerCase();
     
+    console.log(`🔍 Checking cancellation status: "${status.name}" (marketplace_code: ${status.marketplace_code})`);
+    
     // Check for various cancellation status names
-    return (
+    const isCancelled = (
       //prom
       status.marketplace_code === '4' || statusName.includes('отменён') ||
       //epicentr
       status.marketplace_code === 'canceled' || statusName.includes('скасован') ||
       //rozetka
-      status.marketplace_code === '45' || statusName.includes('скасовано покупцем') 
+      status.marketplace_code === '45' || statusName.includes('скасовано покупцем') ||
+      statusName.includes('скасовано') ||
+      statusName.includes('cancel')
     );
+    
+    console.log(`🔍 Status "${status.name}" is cancelled: ${isCancelled}`);
+    return isCancelled;
   }
 
   private isProcessingStatus(status: StatusResponse): boolean {
@@ -62,14 +69,19 @@ class CancellationNotificationService {
     
     const statusName = status.name.toLowerCase();
     
+    console.log(`🔍 Checking processing status: "${status.name}"`);
+    
     // Check for processing status names
-    return (
+    const isProcessing = (
       statusName.includes('обробляється') ||
       statusName.includes('обробка') ||
       statusName.includes('processing') ||
       statusName.includes('в роботі') ||
       statusName === 'обробляється'
     );
+    
+    console.log(`🔍 Status "${status.name}" is processing: ${isProcessing}`);
+    return isProcessing;
   }
 
   private async buildCancellationData(
@@ -122,7 +134,11 @@ class CancellationNotificationService {
     newStatusId: string,
     orderData: OrdersResponse
   ): Promise<CancellationNotificationResult> {
+    console.log(`🔍 Processing cancellation check for order ${orderData.orderNumber}`);
+    console.log(`🔍 Previous status ID: ${previousStatusId}, New status ID: ${newStatusId}`);
+    
     if (!this.enabled) {
+      console.log(`🚫 Cancellation notifications disabled for order ${orderData.orderNumber}`);
       return { 
         success: true, 
         notificationSent: false, 
@@ -132,12 +148,14 @@ class CancellationNotificationService {
 
     try {
       // Fetch status information
+      console.log(`🔍 Fetching status information for order ${orderData.orderNumber}`);
       const [previousStatus, newStatus] = await Promise.all([
         this.getStatusById(previousStatusId),
         this.getStatusById(newStatusId)
       ]);
 
       if (!previousStatus || !newStatus) {
+        console.error(`❌ Failed to fetch status information for order ${orderData.orderNumber}`);
         return {
           success: false,
           error: 'Failed to fetch status information',
@@ -145,8 +163,12 @@ class CancellationNotificationService {
         };
       }
 
+      console.log(`🔍 Previous status: "${previousStatus.name}" (${previousStatusId})`);
+      console.log(`🔍 New status: "${newStatus.name}" (${newStatusId})`);
+
       // Check if new status is cancelled
       if (!this.isCancelledStatus(newStatus)) {
+        console.log(`🔍 New status "${newStatus.name}" is not cancelled, skipping notification`);
         return {
           success: true,
           notificationSent: false,
@@ -154,14 +176,17 @@ class CancellationNotificationService {
         };
       }
 
-      // Check if previous status was processing (skip notification)
+      // Check if previous status was processing (skip notification only for specific cases)
+      // This logic may be too restrictive for "Скасовано покупцем" - consider if this should apply to all cancellations
       if (this.isProcessingStatus(previousStatus)) {
-        console.log(`🚫 Skipping cancellation notification for order ${orderData.orderNumber}: previous status was processing (${previousStatus.name})`);
-        return {
-          success: true,
-          notificationSent: false,
-          reason: 'Previous status was processing - notification skipped as requested'
-        };
+        console.log(`🚫 Previous status was processing (${previousStatus.name}), but proceeding with cancellation notification for order ${orderData.orderNumber}`);
+        console.log(`🔍 Consider if processing status skip should apply to "${newStatus.name}" cancellation type`);
+        // For now, we'll proceed with the notification instead of skipping
+        // return {
+        //   success: true,
+        //   notificationSent: false,
+        //   reason: 'Previous status was processing - notification skipped as requested'
+        // };
       }
 
       console.log(`🚫 Order ${orderData.orderNumber} cancelled: ${previousStatus.name} → ${newStatus.name}`);
