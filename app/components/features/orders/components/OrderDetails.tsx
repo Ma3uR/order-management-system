@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { orderSchema, OrderFormData } from '@/app/lib/validations/orders';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form";
 import { Alert, AlertDescription } from "@/app/components/shared/ui/alert";
-import pb from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase.client';
 import { Toaster, toast } from 'sonner';
 import { Dialog, DialogTitle, DialogHeader, DialogContent } from '@/app/components/shared/ui/dialog';
 import { NovaPoshtaModal } from './nova-poshta-modal';

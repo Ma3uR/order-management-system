@@ -3,7 +3,7 @@
 import axios from 'axios';
 import { RozetkaOrderResponse } from '@/app/types/orders';
 import * as dotenv from 'dotenv';
-import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
 import { orderSchema } from '@/app/lib/validations/orders';
 import { appendFileSync } from 'fs';
 import { getDefaultDeliveryMethod } from '../[locale]/settings/actions/delivery-methods';
@@ -288,10 +288,8 @@ function buildRozetkaDeliveryAddress(delivery: RozetkaOrderResponse['delivery'])
 
 async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   console.log('rozetkaOrder', rozetkaOrder);
-  const existingOrders = await authenticatedCall(async () => {
-    return await pb.collection('orders').getList(1, 1, {
-      filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
-    });
+  const existingOrders = await pb.collection('orders').getList(1, 1, {
+    filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
   });
 
   if (existingOrders.items.length > 0) {
@@ -299,11 +297,9 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     const existingOrder = existingOrders.items[0];
     
     // Get the new status based on rozetka status
-    const statusResult = await authenticatedCall(async () => {
-      return await pb.collection('status_options').getList(1, 50, {
-        filter: `marketplace_code = "${rozetkaOrder.status}" && source = "4tvf116a5aitwmb"`,
-        sort: '+priority'
-      });
+    const statusResult = await pb.collection('status_options').getList(1, 50, {
+      filter: `marketplace_code = "${rozetkaOrder.status}" && source = "4tvf116a5aitwmb"`,
+      sort: '+priority'
     });
     
     if (statusResult.items.length > 0) {
@@ -317,12 +313,10 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
       if (statusChanged || prroStatusChanged) {
         console.log(`Updating order ${rozetkaOrder.id}${statusChanged ? ` status from ${existingOrder.status} to ${newStatusId}` : ''}${prroStatusChanged ? ` prro_receipt_status to ${newPrroReceiptStatus}` : ''}`);
         
-        await authenticatedCall(async () => {
-          return await pb.collection('orders').update(existingOrder.id, {
-            status: newStatusId,
-            prro_receipt_status: newPrroReceiptStatus,
-            updated: new Date().toISOString()
-          });
+        await pb.collection('orders').update(existingOrder.id, {
+          status: newStatusId,
+          prro_receipt_status: newPrroReceiptStatus,
+          updated: new Date().toISOString()
         });
         
         console.log(`Order ${rozetkaOrder.id} updated successfully`);
@@ -332,10 +326,8 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   }
 
   // Order doesn't exist, create new order
-  const defaultCurrency = await authenticatedCall(async () => {
-    return await pb.collection('currency_options').getList(1, 1, {
-      filter: "isDefault = true"
-    });
+  const defaultCurrency = await pb.collection('currency_options').getList(1, 1, {
+    filter: "isDefault = true"
   });
 
   if (defaultCurrency.items.length === 0) {
@@ -343,11 +335,9 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   }
 
   // Get status by matching rozetkaOrder.status with marketplace_code
-  const statusResult = await authenticatedCall(async () => {
-    return await pb.collection('status_options').getList(1, 50, {
-      filter: `marketplace_code = "${rozetkaOrder.status}" && source = "4tvf116a5aitwmb"`,
-      sort: '+priority'
-    });
+  const statusResult = await pb.collection('status_options').getList(1, 50, {
+    filter: `marketplace_code = "${rozetkaOrder.status}" && source = "4tvf116a5aitwmb"`,
+    sort: '+priority'
   });
   
   if (statusResult.items.length === 0) {
@@ -362,10 +352,8 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   }
 
   // Get default payment method
-  const defaultPaymentMethod = await authenticatedCall(async () => {
-    return await pb.collection('payment_options').getList(1, 1, {
-      filter: "isDefault = true"
-    });
+  const defaultPaymentMethod = await pb.collection('payment_options').getList(1, 1, {
+    filter: "isDefault = true"
   });
 
   if (defaultPaymentMethod.items.length === 0) {
@@ -418,9 +406,7 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     throw new Error(`Invalid order data: ${validationResult.error.message}`);
   }
 
-  const createdOrder = await authenticatedCall(async () => {
-    return await pb.collection('orders').create(orderData);
-  });
+  const createdOrder = await pb.collection('orders').create(orderData);
 
   // Process status automation for new orders
   try {

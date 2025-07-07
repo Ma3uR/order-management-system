@@ -12,7 +12,7 @@ import { Input } from "@/app/components/shared/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/shared/ui/form"
 import { Card, CardContent, CardHeader } from "@/app/components/shared/ui/card"
 import { cn } from "@/lib/utils"
-import pb, { authenticatedCall } from "@/app/lib/pocketbase"
+import pb from "@/app/lib/pocketbase.client"
 import { ExpensesCategoriesResponse } from "../../../types/pocketbase-types"
 
 const formSchema = z.object({
@@ -50,7 +50,7 @@ export function CategoryManager() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await authenticatedCall(async () => pb.collection("expenses_categories").getFullList<ExpensesCategoriesResponse>());
+        const data = await pb.collection("expenses_categories").getFullList<ExpensesCategoriesResponse>();
         setCategories(data);
       } catch (error) {
         console.error("Failed to fetch categories:", error);

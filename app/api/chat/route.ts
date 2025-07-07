@@ -11,7 +11,7 @@ import {
   getMessagesByUserId,
   saveMessages,
 } from '@/app/[locale]/chat/actions/chat';
-import pocketbase, { authenticateAdmin, authenticatedCall } from '@/app/lib/pocketbase';
+import pocketbase, { authenticateAdmin } from '@/app/lib/pocketbase';
 import { isAuthenticated as checkAuth } from '@/app/lib/pocketbase';
 import { z } from 'zod';
 import { systemPrompt } from '@/app/lib/ai/prompts';
@@ -102,11 +102,9 @@ export async function POST(request: Request) {
     // Find or create a chat for this user
     try {
       // First try to find an existing chat for this user
-      const existingChats = await authenticatedCall(() => 
-        pocketbase.collection('chats').getFullList({
-          filter: `user = "${userId}"`
-        })
-      );
+      const existingChats = await pocketbase.collection('chats').getFullList({
+        filter: `user = "${userId}"`
+      });
       
       // If no chat exists for this user, create one
       if (!existingChats || existingChats.length === 0) {
