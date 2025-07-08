@@ -14,7 +14,7 @@ import { Badge } from "@/app/components/shared/ui/badge";
 import { Button } from "@/app/components/shared/ui/button";
 import { CircleIcon, RefreshCcw, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
-import pb, { authenticatedCall } from "@/app/lib/pocketbase";
+import pb from "@/app/lib/pocketbase.client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -74,9 +74,9 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
     async function initialize() {
       try {
         await checkRozetkaConnection();
-        const records = await authenticatedCall(() => pb.collection('sync_records').getList(1, 1, {
+        const records = await pb.collection('sync_records').getList(1, 1, {
           sort: '-created',
-        }));
+        });
         
         if (records.items.length > 0) {
           const lastSyncDate = new Date(records.items[0].created);
@@ -268,9 +268,9 @@ export default function SettingsPageClient({}: SettingsPageClientProps) {
                             if (result.success) {
                               toast.success('Sync completed successfully');
                               // Refresh the last sync time
-                              const records = await authenticatedCall(() => pb.collection('sync_records').getList(1, 1, {
+                              const records = await pb.collection('sync_records').getList(1, 1, {
                                 sort: '-created',
-                              }));
+                              });
                               if (records.items.length > 0) {
                                 setLastSync(format(new Date(records.items[0].created), 'yyyy-MM-dd HH:mm'));
                               }

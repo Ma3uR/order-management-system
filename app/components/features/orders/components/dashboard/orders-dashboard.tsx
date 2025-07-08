@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useTranslations } from 'next-intl'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from "@/app/components/shared/ui/button"
@@ -45,7 +45,7 @@ import { cn } from "@/lib/utils"
 import { Stats } from "@/app/components/shared/ui/stats-section"
 import { OrdersRecord, OrdersResponse, SourcesResponse, StatusResponse, OrdersMergeStatusOptions, OrdersMergeSourceOptions, Collections } from "@/app/types/pocketbase-types"
 import { getOrders, getSettings } from '@/app/[locale]/orders/actions/orders'
-import pb from '@/app/lib/pocketbase'
+import pb from '@/app/lib/pocketbase.client'
 import type { RecordSubscription } from 'pocketbase'
 import { toast, Toaster } from 'sonner'
 import { detectPotentialMerges, PotentialMerge, DEFAULT_MERGE_CONFIG } from '@/app/lib/mergeDetection'
@@ -110,7 +110,7 @@ export function OrdersDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   // Function to detect potential merges and update state
-  const detectAndUpdateMerges = (ordersList: OrdersResponse[]) => {
+  const detectAndUpdateMerges = useCallback((ordersList: OrdersResponse[]) => {
     try {
       console.log('🔍 [OrdersDashboard] Running merge detection on orders');
       
@@ -144,7 +144,7 @@ export function OrdersDashboard() {
     } catch (error) {
       console.error('❌ [OrdersDashboard] Error during merge detection:', error);
     }
-  };
+  }, [statuses, dismissedMerges]);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -172,6 +172,7 @@ export function OrdersDashboard() {
     }
 
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Re-run merge detection when statuses are loaded or updated
@@ -180,7 +181,8 @@ export function OrdersDashboard() {
       console.log('🔍 [OrdersDashboard] Statuses loaded, re-running merge detection');
       detectAndUpdateMerges(orders);
     }
-  }, [statuses, orders.length])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statuses, orders])
 
   // Auto-open order modal based on URL parameters
   useEffect(() => {
@@ -304,6 +306,7 @@ export function OrdersDashboard() {
       isSubscribed = false;
       unsubscribe?.then(unsub => unsub?.());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Filter orders based on search and filters
@@ -429,7 +432,7 @@ export function OrdersDashboard() {
         amountRange: [dynamicAmountRange.min, dynamicAmountRange.max]
       }))
     }
-  }, [dynamicAmountRange.min, dynamicAmountRange.max])
+  }, [orders.length, dynamicAmountRange.min, dynamicAmountRange.max])
 
   const activeFilterCount = useMemo(() => {
     let count = 0

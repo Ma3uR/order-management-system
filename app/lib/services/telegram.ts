@@ -2,6 +2,8 @@
 
 import axios from 'axios';
 import { checkBlackList } from '../../[locale]/blacklist/actions/black-list';
+import { CasaVchasnoResponse, ReceiptInfo } from '@/app/types/casa-vchasno';
+import { OrdersResponse } from '@/app/types/pocketbase-types';
 
 export interface OrderData {
   orderNumber: string;
@@ -179,6 +181,14 @@ class TelegramService {
     return messageParts.filter(part => part !== null && part !== undefined && part !== '').join('\n');
   }
 
+  async formatFiscalMessage(order: OrdersResponse, casaResp: CasaVchasnoResponse): Promise<string> {
+    const { orderNumber, amount, fullName } = order;
+    const receiptInfo = casaResp.info as ReceiptInfo;
+    const { doccode, qr } = receiptInfo;
+
+    return `🧾 Чек створено\n№${orderNumber}\nКлієнт: ${fullName}\nСума: ${amount.toLocaleString('uk-UA')} ₴\nДок. код: ${doccode}\nQR: ${qr}`;
+  }
+
   async sendOrderNotification(orderData: OrderData): Promise<TelegramSendResult> {
     if (!this.enabled) {
       console.log('🤖 Telegram notifications disabled, skipping notification');
@@ -327,6 +337,70 @@ class TelegramService {
     });
   }
 
+  async sendFiscalNotification(order: OrdersResponse, casaResp: CasaVchasnoResponse): Promise<TelegramSendResult> {
+    if (!this.enabled) {
+      console.log('🧾 Telegram fiscal notifications disabled, skipping notification');
+      return { success: false, error: 'Telegram notifications disabled' };
+    }
+
+    if (!this.botToken || !this.chatId) {
+      console.error('❌ Telegram bot token or chat ID not configured');
+      return { success: false, error: 'Telegram configuration missing' };
+    }
+
+    try {
+      const message = await this.formatFiscalMessage(order, casaResp);
+      console.log('🧾 Sending Telegram fiscal notification for order:', order.orderNumber);
+      
+      const response = await axios.post(
+        `https://api.telegram.org/bot${this.botToken}/sendMessage`,
+        {
+          chat_id: this.chatId,
+          text: message,
+          parse_mode: 'HTML'
+        },
+        {
+          timeout: 10000, // 10 second timeout
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.ok) {
+        console.log('✅ Telegram fiscal notification sent successfully');
+        return { 
+          success: true, 
+          messageId: response.data.result.message_id 
+        };
+      } else {
+        console.error('❌ Telegram API error:', response.data);
+        return { 
+          success: false, 
+          error: response.data.description || 'Unknown Telegram API error' 
+        };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Failed to send Telegram fiscal notification:', errorMessage);
+      
+      // Check for specific error types
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          return { success: false, error: 'Telegram request timeout' };
+        }
+        if (error.response?.status === 401) {
+          return { success: false, error: 'Invalid Telegram bot token' };
+        }
+        if (error.response?.status === 400) {
+          return { success: false, error: 'Invalid chat ID or message format' };
+        }
+      }
+      
+      return { success: false, error: errorMessage };
+    }
+  }
+
   async isEnabled(): Promise<boolean> {
     return this.enabled;
   }
@@ -345,6 +419,14 @@ export async function sendCancellationNotification(cancellationData: Cancellatio
 
 export async function testTelegramConnection(): Promise<TelegramSendResult> {
   return telegramService.testConnection();
+}
+
+export async function sendFiscalNotification(order: OrdersResponse, casaResp: CasaVchasnoResponse): Promise<TelegramSendResult> {
+  return telegramService.sendFiscalNotification(order, casaResp);
+}
+
+export async function formatFiscalMessage(order: OrdersResponse, casaResp: CasaVchasnoResponse): Promise<string> {
+  return telegramService.formatFiscalMessage(order, casaResp);
 }
 
 export async function isTelegramEnabled(): Promise<boolean> {

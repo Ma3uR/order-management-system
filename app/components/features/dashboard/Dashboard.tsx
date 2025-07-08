@@ -6,7 +6,7 @@ import { MonthlyChart } from "./MonthlyChart";
 import { TrafficChannel } from "./TrafficChannel";
 import { AiChatBox } from "./AiChatBox";
 import { useEffect, useState, useRef, useCallback } from 'react';
-import pb from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase.client';
 
 interface Order {
   id: string;

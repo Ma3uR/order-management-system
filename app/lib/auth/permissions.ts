@@ -24,6 +24,7 @@ export const PERMISSIONS = {
   USERS_CREATE: 'users:create',
   USERS_EDIT: 'users:edit',
   USERS_DELETE: 'users:delete',
+  USERS_ROLE_MANAGE: 'users:role_manage',
   
   // Settings permissions
   SETTINGS_VIEW: 'settings:view',
@@ -64,6 +65,7 @@ export const ROLE_PERMISSIONS: Record<UsersRoleOptions, Permission[]> = {
     PERMISSIONS.USERS_CREATE,
     PERMISSIONS.USERS_EDIT,
     PERMISSIONS.USERS_DELETE,
+    PERMISSIONS.USERS_ROLE_MANAGE,
     PERMISSIONS.SETTINGS_VIEW,
     PERMISSIONS.SETTINGS_MANAGE,
     PERMISSIONS.REPORTS_VIEW,
@@ -173,6 +175,13 @@ export function isAdmin(userRole: UsersRoleOptions | null): boolean {
  */
 export function isUser(userRole: UsersRoleOptions | null): boolean {
   return userRole === UsersRoleOptions.user;
+}
+
+/**
+ * Check if user can manage roles
+ */
+export function canManageRoles(userRole: UsersRoleOptions | null): boolean {
+  return hasPermission(userRole, PERMISSIONS.USERS_ROLE_MANAGE);
 }
 
 /**

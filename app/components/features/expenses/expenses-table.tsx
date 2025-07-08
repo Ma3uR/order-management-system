@@ -14,7 +14,7 @@ import { Calendar as CalendarComponent } from "@/app/components/shared/ui/calend
 import type { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { formatAmount } from "@/lib/utils"
-import pb, { authenticatedCall } from "@/app/lib/pocketbase"
+import pb from "@/app/lib/pocketbase.client"
 import { ExpensesResponse, ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
 import { 
   AlertDialog,
@@ -68,9 +68,7 @@ export function ExpensesTable() {
       setLoading(true)
       
       // Fetch categories first
-      const categoriesData = await authenticatedCall(async () => 
-        pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>()
-      );
+      const categoriesData = await pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>();
       
       // Convert to a lookup object for easy reference
       const categoriesMap: {[key: string]: ExpensesCategoriesResponse} = {};
@@ -80,11 +78,9 @@ export function ExpensesTable() {
       setCategories(categoriesMap);
       
       // Fetch expenses with expanded category relations
-      const expensesData = await authenticatedCall(async () => 
-        pb.collection('expenses').getFullList<ExpensesResponse>({
-          expand: 'category'
-        })
-      );
+      const expensesData = await pb.collection('expenses').getFullList<ExpensesResponse>({
+        expand: 'category'
+      });
       
       // Enrich expenses with category info
       const enrichedExpenses = expensesData.map(expense => {

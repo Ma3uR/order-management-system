@@ -5,6 +5,8 @@ import { authenticatedCall } from '@/app/lib/pocketbase';
 import pb from '@/app/lib/pocketbase';
 import { CasaVchasnoResponse, ShiftStatusInfo } from '@/app/types/casa-vchasno';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
+import { sendFiscalNotification } from '@/app/lib/services/telegram';
+import { isCompletedMarketplaceCode } from '@/app/lib/utils/order-status';
 
 export interface FiscalReceiptResult {
   success: boolean;
@@ -32,6 +34,21 @@ export async function createSaleReceipt(
   cashierName: string,
 ): Promise<FiscalReceiptResult> {
   try {
+    // Validate input parameters
+    if (!orderId || orderId.trim() === '') {
+      return {
+        success: false,
+        error: 'Order ID is required'
+      };
+    }
+
+    if (!cashierName || cashierName.trim() === '') {
+      return {
+        success: false,
+        error: 'Cashier name is required'
+      };
+    }
+
     // Get order details
     const order = await authenticatedCall(() =>
       pb.collection('orders').getOne<OrdersResponse>(orderId, {
@@ -46,11 +63,55 @@ export async function createSaleReceipt(
       };
     }
 
+    // Check if order already has a successful receipt
+    const existingReceipts = await authenticatedCall(() =>
+      pb.collection('fiscal_receipts').getList(1, 10, {
+        filter: `order_id = "${orderId}" && receipt_type = "sale" && status = "success"`,
+        sort: '-created'
+      })
+    );
+
+    if (existingReceipts.items.length > 0) {
+      console.log(`[Fiscal Receipts] Order ${order.orderNumber} already has a successful receipt, exiting silently`);
+      return {
+        success: true,
+        data: undefined // Return success but no new receipt created
+      };
+    }
+
+    // Check prro_receipt_status flag (alternative check)
+    if (order.prro_receipt_status === true) {
+      console.log(`[Fiscal Receipts] Order ${order.orderNumber} marked as having receipt (prro_receipt_status=true), exiting silently`);
+      return {
+        success: true,
+        data: undefined // Return success but no new receipt created
+      };
+    }
+
     // Create sale receipt using Casa.vchasno service
     const response = await casaVchasnoService.createSaleReceipt(
       order,
       cashierName,
     );
+
+    // Only send telegram notification if receipt creation was successful
+    if (response && response.res === 0) {
+      try {
+        console.log(`[Fiscal Receipts] Sending telegram notification for successful receipt: ${order.orderNumber}`);
+        const telegramResult = await sendFiscalNotification(order, response);
+        
+        if (telegramResult.success) {
+          console.log(`[Fiscal Receipts] ✅ Telegram notification sent successfully for order ${order.orderNumber}`);
+        } else {
+          console.warn(`[Fiscal Receipts] ⚠️ Telegram notification failed for order ${order.orderNumber}:`, telegramResult.error);
+        }
+      } catch (telegramError) {
+        console.warn(`[Fiscal Receipts] ⚠️ Telegram notification error for order ${order.orderNumber}:`, telegramError);
+        // Don't fail the main operation if telegram fails
+      }
+    } else {
+      console.log(`[Fiscal Receipts] Skipping telegram notification - receipt creation failed for order ${order.orderNumber}`);
+    }
 
     return {
       success: true,
@@ -538,6 +599,30 @@ export async function validateReturnAmount(
 }
 
 /**
+ * Check current shift status
+ */
+export async function checkShiftStatus(): Promise<{
+  success: boolean;
+  data?: ShiftStatusInfo;
+  error?: string;
+}> {
+  try {
+    const shiftStatus = await casaVchasnoService.checkShiftStatus();
+
+    return {
+      success: true,
+      data: shiftStatus
+    };
+  } catch (error) {
+    console.error('[Fiscal Receipts] Error checking shift status:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+/**
  * Get fiscal statistics for dashboard
  */
 export async function getFiscalStatistics(): Promise<{
@@ -648,35 +733,19 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
       
       // Get status information
       const statusFromExpand = (order.expand as Record<string, unknown>)?.status as { name?: string; marketplace_code?: string | number } | undefined;
-      const statusName = statusFromExpand?.name;
-      const statusNameLower = statusName?.toLowerCase()?.trim();
       
-      // Check marketplace code
+      // Check marketplace code using the new utility function
       let marketplaceCode = statusFromExpand?.marketplace_code;
       if (!marketplaceCode && (order as Record<string, unknown>).marketplace_code) {
         marketplaceCode = (order as Record<string, unknown>).marketplace_code as string | number;
       }
       
-      const marketplaceCodeNum = typeof marketplaceCode === 'string' ? parseInt(marketplaceCode) : marketplaceCode;
-      const hasMarketplaceCode6 = marketplaceCodeNum === 6;
+      // Convert to string for utility function
+      const marketplaceCodeStr = marketplaceCode?.toString();
+      const isCompleted = isCompletedMarketplaceCode(marketplaceCodeStr);
       
-      if (hasMarketplaceCode6) {
-        // Check for completed status
-        const isCompleted = statusNameLower && (
-          statusNameLower.includes('завершено') ||
-          statusNameLower.includes('доставлено') ||
-          statusNameLower.includes('выполнен') ||
-          statusNameLower.includes('completed') ||
-          statusNameLower.includes('delivered') ||
-          statusNameLower.includes('done') ||
-          statusNameLower.includes('finish') ||
-          statusNameLower.includes('успешно') ||
-          statusNameLower.includes('готов')
-        );
-        
-        if (isCompleted && !receiptOrderIds.has(order.id)) {
-          completedOrders.push(order);
-        }
+      if (isCompleted && !receiptOrderIds.has(order.id)) {
+        completedOrders.push(order);
       }
       
       // Log progress every 100 orders
@@ -700,27 +769,3 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
   }
 }
 
-/**
- * Check current shift status from Casa.vchasno
- */
-export async function checkShiftStatus(): Promise<{
-  success: boolean;
-  data?: ShiftStatusInfo;
-  error?: string;
-}> {
-  'use server'
-  try {
-    const shiftStatus = await casaVchasnoService.checkShiftStatus();
-
-    return {
-      success: true,
-      data: shiftStatus
-    };
-  } catch (error) {
-    console.error('[Fiscal Receipts] Error checking shift status:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
-  }
-}

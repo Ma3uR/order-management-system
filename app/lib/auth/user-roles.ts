@@ -6,24 +6,33 @@ import { UsersRoleOptions } from '@/app/types/pocketbase-types';
  */
 export async function getUserRole(userId: string): Promise<UsersRoleOptions | null> {
   try {
-    // Method 1: Try to get role from users collection
-    console.log('Attempting to fetch user role for ID:', userId);
+    console.log('🔍 [getUserRole] Attempting to fetch user role for ID:', userId);
     
+    // Method 1: Check if this is an admin user first
+    try {
+      const adminRecord = await pb.admins.getOne(userId);
+      console.log('✅ [getUserRole] Found user in admins collection:', adminRecord.email);
+      return UsersRoleOptions.admin;
+    } catch {
+      console.log('🔍 [getUserRole] User not found in admins collection, checking users collection...');
+    }
+    
+    // Method 2: Try to get role from users collection
     try {
       const userRecord = await pb.collection('users').getOne(userId, {
         fields: '*'
       });
-      console.log('Users collection response:', userRecord);
+      console.log('✅ [getUserRole] Users collection response:', userRecord);
       
       if (userRecord.role) {
-        console.log('Found role in users collection:', userRecord.role);
+        console.log('✅ [getUserRole] Found role in users collection:', userRecord.role);
         return userRecord.role as UsersRoleOptions;
       }
     } catch (usersError) {
-      console.log('Failed to get role from users collection:', usersError);
+      console.log('❌ [getUserRole] Failed to get role from users collection:', usersError);
     }
 
-    // Method 2: Try alternative collection name if it exists
+    // Method 3: Try alternative collection name if it exists
     try {
       const userRecord = await pb.collection('user_roles').getList(1, 1, {
         filter: `user_id="${userId}"`
@@ -38,7 +47,7 @@ export async function getUserRole(userId: string): Promise<UsersRoleOptions | nu
       console.log('No user_roles collection or no record found');
     }
 
-    // Method 3: Check if role is stored in a different field
+    // Method 4: Check if role is stored in a different field
     try {
       const userRecord = await pb.collection('users').getOne(userId);
       console.log('Checking alternative field names in users record:', userRecord);
@@ -56,7 +65,7 @@ export async function getUserRole(userId: string): Promise<UsersRoleOptions | nu
       console.log('Failed to check alternative fields:', altFieldError);
     }
 
-    // Method 4: Fallback - if user exists and no role found, check if they should be admin
+    // Method 5: Fallback - if user exists and no role found, check if they should be admin
     // This is based on email patterns or other criteria
     try {
       const userRecord = await pb.collection('users').getOne(userId);

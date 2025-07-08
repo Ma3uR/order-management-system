@@ -1,5 +1,5 @@
-import PocketBase, { AdminAuthResponse } from 'pocketbase';
-import { OrdersResponse, OrdersMergeStatusOptions, OrdersMergeSourceOptions, UsersRoleOptions } from '../types/pocketbase-types';
+import PocketBase from 'pocketbase';
+import { UsersRoleOptions } from '../types/pocketbase-types';
 import { UsersResponse } from '../types/pocketbase-types';
 import * as dotenv from 'dotenv';
 dotenv.config();
@@ -207,30 +207,6 @@ function initPocketBase() {
 // Get the PocketBase instance
 const pocketBase = initPocketBase();
 
-// Add authentication state tracking
-let authPromise: Promise<AdminAuthResponse> | null = null;
-
-// Authenticate admin on the server side
-export async function authenticateAdmin() {
-    if (pocketBase.authStore.isValid) {
-        return;
-    }
-
-    // Reuse existing auth promise if one is in progress
-    if (authPromise) {
-        return authPromise;
-    }
-
-    authPromise = pocketBase.admins.authWithPassword(
-        process.env.NEXT_PUBLIC_POCKETBASE_ADMIN_EMAIL!,
-        process.env.NEXT_PUBLIC_POCKETBASE_ADMIN_PASSWORD!
-    ).finally(() => {
-        authPromise = null;
-    });
-
-    return authPromise;
-}
-
 // Helper to login a user and save to localStorage
 export async function loginUser(email: string, password: string): Promise<{ user: UsersResponse; isAdmin: boolean }> {
   console.log(`🚀 [loginUser] Starting login for:`, email);
@@ -304,145 +280,10 @@ export async function loginUser(email: string, password: string): Promise<{ user
   }
 }
 
-// Export the PocketBase instance
-export { pb };
-
-// Smart wrapper function for authenticated collection calls
-// Preserves existing user auth instead of always switching to admin
-export async function authenticatedCall<T>(callback: () => Promise<T>): Promise<T> {
-  try {
-    // Note: Server-side cookie loading should be handled at the action level
-    // using loadAuthFromCookies() from '@/app/lib/utils/auth.server'
-    
-    // If already authenticated (user or admin), just use existing auth
-    if (pb.authStore.isValid) {
-      console.log('🔍 [authenticatedCall] Using existing authentication:', {
-        userId: pb.authStore.model?.id,
-        email: pb.authStore.model?.email,
-        type: pb.authStore.model?.collectionName || pb.authStore.model?.type || 'unknown'
-      });
-      
-      try {
-        // Try the operation with current auth first
-        const result = await callback();
-        console.log('✅ [authenticatedCall] Operation succeeded with current auth');
-        return result;
-      } catch (callbackError) {
-        console.error('❌ [authenticatedCall] Operation failed with current auth:', {
-          error: callbackError instanceof Error ? callbackError.message : String(callbackError),
-          currentUser: pb.authStore.model?.email,
-          currentAuthType: pb.authStore.model?.collectionName || pb.authStore.model?.type || 'unknown'
-        });
-        
-        // **CRITICAL: DO NOT fall back to admin auth if user is logged in**
-        // This was causing the user switching issue
-        throw callbackError;
-      }
-    }
-    
-    // Only authenticate as admin if no user is logged in at all
-    console.log('🔑 [authenticatedCall] No existing auth, attempting admin login...');
-    await authenticateAdmin();
-    
-    return await callback();
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error('❌ [authenticatedCall] Final error:', {
-        message: error.message,
-        url: pb.baseUrl,
-        currentUser: pb.authStore.model?.email,
-        stack: error.stack?.split('\n').slice(0, 3)
-      });
-    }
-    throw error;
-  }
-}
-
-// Fetch orders with proper authentication (smart auth preserves user session)
-export async function fetchOrders(): Promise<OrdersResponse[]> {
-  return authenticatedCall(async () => {
-    const orders = await pb.collection('orders').getFullList<OrdersResponse>();
-    
-    // Clean and validate each order
-    return orders.map(order => {
-      // Handle empty string or invalid mergeSource
-      let validMergeSource = undefined;
-      if (typeof order.mergeSource === 'string' && order.mergeSource.length > 0) {
-        // Check if it's a valid enum value
-        if ([OrdersMergeSourceOptions.phone, OrdersMergeSourceOptions.name].includes(order.mergeSource as OrdersMergeSourceOptions)) {
-          validMergeSource = order.mergeSource as OrdersMergeSourceOptions;
-        }
-      }
-
-      return {
-        ...order,
-        // Ensure products have valid titles
-        products: Array.isArray(order.products) 
-          ? order.products.map(product => ({
-              ...product,
-              title: product.title || product.name || 'Untitled Product',
-              quantity: Math.max(1, product.quantity || 1),
-              price: Math.max(0, product.price || 0)
-            }))
-          : [],
-        // Use the validated mergeSource
-        mergeSource: validMergeSource || OrdersMergeSourceOptions.none,
-        // Ensure mergeStatus has a valid value
-        mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none
-      };
-    });
-  });
-}
-
-// User-specific data fetching that works with regular user permissions
-export async function fetchUserOrders(): Promise<OrdersResponse[]> {
-  try {
-    // Direct call without authenticatedCall wrapper for regular users
-    console.log('🔍 [fetchUserOrders] Fetching orders with user permissions');
-    
-    if (!pb.authStore.isValid) {
-      throw new Error('User not authenticated');
-    }
-    
-    const orders = await pb.collection('orders').getFullList<OrdersResponse>();
-    console.log(`✅ [fetchUserOrders] Successfully fetched ${orders.length} orders`);
-    
-    // Clean and validate each order
-    return orders.map(order => {
-      // Handle empty string or invalid mergeSource
-      let validMergeSource = undefined;
-      if (typeof order.mergeSource === 'string' && order.mergeSource.length > 0) {
-        // Check if it's a valid enum value
-        if ([OrdersMergeSourceOptions.phone, OrdersMergeSourceOptions.name].includes(order.mergeSource as OrdersMergeSourceOptions)) {
-          validMergeSource = order.mergeSource as OrdersMergeSourceOptions;
-        }
-      }
-
-      return {
-        ...order,
-        // Ensure products have valid titles
-        products: Array.isArray(order.products) 
-          ? order.products.map(product => ({
-              ...product,
-              title: product.title || product.name || 'Untitled Product',
-              quantity: Math.max(1, product.quantity || 1),
-              price: Math.max(0, product.price || 0)
-            }))
-          : [],
-        // Use the validated mergeSource
-        mergeSource: validMergeSource || OrdersMergeSourceOptions.none,
-        // Ensure mergeStatus has a valid value
-        mergeStatus: order.mergeStatus || OrdersMergeStatusOptions.none
-      };
-    });
-  } catch (error) {
-    console.error('❌ [fetchUserOrders] Failed to fetch orders with user permissions:', error);
-    throw error;
-  }
-}
-
 // Helper to logout a user
-export function logoutUser() {  
+export function logoutUser() {
+  console.log('😊 [PocketBase] Logout initiated, clearing auth state');
+  
   try {
     // Clear the PocketBase auth store first
     pb.authStore.clear();
@@ -455,8 +296,10 @@ export function logoutUser() {
       // Clear auth cookies
       clearCookieAuth();
       
+      console.log('✅ [PocketBase] Auth cleared from localStorage and cookies');
       
       // Force a redirect to login to ensure all state is reset
+      console.log('🔄 [PocketBase] Redirecting to login after logout');
       window.location.href = `/${window.location.pathname.split('/')[1] || 'en'}/login`;
     }
   } catch (err) {
@@ -496,6 +339,9 @@ export function isAdminAuthenticated() {
 
 // Export utilities
 export { safeLocalStorage };
+
+// Export the PocketBase instance
+export { pb };
 
 // Export default PocketBase instance
 export default pocketBase;

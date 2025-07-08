@@ -191,9 +191,16 @@ export enum UsersRoleOptions {
 	"user" = "user",
 	"admin" = "admin",
 }
+
+export enum UsersPlanOptions {
+	"free" = "free",
+	"pro" = "pro",
+}
+
 export type UsersRecord = {
 	name?: string
 	role: UsersRoleOptions
+	plan?: UsersPlanOptions
 }
 
 // Response types include system fields and match responses from the PocketBase API
