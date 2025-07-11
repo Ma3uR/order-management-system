@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
 import { getUserRole } from '@/app/lib/auth/user-roles';
 import { UsersRoleOptions, UsersResponse } from '@/app/types/pocketbase-types';
 
@@ -15,16 +15,16 @@ export async function verifyUserId(userId: string): Promise<boolean> {
     }    
     // First try direct lookup to see if user exists
     try {
-      await authenticatedCall(() => pb.collection('users').getOne(userId));
+      await pb.collection('users').getOne(userId);
       return true;
     } catch (error) {
       // If direct lookup fails, try to search for the user
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.log(`verifyUserId: Direct lookup failed for "${userId}", trying list: ${errorMessage}`);
       
-      const users = await authenticatedCall(() => pb.collection('users').getList(1, 1, {
+      const users = await pb.collection('users').getList(1, 1, {
         filter: `id = "${userId}"`
-      }));
+      });
       
       if (users.totalItems > 0) {
         return true;

@@ -12,12 +12,29 @@ process.env.TELEGRAM_BOT_TOKEN = 'test-bot-token';
 process.env.TELEGRAM_CHAT_ID = 'test-chat-id';
 process.env.CASA_VCHASNO_TOKEN = 'test-casa-token';
 
-// Mock console.log for cleaner test output
+// Mock console methods for cleaner test output
 const originalLog = console.log;
+const originalWarn = console.warn;
+const originalError = console.error;
+
 console.log = (...args: any[]) => {
   // Only log in tests if explicitly needed
   if (process.env.JEST_VERBOSE) {
     originalLog(...args);
+  }
+};
+
+console.warn = (...args: any[]) => {
+  // Only warn in tests if explicitly needed
+  if (process.env.JEST_VERBOSE) {
+    originalWarn(...args);
+  }
+};
+
+console.error = (...args: any[]) => {
+  // Only error in tests if explicitly needed
+  if (process.env.JEST_VERBOSE) {
+    originalError(...args);
   }
 };
 

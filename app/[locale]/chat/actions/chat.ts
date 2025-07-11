@@ -1,7 +1,7 @@
 "use server"
 
 import { validatePocketbaseResponse } from "@/app/lib/api-utils";
-import pb, { authenticatedCall } from "@/app/lib/pocketbase";
+import pb from "@/app/lib/pocketbase";
 import { ChatsResponse } from "@/app/types/pocketbase-types";
 import { z } from "zod";
 
@@ -21,10 +21,10 @@ export type ChatData = z.infer<typeof chatSchema>;
 
 export const getChats = async () => {
   try {
-    const chats = await authenticatedCall(() => pb.collection('chats').getFullList({
+    const chats = await pb.collection('chats').getFullList({
       sort: '-created',
       expand: 'user'
-    }));
+    });
     const validatedChats = chats.map(chat => validatePocketbaseResponse(chat, chatSchema));
     return { error: undefined, data: validatedChats };
   } catch (error: unknown) {
@@ -39,9 +39,9 @@ export const getChats = async () => {
 
 export const getChat = async (id: string) => {
   try {
-    const chat = await authenticatedCall(() => pb.collection('chats').getOne(id, {
+    const chat = await pb.collection('chats').getOne(id, {
       expand: 'user'
-    }));
+    });
     const validatedChat = validatePocketbaseResponse(chat, chatSchema);
     return { error: undefined, data: validatedChat };
   } catch (error: unknown) {
@@ -57,7 +57,7 @@ export const getChat = async (id: string) => {
 export const createChat = async (data: ChatData) => {
   try {
     chatSchema.parse(data);
-    const chat = await authenticatedCall(() => pb.collection('chats').create<ChatsResponse>(data));
+    const chat = await pb.collection('chats').create<ChatsResponse>(data);
     const validatedChat = validatePocketbaseResponse(chat, chatSchema);
     return { error: undefined, data: validatedChat };
   } catch (error: unknown) {
@@ -73,7 +73,7 @@ export const createChat = async (data: ChatData) => {
 export const updateChat = async (id: string, data: ChatData) => {
   try {
     chatSchema.parse(data);
-    const chat = await authenticatedCall(() => pb.collection('chats').update<ChatsResponse>(id, data));
+    const chat = await pb.collection('chats').update<ChatsResponse>(id, data);
     const validatedChat = validatePocketbaseResponse(chat, chatSchema);
     return { error: undefined, data: validatedChat };
   } catch (error: unknown) {
@@ -88,7 +88,7 @@ export const updateChat = async (id: string, data: ChatData) => {
 
 export const deleteChat = async (id: string) => {
   try {
-    const deletionStatus = await authenticatedCall(() => pb.collection('chats').delete(id));
+    const deletionStatus = await pb.collection('chats').delete(id);
     return { error: undefined, data: deletionStatus };
   } catch (error: unknown) {
     if (error instanceof Error) {
@@ -103,32 +103,26 @@ export const deleteChat = async (id: string) => {
 export const saveMessages = async (userId: string, messages: ChatsResponse['messages']) => {
   try {
     // First try to find an existing chat for this user
-    const chats = await authenticatedCall(() => 
-      pb.collection('chats').getFullList({
-        filter: `user = "${userId}"`
-      })
-    );
+    const chats = await pb.collection('chats').getFullList({
+      filter: `user = "${userId}"`
+    });
     
     // If no chat exists, create one
     if (!chats || chats.length === 0) {
       console.log(`No chat found for user ${userId}, creating new chat`);
-      const newChat = await authenticatedCall(() => 
-        pb.collection('chats').create({
-          user: userId,
-          messages: messages
-        })
-      );
+      const newChat = await pb.collection('chats').create({
+        user: userId,
+        messages: messages
+      });
       const validatedChat = validatePocketbaseResponse(newChat, chatSchema);
       return { error: undefined, data: validatedChat };
     }
     
     // Update the existing chat
     const chatId = chats[0].id;
-    const updatedChat = await authenticatedCall(() => 
-      pb.collection('chats').update(chatId, {
-        messages: messages
-      })
-    );
+    const updatedChat = await pb.collection('chats').update(chatId, {
+      messages: messages
+    });
     const validatedChat = validatePocketbaseResponse(updatedChat, chatSchema);
     return { error: undefined, data: validatedChat };
   } catch (error: unknown) {
@@ -143,11 +137,9 @@ export const saveMessages = async (userId: string, messages: ChatsResponse['mess
 
 export const getMessagesByUserId = async (userId: string) => {
   try {
-    const chats = await authenticatedCall(() => 
-      pb.collection('chats').getFullList({
-        filter: `user = "${userId}"`
-      })
-    );
+    const chats = await pb.collection('chats').getFullList({
+      filter: `user = "${userId}"`
+    });
     
     // Return messages from the first chat found or empty array
     const chat = chats[0];
@@ -164,11 +156,9 @@ export const getMessagesByUserId = async (userId: string) => {
 
 export const getMessageCountByUserId = async (userId: string) => {
   try {
-    const chats = await authenticatedCall(() => 
-      pb.collection('chats').getFullList({
-        filter: `user = "${userId}"`
-      })
-    );
+    const chats = await pb.collection('chats').getFullList({
+      filter: `user = "${userId}"`
+    });
     
     let totalMessages = 0;
     chats.forEach(chat => {
