@@ -101,7 +101,7 @@ class MockPocketBase {
 export const mockPb = new MockPocketBase();
 
 export const authenticatedCall = jest.fn().mockImplementation((fn: Function) => {
-  return fn();
+  return fn(mockPb);
 });
 
 export default mockPb;

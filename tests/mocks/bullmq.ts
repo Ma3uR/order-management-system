@@ -2,10 +2,23 @@
  * In-memory mock implementations of BullMQ Queue and Job classes for testing
  */
 
+interface JobOptions {
+  priority?: number;
+  delay?: number;
+  attempts?: number;
+  removeOnComplete?: number;
+  removeOnFail?: number;
+  [key: string]: unknown;
+}
+
+interface QueueOptions {
+  [key: string]: unknown;
+}
+
 export class MockJob {
   id: string;
-  data: any;
-  opts: any;
+  data: unknown;
+  opts: JobOptions;
   timestamp: number;
   processedOn?: number;
   finishedOn?: number;
@@ -13,7 +26,7 @@ export class MockJob {
   attemptsMade: number;
   private state: 'waiting' | 'delayed' | 'active' | 'completed' | 'failed';
 
-  constructor(id: string, data: any, opts: any = {}) {
+  constructor(id: string, data: unknown, opts: JobOptions = {}) {
     this.id = id;
     this.data = data;
     this.opts = {
@@ -91,12 +104,14 @@ export class MockQueue {
   name: string;
   private jobs: Map<string, MockJob> = new Map();
   private jobCounter = 1;
-
-  constructor(name: string, opts?: any) {
+  private opts?: QueueOptions;
+  
+  constructor(name: string, opts?: QueueOptions) {
     this.name = name;
+    this.opts = opts;
   }
 
-  async add(jobName: string, data: any, opts: any = {}): Promise<MockJob> {
+  async add(_jobName: string, data: unknown, opts: JobOptions = {}): Promise<MockJob> {
     const jobId = `${this.jobCounter++}`;
     const job = new MockJob(jobId, data, opts);
     this.jobs.set(jobId, job);
@@ -148,11 +163,11 @@ export class MockQueue {
     return delayedJobs.sort((a, b) => a.timestamp - b.timestamp);
   }
 
-  async clean(grace: number, limit: number, type: 'completed' | 'failed'): Promise<MockJob[]> {
+  async clean(grace: number, _limit: number, type: 'completed' | 'failed'): Promise<MockJob[]> {
     const cutoffTime = Date.now() - grace;
     const jobsToRemove: MockJob[] = [];
 
-    for (const [jobId, job] of this.jobs.entries()) {
+    for (const [jobId, job] of Array.from(this.jobs.entries())) {
       if (type === 'completed' && job.isCompleted() && job.finishedOn && job.finishedOn < cutoffTime) {
         jobsToRemove.push(job);
         this.jobs.delete(jobId);
