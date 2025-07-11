@@ -16,9 +16,11 @@ npm run lint         # Run ESLint with auto-fix - USE THIS to check for errors i
 **IMPORTANT**: Claude Code should follow these strict rules:
 - **NEVER** run `npm run dev` or `npm run build` unless explicitly asked by the user
 - **ALWAYS** use `npm run lint` to check for code errors and syntax issues
+- **ALWAYS** write Jest tests for new functionality and run tests to verify implementations
 - **NEVER** start development servers automatically
 - **ASK PERMISSION** before running any long-running processes
 - Use `npm run lint` as the primary method to validate code changes
+- Use `yarn test` to run all tests and ensure code quality
 
 ### Database & Scripts
 ```bash
@@ -228,5 +230,9 @@ const tools = [
 
 ### Testing Integrations
 - Use scripts in `scripts/` directory for API testing
+- **ALWAYS** write Jest tests for new functionality and run tests to verify implementations
+- **ALWAYS** check lint issues before committing code changes
 - Check logs for detailed debugging information
 - Test both success and failure scenarios
+- Run `yarn test` to execute all tests and ensure code quality
+- Use proper TypeScript types (avoid `any`) to prevent lint issues

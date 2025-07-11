@@ -3,6 +3,9 @@ node_modules
 .env
 .env.local
 /pb_data
+/pb_data_backup
+/pb_data_restore
+pocketbase
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .vscode
 # dependencies
