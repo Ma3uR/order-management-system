@@ -1,4 +1,4 @@
-import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
 import { OrdersResponse, StatusResponse, CurrencyResponse, DeliveryOptionsResponse, PaymentMethodsResponse } from '@/app/types/pocketbase-types';
 
 
@@ -112,12 +112,10 @@ export async function getOrdersByPhone(phoneNumber: string) {
       return { error: 'Phone number is required' };
     }
     
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 10, { 
+    const orders = await pb.collection('orders').getList(1, 10, { 
         filter: `phoneNumber ~ "${phoneNumber}"`,
         sort: '-created'
-      })
-    );
+      });
     
     console.log(`Found ${orders.totalItems} orders for phone ${phoneNumber}`);
     
@@ -154,13 +152,12 @@ export async function getOrdersByStatus(status: string) {
       return { error: 'Status is required' };
     }
     
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 20, { 
+    const orders = await 
+      await pb.collection('orders').getList(1, 20, { 
         filter: `status.name ~ "${status}"`,
         expand: 'status',
         sort: '-created'
-      })
-    );
+      });
     
     console.log(`Found ${orders.totalItems} orders with status ${status}`);
     
@@ -197,20 +194,18 @@ export async function calculateBalanceForPeriod(startDate: string, endDate: stri
     }
     
     // Get income from completed orders
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 1000, { 
+    const orders = await 
+      await pb.collection('orders').getList(1, 1000, { 
         filter: `created >= "${startDate}" && created <= "${endDate}" && status.name = "completed"`,
         fields: 'id,amount,orderNumber'
-      })
-    );
+      });
     
     // Get expenses from expenses collection
-    const expenses = await authenticatedCall(() => 
-      pb.collection('expenses').getList(1, 1000, { 
+    const expenses = await 
+      await pb.collection('expenses').getList(1, 1000, { 
         filter: `date >= "${startDate}" && date <= "${endDate}"`,
         fields: 'id,amount,description,date,category'
-      })
-    );
+        });
     
     const totalIncome = orders.items.reduce((sum, order) => sum + (order.amount || 0), 0);
     const totalExpenses = expenses.items.reduce((sum, expense) => sum + (expense.amount || 0), 0);
@@ -258,12 +253,11 @@ export async function getTopProductsByPopularity(startDate: string, endDate: str
     console.log(`Getting top ${limit} popular products for period: ${startDate} to ${endDate}...`);
     
     // Get all orders with products
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 1000, { 
+    const orders = await 
+      await pb.collection('orders').getList(1, 1000, { 
         filter: `created >= "${startDate}" && created <= "${endDate}"`,
         fields: 'products'
-      })
-    );
+      });
     
     // Count product occurrences
     const productCounts: Record<string, { name: string, count: number }> = {};
@@ -305,12 +299,11 @@ export async function getLeastPopularProducts(startDate: string, endDate: string
     console.log(`Getting ${limit} least popular products for period: ${startDate} to ${endDate}...`);
     
     // Get all orders with products
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 1000, { 
+    const orders = await 
+      await pb.collection('orders').getList(1, 1000, { 
         filter: `created >= "${startDate}" && created <= "${endDate}"`,
         fields: 'products'
-      })
-    );
+      });
     
     // Count product occurrences
     const productCounts: Record<string, { name: string, count: number }> = {};
@@ -356,12 +349,11 @@ export async function calculateAverageOrderValue(startDate: string, endDate: str
     }
     
     // Get orders for the period
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 1000, { 
+    const orders = await 
+      await pb.collection('orders').getList(1, 1000, { 
         filter: `created >= "${startDate}" && created <= "${endDate}"${source ? ` && source.name = "${source}"` : ''}`,
         fields: 'amount'
-      })
-    );
+      });
     
     if (orders.totalItems === 0) {
       return { 
@@ -398,13 +390,12 @@ export async function getOrdersBeingAssembled() {
     console.log('Getting orders being assembled...');
     
     // Get orders with "being assembled" status
-    const orders = await authenticatedCall(() => 
-      pb.collection('orders').getList(1, 100, { 
+    const orders = await 
+      await pb.collection('orders').getList(1, 100, { 
         filter: `(status = "oni6s9oxdnlimzt" || status = "oivyo1td64r4qsd" || status = "0a3jmekr5xi0xqt" || status = "kw542bs057znpp7") && (archived = false || archived = null)`,
         expand: 'status',
         fields: 'id,orderNumber,created,fullName,phoneNumber,products'
-      })
-    );
+      });
     
     console.log(`Found ${orders.totalItems} orders being assembled`);
     
