@@ -22,8 +22,13 @@ export const calculateBalance: ToolDefinition<{ startDate: string; endDate: stri
       totalIncome: result.totalIncome || 0,
       totalExpenses: result.totalExpenses || 0,
       netBalance: (result.totalIncome || 0) - (result.totalExpenses || 0),
-      incomeBreakdown: result.incomeBreakdown || [],
-      expensesBreakdown: result.expensesBreakdown || []
+      // Limit breakdown arrays to reduce token usage
+      incomeBreakdown: Array.isArray(result.incomeBreakdown) 
+        ? result.incomeBreakdown.slice(0, 5) 
+        : [],
+      expensesBreakdown: Array.isArray(result.expensesBreakdown) 
+        ? result.expensesBreakdown.slice(0, 5) 
+        : []
     };
   },
 }; 

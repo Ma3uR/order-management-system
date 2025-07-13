@@ -14,8 +14,8 @@ import { Calendar as CalendarComponent } from "@/app/components/shared/ui/calend
 import type { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { formatAmount } from "@/lib/utils"
-import pb from "@/app/lib/pocketbase.client"
 import { ExpensesResponse, ExpensesCategoriesResponse } from "@/app/types/pocketbase-types"
+import { getExpenses, getExpenseCategories } from "@/app/[locale]/expenses/actions/expenses"
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/app/components/shared/ui/alert-dialog"
-import { deleteExpense } from "@/app/lib/services/expenses"
+import { deleteExpense as deleteExpenseAction } from "@/app/[locale]/expenses/actions/expenses"
 import { toast } from "@/app/components/shared/ui/use-toast"
 import { EXPENSE_ADDED_EVENT } from "./expense-form-dialog"
 import { EditExpenseDialog, EXPENSE_UPDATED_EVENT } from "./edit-expense-dialog"
@@ -67,8 +67,13 @@ export function ExpensesTable() {
     try {
       setLoading(true)
       
-      // Fetch categories first
-      const categoriesData = await pb.collection('expenses_categories').getFullList<ExpensesCategoriesResponse>();
+      // Fetch categories first using server action
+      const categoriesResult = await getExpenseCategories();
+      if (categoriesResult.error) {
+        throw new Error(categoriesResult.error);
+      }
+      
+      const categoriesData = categoriesResult.data || [];
       
       // Convert to a lookup object for easy reference
       const categoriesMap: {[key: string]: ExpensesCategoriesResponse} = {};
@@ -77,10 +82,13 @@ export function ExpensesTable() {
       });
       setCategories(categoriesMap);
       
-      // Fetch expenses with expanded category relations
-      const expensesData = await pb.collection('expenses').getFullList<ExpensesResponse>({
-        expand: 'category'
-      });
+      // Fetch expenses using server action
+      const expensesResult = await getExpenses();
+      if (expensesResult.error) {
+        throw new Error(expensesResult.error);
+      }
+      
+      const expensesData = expensesResult.data || [];
       
       // Enrich expenses with category info
       const enrichedExpenses = expensesData.map(expense => {
@@ -121,7 +129,7 @@ export function ExpensesTable() {
       console.error("Error fetching data:", error);
       toast({
         title: t('errorLoadingExpenses'),
-        description: t('problemLoadingExpenses'),
+        description: error instanceof Error ? error.message : t('problemLoadingExpenses'),
         variant: "destructive"
       });
     } finally {
@@ -184,7 +192,7 @@ export function ExpensesTable() {
     if (expenseToDelete) {
       setIsDeleting(true);
       try {
-        const result = await deleteExpense(expenseToDelete);
+        const result = await deleteExpenseAction(expenseToDelete);
         
         if (result.error) {
           throw new Error(result.error);

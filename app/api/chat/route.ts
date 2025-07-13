@@ -18,6 +18,8 @@ import { systemPrompt } from '@/app/lib/ai/prompts';
 import { myProvider } from '@/app/lib/ai/providers';
 import { v4 as uuid } from 'uuid';
 import { tools } from '@/app/lib/ai/tools';
+import { createMessageWindow, trimOldMessages, logTokenUsage } from '@/app/lib/ai/message-window';
+import { TOKEN_LIMITS } from '@/app/lib/ai/token-counter';
 
 // Extended interface for assistant messages with tool invocations
 interface AssistantMessageWithTools {
@@ -144,10 +146,28 @@ export async function POST(request: Request) {
       message: messageWithContent,
     });
 
-    await saveMessages(userId, messagesForAI);
+    // Apply token management before saving and sending
+    console.log('📊 Token Management: Processing messages...');
+    
+    // First, trim very old messages if we have too many
+    const trimmedMessages = trimOldMessages(messagesForAI, TOKEN_LIMITS.MAX_MESSAGES_TO_PROCESS);
+    
+    // Log initial token usage
+    logTokenUsage(trimmedMessages, 'Before truncation');
+    
+    // Apply sliding window to ensure we're within token limits
+    const { messages: windowedMessages, removedCount, totalTokens } = createMessageWindow(trimmedMessages);
+    
+    if (removedCount > 0) {
+      console.log(`🔄 Token Management: Removed ${removedCount} old messages to fit within limits`);
+      console.log(`📊 Token Management: Final token count: ${totalTokens}/${TOKEN_LIMITS.AVAILABLE_FOR_MESSAGES}`);
+    }
+    
+    // Save the windowed messages (this keeps storage clean)
+    await saveMessages(userId, windowedMessages);
 
     // Check for and fix messages with array content (which causes validation errors)
-    const fixedMessages = messagesForAI.map(msg => {
+    const fixedMessages = windowedMessages.map(msg => {
       if (typeof msg.content === 'object' && msg.content !== null) {
         console.log('Found message with object content, converting to string:', 
           { role: msg.role, contentType: typeof msg.content, isArray: Array.isArray(msg.content) });
@@ -160,6 +180,9 @@ export async function POST(request: Request) {
       }
       return msg;
     });
+    
+    // Final token usage log
+    logTokenUsage(fixedMessages, 'Final messages sent to OpenAI');
 
     return createDataStreamResponse({
       execute: (dataStream) => {        
@@ -216,7 +239,10 @@ export async function POST(request: Request) {
                   [...currentMessages.data, assistantMessage] : 
                   [messageWithContent, assistantMessage];
                 
-                await saveMessages(userId, updatedMessages);
+                // Apply token management to stored messages as well
+                const { messages: finalStoredMessages } = createMessageWindow(updatedMessages);
+                
+                await saveMessages(userId, finalStoredMessages);
               } catch (error: unknown) {
                 if (error instanceof Error) {
                   console.error('Failed to save chat', error.message);

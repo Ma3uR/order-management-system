@@ -30,7 +30,7 @@ export const productPopularity: ToolDefinition<ProductPopularityInput, ProductPo
     period: z.enum(['week', 'month', 'quarter', 'year', 'custom']).describe('Time period for the report'),
     startDate: z.string().optional().describe('Start date for custom period in YYYY-MM-DD format'),
     endDate: z.string().optional().describe('End date for custom period in YYYY-MM-DD format'),
-    limit: z.number().min(1).max(100).default(20).describe('Number of products to return (1-100, default 20)')
+    limit: z.number().min(1).max(10).default(5).describe('Number of products to return (1-10, default 5)')
   }),
   execute: async (input) => {
     try {
@@ -62,7 +62,7 @@ export const productPopularity: ToolDefinition<ProductPopularityInput, ProductPo
       }
 
       // Get product popularity data
-      const limit = input.limit || 20;
+      const limit = Math.min(input.limit || 5, 10); // Cap at 10 for token efficiency
 
       let result;
       if (input.type === 'most') {

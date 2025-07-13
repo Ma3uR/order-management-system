@@ -177,3 +177,59 @@ export const getMessageCountByUserId = async (userId: string) => {
     return { error: 'Unknown error in getMessageCountByUserId', data: undefined };
   }
 };
+
+/**
+ * Cleans up old messages for a specific user to prevent database bloat
+ * Keeps only the most recent N messages per user
+ */
+export const cleanupOldMessages = async (userId: string, keepCount: number = 100) => {
+  try {
+    const chats = await pb.collection('chats').getFullList({
+      filter: `user = "${userId}"`
+    });
+    
+    if (!chats || chats.length === 0) {
+      return { error: undefined, data: { cleaned: 0, kept: 0 } };
+    }
+    
+    // Process each chat for this user
+    let totalCleaned = 0;
+    let totalKept = 0;
+    
+    for (const chat of chats) {
+      if (Array.isArray(chat.messages) && chat.messages.length > keepCount) {
+        // Keep only the most recent messages
+        const recentMessages = chat.messages.slice(-keepCount);
+        const cleanedCount = chat.messages.length - recentMessages.length;
+        
+        // Update the chat with trimmed messages
+        await pb.collection('chats').update(chat.id, {
+          messages: recentMessages
+        });
+        
+        totalCleaned += cleanedCount;
+        totalKept += recentMessages.length;
+        
+        console.log(`🧹 Cleaned ${cleanedCount} old messages for user ${userId}, kept ${recentMessages.length}`);
+      } else if (Array.isArray(chat.messages)) {
+        totalKept += chat.messages.length;
+      }
+    }
+    
+    return { 
+      error: undefined, 
+      data: { 
+        cleaned: totalCleaned, 
+        kept: totalKept,
+        chatCount: chats.length
+      } 
+    };
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error in cleanupOldMessages:', error.message);
+      return { error: error.message, data: undefined };
+    }
+    console.error('Error in cleanupOldMessages:', error);
+    return { error: 'Unknown error in cleanupOldMessages', data: undefined };
+  }
+};
