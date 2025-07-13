@@ -189,7 +189,8 @@ export async function POST(request: Request) {
         const result = streamText({
           model: myProvider.languageModel('gpt-3.5-turbo'),
           system: systemPrompt(),
-          messages: fixedMessages, 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          messages: fixedMessages as any, 
           maxSteps: 5, // Allow up to 5 tool calls in a single conversation turn
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: () => uuid(),

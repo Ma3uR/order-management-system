@@ -38,28 +38,29 @@ export function estimateTokenCount(text: string): number {
  * Counts tokens for a message object
  */
 export function countMessageTokens(message: unknown): number {
-  if (!message) return 0;
+  if (!message || typeof message !== 'object') return 0;
   
+  const messageObj = message as any;
   let totalTokens = 0;
   
   // Count content tokens
-  if (message.content) {
-    if (typeof message.content === 'string') {
-      totalTokens += estimateTokenCount(message.content);
+  if (messageObj.content) {
+    if (typeof messageObj.content === 'string') {
+      totalTokens += estimateTokenCount(messageObj.content);
     } else {
       // Handle object content (convert to string first)
-      totalTokens += estimateTokenCount(JSON.stringify(message.content));
+      totalTokens += estimateTokenCount(JSON.stringify(messageObj.content));
     }
   }
   
   // Count role tokens (small overhead)
-  if (message.role) {
+  if (messageObj.role) {
     totalTokens += 1;
   }
   
   // Count tool invocation tokens
-  if (message.toolInvocations && Array.isArray(message.toolInvocations)) {
-    message.toolInvocations.forEach((tool: any) => {
+  if (messageObj.toolInvocations && Array.isArray(messageObj.toolInvocations)) {
+    messageObj.toolInvocations.forEach((tool: any) => {
       totalTokens += estimateTokenCount(tool.toolName || '');
       if (tool.result) {
         totalTokens += estimateTokenCount(JSON.stringify(tool.result));
@@ -87,9 +88,10 @@ export function countMessagesTokens(messages: unknown[]): TokenCountResult {
     totalTokens += messageTokens;
     
     // Count characters and words for additional metrics
-    if (message.content && typeof message.content === 'string') {
-      totalChars += message.content.length;
-      totalWords += message.content.split(/\s+/).filter(word => word.length > 0).length;
+    const messageObj = message as any;
+    if (messageObj.content && typeof messageObj.content === 'string') {
+      totalChars += messageObj.content.length;
+      totalWords += messageObj.content.split(/\s+/).filter((word: string) => word.length > 0).length;
     }
   });
   

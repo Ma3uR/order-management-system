@@ -14,7 +14,7 @@ import {
 
 interface Message {
   id?: string;
-  role: string;
+  role: 'user' | 'assistant' | 'system' | 'tool' | 'data';
   content: string | object;
   toolInvocations?: Array<{
     toolName: string;
