@@ -52,6 +52,8 @@ export const FiscalQueueManager = {
       cashierName?: string;
       priority?: number;
       businessHours?: boolean;
+      delay?: number;
+      scheduledFor?: Date;
     } = {}
   ) {
     const jobData: FiscalJobData = {
@@ -62,7 +64,17 @@ export const FiscalQueueManager = {
       businessHours: options.businessHours || false
     };
 
-    return await fiscalQueue.add('generate-fiscal-receipt', jobData, {
+    const jobOptions: {
+      priority: number;
+      removeOnComplete: number;
+      removeOnFail: number;
+      attempts: number;
+      backoff: {
+        type: string;
+        delay: number;
+      };
+      delay?: number;
+    } = {
       priority: options.priority || 0,
       removeOnComplete: 100,
       removeOnFail: 50,
@@ -71,7 +83,14 @@ export const FiscalQueueManager = {
         type: 'exponential',
         delay: 2000,
       }
-    });
+    };
+
+    // Add delay if specified
+    if (options.delay && options.delay > 0) {
+      jobOptions.delay = options.delay;
+    }
+
+    return await fiscalQueue.add('generate-fiscal-receipt', jobData, jobOptions);
   },
 
   async getJob(jobId: string) {
@@ -87,5 +106,49 @@ export const FiscalQueueManager = {
     return {
       removed: completedRemoved.length + failedRemoved.length
     };
+  },
+
+  async pauseQueue() {
+    return await fiscalQueue.pause();
+  },
+
+  async resumeQueue() {
+    return await fiscalQueue.resume();
+  },
+
+  async removeJob(jobId: string) {
+    const job = await fiscalQueue.getJob(jobId);
+    if (job) {
+      await job.remove();
+    }
   }
 };
+
+export const FiscalQueueProcessor = {
+  isWorkerProcessing(): boolean {
+    // This is a placeholder implementation
+    // In a real implementation, this would track worker state
+    return false;
+  },
+
+  async startWorker() {
+    // Placeholder for worker start logic
+    console.log('Starting fiscal queue worker...');
+  },
+
+  async stopWorker() {
+    // Placeholder for worker stop logic
+    console.log('Stopping fiscal queue worker...');
+  }
+};
+
+export function initializeFiscalQueue(): void {
+  console.log('Initializing fiscal queue...');
+  // Queue initialization logic would go here
+}
+
+export async function shutdownFiscalQueue(): Promise<void> {
+  console.log('Shutting down fiscal queue...');
+  // Queue shutdown logic would go here
+  await fiscalQueue.close();
+}

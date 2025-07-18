@@ -29,4 +29,23 @@ if (process.env.NODE_ENV !== 'test') {
   redis.connect().catch(console.error);
 }
 
+export async function testRedisConnection(): Promise<boolean> {
+  try {
+    await redis.ping();
+    return true;
+  } catch (error) {
+    console.error('Redis connection test failed:', error);
+    return false;
+  }
+}
+
+export async function closeRedisConnection(): Promise<void> {
+  try {
+    await redis.disconnect();
+    console.log('Redis connection closed');
+  } catch (error) {
+    console.error('Error closing Redis connection:', error);
+  }
+}
+
 export { redis };

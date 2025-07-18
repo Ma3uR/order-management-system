@@ -36,7 +36,12 @@ export interface FiscalQueueItemsResponse {
 
 export interface FiscalQueueActionResponse {
   success: boolean;
-  data?: unknown;
+  data?: {
+    processed?: number;
+    failed?: number;
+    total?: number;
+    removed?: number;
+  };
   error?: string;
 }
 
@@ -214,6 +219,53 @@ export async function cleanupFiscalQueue(gracePeriodDays: number = 7): Promise<F
     return {
       success: true,
       data: result
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+export async function processFiscalQueueManually(): Promise<FiscalQueueActionResponse> {
+  try {
+    // Get all pending jobs
+    const waitingJobs = await fiscalQueue.getJobs(['waiting'], 0, 100);
+    const delayedJobs = await fiscalQueue.getJobs(['delayed'], 0, 100);
+    
+    let processed = 0;
+    let failed = 0;
+    
+    // Process waiting jobs
+    for (const job of waitingJobs) {
+      try {
+        await job.promote();
+        processed++;
+      } catch (error) {
+        console.error(`Failed to promote job ${job.id}:`, error);
+        failed++;
+      }
+    }
+    
+    // Process delayed jobs (promote them to be processed immediately)
+    for (const job of delayedJobs) {
+      try {
+        await job.promote();
+        processed++;
+      } catch (error) {
+        console.error(`Failed to promote delayed job ${job.id}:`, error);
+        failed++;
+      }
+    }
+    
+    return {
+      success: true,
+      data: {
+        processed,
+        failed,
+        total: processed + failed
+      }
     };
   } catch (error) {
     return {
