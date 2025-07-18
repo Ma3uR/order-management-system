@@ -29,6 +29,8 @@
     "test:fiscal-automation": "tsx scripts/test-fiscal-shifts.js",
     "test:posthog-fiscal": "tsx scripts/test-posthog-fiscal.ts",
     "test:bullmq-redis": "tsx scripts/test-bullmq-redis.ts",
+    "test:redis": "tsx scripts/test-redis-connection.ts",
+    "test:redis:simple": "node scripts/test-redis-connection.js",
     "redis:local:start": "docker compose -f docker-compose.redis.yml up -d",
     "redis:local:stop": "docker compose -f docker-compose.redis.yml down",
     "redis:local:logs": "docker compose -f docker-compose.redis.yml logs -f"

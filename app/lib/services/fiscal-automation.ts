@@ -1,6 +1,6 @@
 import { casaVchasnoService } from './casa-vchasno';
 import { sendFiscalNotification } from './telegram';
-import pb, { authenticatedCall } from '@/app/lib/pocketbase';
+import pb from '@/app/lib/pocketbase';
 import { 
   OrdersResponse, 
   StatusResponse,
@@ -9,6 +9,12 @@ import {
 } from '@/app/types/pocketbase-types';
 import { CasaVchasnoResponse } from '@/app/types/casa-vchasno';
 import { isCompletedMarketplaceCode } from '@/app/lib/utils/order-status';
+import {
+  trackReceiptCreated,
+  trackReceiptFailed,
+  trackTelegramNotification,
+  trackFeatureFlag
+} from '@/app/lib/services/posthog-fiscal';
 
 // Interface for the status record
 interface StatusRecord {
@@ -29,6 +35,23 @@ export class FiscalAutomationService {
     console.log('[AutoFiscal] Configuration:');
     console.log(`  ENABLE_AUTO_FISCAL: ${this.ENABLE_AUTO_FISCAL}`);
     console.log(`  AUTO_CASHIER_NAME: ${this.AUTO_CASHIER_NAME}`);
+    
+    // Track feature flag usage
+    this.trackConfigurationFlags();
+  }
+  
+  /**
+   * Track configuration feature flags
+   */
+  private async trackConfigurationFlags(): Promise<void> {
+    try {
+      await trackFeatureFlag('fiscal_automation_enabled', this.ENABLE_AUTO_FISCAL, {
+        cashier_name: this.AUTO_CASHIER_NAME,
+        service: 'fiscal-automation'
+      });
+    } catch (error) {
+      console.warn('[AutoFiscal] PostHog tracking failed for configuration flags:', error);
+    }
   }
 
   static getInstance(): FiscalAutomationService {
@@ -49,15 +72,25 @@ export class FiscalAutomationService {
   }
 
   /**
+   * Check if current time is within business hours
+   */
+  private isBusinessHours(): boolean {
+    const now = new Date();
+    const hour = now.getHours();
+    const startHour = parseInt(process.env.FISCAL_START_HOUR || '8');
+    const endHour = parseInt(process.env.FISCAL_END_HOUR || '22');
+    
+    return hour >= startHour && hour < endHour;
+  }
+
+  /**
    * Check if order already has a successful sale receipt
    */
   async hasSaleReceipt(orderId: string): Promise<boolean> {
     try {
-      const receipts = await authenticatedCall(() =>
-        pb.collection('fiscal_receipts').getList(1, 1, {
-          filter: `order_id = "${orderId}" && receipt_type = "${FiscalReceiptsReceiptTypeOptions.sale}" && status = "${FiscalReceiptsStatusOptions.success}"`,
-        })
-      );
+      const receipts = await pb.collection('fiscal_receipts').getList(1, 1, {
+        filter: `order_id = "${orderId}" && receipt_type = "${FiscalReceiptsReceiptTypeOptions.sale}" && status = "${FiscalReceiptsStatusOptions.success}"`,
+      });
 
       return receipts.items.length > 0;
     } catch (error) {
@@ -69,12 +102,52 @@ export class FiscalAutomationService {
   /**
    * Create receipt using CasaVchasnoService
    */
-  async createReceipt(order: OrdersResponse): Promise<CasaVchasnoResponse | null> {
+  async createReceipt(order: OrdersResponse, processingStartTime?: Date): Promise<CasaVchasnoResponse | null> {
+    const startTime = processingStartTime || new Date();
+    
     try {
       console.log(`[AutoFiscal] Creating receipt for order ${order.orderNumber}`);
-      return await casaVchasnoService.createSaleReceipt(order, this.AUTO_CASHIER_NAME);
+      const result = await casaVchasnoService.createSaleReceipt(order, this.AUTO_CASHIER_NAME);
+      
+      if (result && result.res === 0) {
+        // Track successful receipt creation
+        try {
+          await trackReceiptCreated(order.id, order, result, this.AUTO_CASHIER_NAME, startTime);
+        } catch (trackingError) {
+          console.warn(`[AutoFiscal] PostHog tracking failed for successful receipt ${order.orderNumber}:`, trackingError);
+        }
+      } else {
+        // Track failed receipt creation
+        try {
+          await trackReceiptFailed(
+            order.id,
+            order,
+            result?.errortxt || 'Unknown error',
+            result,
+            startTime
+          );
+        } catch (trackingError) {
+          console.warn(`[AutoFiscal] PostHog tracking failed for failed receipt ${order.orderNumber}:`, trackingError);
+        }
+      }
+      
+      return result;
     } catch (error) {
       console.error(`[AutoFiscal] Failed to create receipt for order ${order.orderNumber}:`, error);
+      
+      // Track receipt creation exception
+      try {
+        await trackReceiptFailed(
+          order.id,
+          order,
+          error instanceof Error ? error.message : 'Unknown error',
+          undefined,
+          startTime
+        );
+      } catch (trackingError) {
+        console.warn(`[AutoFiscal] PostHog tracking failed for receipt exception ${order.orderNumber}:`, trackingError);
+      }
+      
       // The CasaVchasnoService already handles saving failed receipts for API errors
       // We only need to log and return null to indicate failure
       return null;
@@ -95,17 +168,45 @@ export class FiscalAutomationService {
       
       if (result.success) {
         console.log(`[AutoFiscal] Telegram fiscal notification sent successfully for order ${order.orderNumber}`);
+        
+        // Track successful telegram notification
+        try {
+          await trackTelegramNotification(order.id, order.orderNumber, true);
+        } catch (trackingError) {
+          console.warn(`[AutoFiscal] PostHog tracking failed for telegram success ${order.orderNumber}:`, trackingError);
+        }
       } else {
         console.warn(`[AutoFiscal] Telegram fiscal notification failed for order ${order.orderNumber}:`, result.error);
+        
+        // Track failed telegram notification
+        try {
+          await trackTelegramNotification(order.id, order.orderNumber, false, result.error);
+        } catch (trackingError) {
+          console.warn(`[AutoFiscal] PostHog tracking failed for telegram failure ${order.orderNumber}:`, trackingError);
+        }
       }
     } catch (error) {
       console.error(`[AutoFiscal] Error sending telegram fiscal notification for order ${order.orderNumber}:`, error);
+      
+      // Track telegram notification exception
+      try {
+        await trackTelegramNotification(
+          order.id,
+          order.orderNumber,
+          false,
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      } catch (trackingError) {
+        console.warn(`[AutoFiscal] PostHog tracking failed for telegram exception ${order.orderNumber}:`, trackingError);
+      }
+      
       // Don't throw - this is not critical
     }
   }
 
   /**
    * Main processing method - orchestrates the fiscal automation workflow
+   * Now uses BullMQ for reliable queue-based automation
    * Never throws exceptions - all errors are logged and handled gracefully
    */
   async process(orderId: string, newStatusId: string): Promise<void> {
@@ -118,14 +219,51 @@ export class FiscalAutomationService {
         return;
       }
 
+      // Use BullMQ for reliable queue-based processing
+      try {
+        const { FiscalQueueManager } = await import('../queues/fiscal-queue');
+        
+        // Get order details to determine scheduling
+        const order = await pb.collection('orders').getOne(orderId, {
+          expand: 'status,source'
+        }) as OrdersResponse;
+        
+        // Check if order needs fiscal processing
+        const statusRecord = await pb.collection('status_options').getOne(newStatusId) as StatusResponse;
+        
+        if (!this.shouldCreateReceipt(order, statusRecord)) {
+          console.log(`[AutoFiscal] Order ${order.orderNumber} status doesn't require fiscal processing`);
+          return;
+        }
+        
+        // Check if already has receipt
+        if (await this.hasSaleReceipt(orderId)) {
+          console.log(`[AutoFiscal] Order ${order.orderNumber} already has a fiscal receipt`);
+          return;
+        }
+        
+        // Add to BullMQ queue
+        if (this.shouldCreateReceipt(order, statusRecord)) {
+          await FiscalQueueManager.addFiscalJob(orderId, order.orderNumber, {
+            cashierName: this.AUTO_CASHIER_NAME,
+            priority: 1,
+            businessHours: this.isBusinessHours(),
+          });
+          
+          console.log(`[AutoFiscal] Added order ${order.orderNumber} to fiscal processing queue`);
+        }
+        return;
+      } catch (queueError) {
+        console.warn(`[AutoFiscal] BullMQ queue failed, falling back to immediate processing:`, queueError);
+        // Continue with legacy immediate processing as fallback
+      }
+
       // Get order details
       let order: OrdersResponse;
       try {
-        order = await authenticatedCall(() =>
-          pb.collection('orders').getOne(orderId, {
-            expand: 'status,source,currency,paymentMethod,deliveryMethod'
-          })
-        );
+        order = await pb.collection('orders').getOne(orderId, {
+          expand: 'status,source,currency,paymentMethod,deliveryMethod'
+        }) as OrdersResponse;
       } catch (error) {
         console.error(`[AutoFiscal] Failed to fetch order ${orderId}:`, error);
         return;
@@ -134,9 +272,7 @@ export class FiscalAutomationService {
       // Get status record
       let statusRecord: StatusResponse;
       try {
-        statusRecord = await authenticatedCall(() =>
-          pb.collection('status_options').getOne(newStatusId)
-        );
+        statusRecord = await pb.collection('status_options').getOne(newStatusId) as StatusResponse;
       } catch (error) {
         console.error(`[AutoFiscal] Failed to fetch status ${newStatusId}:`, error);
         return;
@@ -177,7 +313,8 @@ export class FiscalAutomationService {
       }
 
       // Create receipt - this method now handles errors gracefully
-      const casaResponse = await this.createReceipt(order);
+      const processingStartTime = new Date();
+      const casaResponse = await this.createReceipt(order, processingStartTime);
       
       // Check if receipt creation was successful
       if (!casaResponse || casaResponse.res !== 0) {
