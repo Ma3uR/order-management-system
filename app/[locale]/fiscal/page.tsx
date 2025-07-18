@@ -16,6 +16,7 @@ import { getFiscalReceipts, getFiscalShifts, getFiscalStatistics } from '@/app/[
 import { useEffect } from 'react'
 import { format } from 'date-fns'
 import { CompletedOrdersTab } from "@/app/components/features/fiscal/completed-orders-tab"
+import { AutomationQueue } from "@/app/components/features/fiscal/automation-queue"
 
 interface FiscalReceipt {
   id: string
@@ -249,7 +250,7 @@ export default function FiscalPage(): JSX.Element {
 
         {/* Fiscal Management Tabs */}
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <Calculator className="h-4 w-4" />
               Dashboard
@@ -257,6 +258,10 @@ export default function FiscalPage(): JSX.Element {
             <TabsTrigger value="receipt-management" className="flex items-center gap-2">
               <ListChecks className="h-4 w-4" />
               {t('receiptManagement')}
+            </TabsTrigger>
+            <TabsTrigger value="automation-queue" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Automation Queue
             </TabsTrigger>
           </TabsList>
 
@@ -521,6 +526,11 @@ export default function FiscalPage(): JSX.Element {
           {/* Receipt Management Tab */}
           <TabsContent value="receipt-management">
             <CompletedOrdersTab />
+          </TabsContent>
+
+          {/* Automation Queue Tab */}
+          <TabsContent value="automation-queue">
+            <AutomationQueue />
           </TabsContent>
         </Tabs>
 

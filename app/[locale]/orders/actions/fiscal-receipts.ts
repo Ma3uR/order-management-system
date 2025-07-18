@@ -1,7 +1,6 @@
 'use server';
 
 import { casaVchasnoService } from '@/app/lib/services/casa-vchasno';
-import { authenticatedCall } from '@/app/lib/pocketbase';
 import pb from '@/app/lib/pocketbase';
 import { CasaVchasnoResponse, ShiftStatusInfo } from '@/app/types/casa-vchasno';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
@@ -50,11 +49,9 @@ export async function createSaleReceipt(
     }
 
     // Get order details
-    const order = await authenticatedCall(() =>
-      pb.collection('orders').getOne<OrdersResponse>(orderId, {
-        expand: 'paymentMethod,deliveryMethod,status,currency'
-      })
-    );
+    const order = await pb.collection('orders').getOne<OrdersResponse>(orderId, {
+      expand: 'paymentMethod,deliveryMethod,status,currency'
+    });
 
     if (!order) {
       return {
@@ -64,12 +61,10 @@ export async function createSaleReceipt(
     }
 
     // Check if order already has a successful receipt
-    const existingReceipts = await authenticatedCall(() =>
-      pb.collection('fiscal_receipts').getList(1, 10, {
-        filter: `order_id = "${orderId}" && receipt_type = "sale" && status = "success"`,
-        sort: '-created'
-      })
-    );
+    const existingReceipts = await pb.collection('fiscal_receipts').getList(1, 10, {
+      filter: `order_id = "${orderId}" && receipt_type = "sale" && status = "success"`,
+      sort: '-created'
+    });
 
     if (existingReceipts.items.length > 0) {
       console.log(`[Fiscal Receipts] Order ${order.orderNumber} already has a successful receipt, exiting silently`);
@@ -136,11 +131,9 @@ export async function createReturnReceipt(
 ): Promise<FiscalReceiptResult> {
   try {
     // Get order details
-    const order = await authenticatedCall(() =>
-      pb.collection('orders').getOne<OrdersResponse>(orderId, {
-        expand: 'paymentMethod,deliveryMethod,status,currency'
-      })
-    );
+    const order = await pb.collection('orders').getOne<OrdersResponse>(orderId, {
+      expand: 'paymentMethod,deliveryMethod,status,currency'
+    });
 
     if (!order) {
       return {
@@ -294,11 +287,9 @@ export async function getFiscalShifts(page: number = 1, perPage: number = 20): P
   error?: string;
 }> {
   try {
-    const shifts = await authenticatedCall(() =>
-      pb.collection('fiscal_shifts').getList(page, perPage, {
+    const shifts = await pb.collection('fiscal_shifts').getList(page, perPage, {
         sort: '-created'
-      })
-    );
+      });
 
     return {
       success: true,
@@ -327,12 +318,10 @@ export async function getFiscalReceipts(page: number = 1, perPage: number = 20):
   error?: string;
 }> {
   try {
-    const receipts = await authenticatedCall(() =>
-      pb.collection('fiscal_receipts').getList(page, perPage, {
+    const receipts = await pb.collection('fiscal_receipts').getList(page, perPage, {
         sort: '-created',
         expand: 'order_id'
-      })
-    );
+      });
 
     return {
       success: true,
@@ -402,13 +391,11 @@ export async function searchFiscalReceipts(
     
     const filterString = filters.length > 0 ? filters.join(' && ') : ''
     
-    const receipts = await authenticatedCall(() =>
-      pb.collection('fiscal_receipts').getList(page, perPage, {
+    const receipts = await pb.collection('fiscal_receipts').getList(page, perPage, {
         sort: '-created',
         expand: 'order_id',
         filter: filterString
-      })
-    );
+    });
 
     return {
       success: true,
@@ -468,12 +455,10 @@ export async function getReturnReceiptsForOrder(orderId: string): Promise<{
   error?: string;
 }> {
   try {
-    const returns = await authenticatedCall(() =>
-      pb.collection('fiscal_receipts').getList(1, 100, {
-        filter: `order_id = "${orderId}" && receipt_type = "return" && status = "success"`,
-        sort: '-created'
-      })
-    );
+    const returns = await pb.collection('fiscal_receipts').getList(1, 100, {
+      filter: `order_id = "${orderId}" && receipt_type = "return" && status = "success"`,
+      sort: '-created'
+    });
 
     return {
       success: true,
@@ -646,12 +631,10 @@ export async function getFiscalStatistics(): Promise<{
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
     
-    const receipts = await authenticatedCall(() =>
-      pb.collection('fiscal_receipts').getList(1, 1000, {
+    const receipts = await pb.collection('fiscal_receipts').getList(1, 1000, {
         filter: `created >= "${today} 00:00:00" && created < "${tomorrowStr} 00:00:00"`,
         fields: 'receipt_type,fiscal_data'
-      })
-    );
+      });
 
     console.log('Receipts:', JSON.stringify(receipts.items, null, 2))
 
@@ -703,23 +686,19 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
     
     // Get all orders with completed statuses that don't have successful fiscal receipts
     // and have prro_receipt_status = false (no receipt created on Rozetka side)
-    const orders = await authenticatedCall(() =>
-      pb.collection('orders').getList(1, 500, {
+    const orders = await pb.collection('orders').getList(1, 500, {
         filter: `archived = false && (prro_receipt_status = false || prro_receipt_status = null)`,
         expand: 'status,source',
         sort: '-created_at_marketplace,-created'
-      })
-    );
+      });
 
     console.log(`📊 Found ${orders.items.length} orders to check`);
     
     // Get all existing fiscal receipts in one query to avoid N+1 problem
-    const existingReceipts = await authenticatedCall(() =>
-      pb.collection('fiscal_receipts').getList(1, 1000, {
+    const existingReceipts = await pb.collection('fiscal_receipts').getList(1, 1000, {
         filter: `receipt_type = "sale" && status = "success"`,
         fields: 'order_id'
-      })
-    );
+      });
     
     const receiptOrderIds = new Set(existingReceipts.items.map(r => r.order_id));
     console.log(`📋 Found ${existingReceipts.items.length} existing receipts`);
