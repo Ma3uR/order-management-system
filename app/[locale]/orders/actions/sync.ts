@@ -8,6 +8,8 @@ import { SyncRecordsRecord } from '@/app/types/pocketbase-types';
 import { appendFileSync } from 'fs';
 import { getDefaultDeliveryMethod } from '../../settings/actions/delivery-methods';
 import { getDefaultPaymentMethod } from '../../settings/actions/payment-methods';
+import { extractProductsFromRozetkaOrder } from '@/app/lib/utils/rozetka';
+
 
 export async function syncOrders() {
   try {
@@ -76,18 +78,15 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     rozetkaOrder.delivery?.place_number
   ].filter(Boolean).join(' ');
 
+  const products = extractProductsFromRozetkaOrder(rozetkaOrder);
   const orderData = {
     source: '4tvf116a5aitwmb',
     orderNumber: rozetkaOrder.id.toString(),
     marketplaceId: rozetkaOrder.id.toString(),
     phoneNumber: rozetkaOrder.user_phone,
     fullName: rozetkaOrder.user_title?.full_name || 'Unknown',
-    products: (rozetkaOrder.items_photos || []).map(item => ({
-      title: item.item_name,
-      quantity: 1,
-      price: parseFloat(item.item_price || '0')
-    })),
-    numberOfItems: rozetkaOrder.total_quantity || 0,
+    products,
+    numberOfItems: rozetkaOrder.total_quantity || products.reduce((sum, product) => sum + product.quantity, 0),
     amount: parseFloat(rozetkaOrder.amount || '0'),
     paymentMethod: (await mapPaymentMethod(rozetkaOrder.payment_method_id)).pbRecordId, 
     deliveryMethod: (await mapDeliveryMethod(rozetkaOrder.delivery.delivery_method_id)).pbRecordId,

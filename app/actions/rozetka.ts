@@ -8,6 +8,7 @@ import { orderSchema } from '@/app/lib/validations/orders';
 import { appendFileSync } from 'fs';
 import { getDefaultDeliveryMethod } from '../[locale]/settings/actions/delivery-methods';
 import { processOrderAutomation, type AutomationResult } from '@/app/lib/services/status-automation';
+import { extractProductsFromRozetkaOrder } from '@/app/lib/utils/rozetka';
 
 dotenv.config();
 
@@ -117,7 +118,7 @@ class RozetkaAPI {
           types: params?.types || 1,
           created_from: params?.from || defaultFrom,
           created_to: params?.to || defaultTo,
-          expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed, prro_receipt_status'
+          expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed, prro_receipt_status,purchases'
         }
       });
 
@@ -286,6 +287,7 @@ function buildRozetkaDeliveryAddress(delivery: RozetkaOrderResponse['delivery'])
   return parts.length > 0 ? parts.join(', ') : '';
 }
 
+
 async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
   console.log('rozetkaOrder', rozetkaOrder);
   const existingOrders = await pb.collection('orders').getList(1, 1, {
@@ -362,18 +364,15 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
 
   const fullName = rozetkaOrder.user_title?.full_name || rozetkaOrder.user?.contact_fio || 'Unknown';
 
+  const products = extractProductsFromRozetkaOrder(rozetkaOrder);
   const orderData = {
     source: '4tvf116a5aitwmb',
     orderNumber: rozetkaOrder.id.toString(),
     marketplaceIds: rozetkaOrder.id.toString(),
     phoneNumber: rozetkaOrder.user_phone || '',
     fullName,
-    products: rozetkaOrder.items_photos?.map(item => ({
-      title: item.item_name,
-      quantity: 1,
-      price: parseFloat(item.item_price)
-    })) || [],
-    numberOfItems: rozetkaOrder.total_quantity || 0,
+    products,
+    numberOfItems: rozetkaOrder.total_quantity || products.reduce((sum, product) => sum + product.quantity, 0),
     amount: parseFloat(rozetkaOrder.amount_with_discount),
     paymentMethod: defaultPaymentMethod.items[0].id,
     deliveryMethod: defaultDeliveryMethod.data.id,

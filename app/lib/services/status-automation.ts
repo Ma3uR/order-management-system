@@ -6,6 +6,7 @@ import { setOrderStatus as setEpicentrStatus } from '@/app/actions/epicentr';
 import { sendOrderNotification, type OrderData } from './telegram';
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { RozetkaOrderResponse } from '@/app/types/orders';
+import { extractProductsFromRozetkaOrder } from '@/app/lib/utils/rozetka';
 
 // Generic order interface for automation
 interface AutomationOrder {
@@ -26,7 +27,7 @@ interface AutomationOrder {
   };
   items_photos?: Array<{
     item_name: string;
-    item_price: string;
+    item_price?: string;
   }>;
   user_phone?: string;
   user_title?: {
@@ -177,6 +178,7 @@ class StatusAutomationService {
     }
   }
 
+
   private async mapRozetkaOrderToTelegramData(rozetkaOrder: RozetkaOrderResponse, orderDbId: string): Promise<OrderData> {
     // Get payment method from database
     const paymentMethod = await this.getPaymentMethodName(orderDbId);
@@ -218,12 +220,8 @@ class StatusAutomationService {
       }
     }
 
-    // Format products
-    const products = rozetkaOrder.items_photos?.map(item => ({
-      title: item.item_name,
-      quantity: 1, // Rozetka items_photos doesn't have quantity, using default 1
-      price: parseFloat(item.item_price)
-    })) || [];
+    // Format products using shared utility
+    const products = extractProductsFromRozetkaOrder(rozetkaOrder);
 
     return {
       orderNumber: rozetkaOrder.id.toString(),
