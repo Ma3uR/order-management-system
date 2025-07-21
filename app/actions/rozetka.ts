@@ -592,17 +592,12 @@ export async function setOrderStatus(orderId: string, statusCode: string): Promi
  */
 export async function createRozetkaReceipt(
   orderId: string, 
-  qrCodeUrl?: string
 ): Promise<{ error: string | null, data: boolean | null }> {
   try {
     const token = await api.ensureValidToken();
-    
-    console.log(`📄 Creating Rozetka receipt for order ${orderId}${qrCodeUrl ? ` with QR: ${qrCodeUrl}` : ''}`);
-    
+      
     const payload = {
       order_id: parseInt(orderId),
-      payment_method_type: "card",
-      ...(qrCodeUrl && { url: qrCodeUrl })
     };
     
     const response = await axios.post(
@@ -617,7 +612,7 @@ export async function createRozetkaReceipt(
     );
     
     console.log(`✅ Rozetka receipt created successfully for order ${orderId}:`, response.data);
-    return { error: null, data: true };
+    return { error: null, data: response.data.content };
     
   } catch (error: unknown) {
     if (error instanceof Error) {
