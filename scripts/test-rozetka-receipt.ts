@@ -78,10 +78,9 @@ async function testRozetkaReceiptCreation() {
     // Wait a moment
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Test 2: Create receipt with mock QR code
-    console.log('\n🧪 Test 2: Creating Rozetka receipt with QR code...');
-    const mockQrUrl = 'https://example.com/qr-code-test';
-    const result2 = await createRozetkaReceipt(testOrder.id.toString(), mockQrUrl);
+    // Test 2: Create receipt again
+    console.log('\n🧪 Test 2: Creating Rozetka receipt again...');
+    const result2 = await createRozetkaReceipt(testOrder.id.toString());
     
     if (result2.error) {
       console.log(`❌ Test 2 failed: ${result2.error}`);

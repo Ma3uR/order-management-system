@@ -412,13 +412,10 @@ export class CasaVchasnoService {
         return;
       }
 
-      // Extract QR code URL from Casa.vchasno response
-      const qrCodeUrl = (casaResponse.info as unknown as Record<string, unknown>)?.qr as string;
-      
       console.log(`[Casa.vchasno] Creating Rozetka receipt for order ${orderWithSource.orderNumber}...`);
       
       // Create receipt on Rozetka side
-      const rozetkaResult = await createRozetkaReceipt(orderWithSource.orderNumber, qrCodeUrl);
+      const rozetkaResult = await createRozetkaReceipt(orderWithSource.orderNumber);
       
       if (rozetkaResult.error) {
         console.error(`[Casa.vchasno] Failed to create Rozetka receipt for order ${orderWithSource.orderNumber}:`, rozetkaResult.error);
