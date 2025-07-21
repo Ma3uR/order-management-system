@@ -611,6 +611,13 @@ export async function createRozetkaReceipt(
       }
     );
     
+    // Check if Rozetka API returned success: false
+    if (response.data.success === false) {
+      const errorMessage = response.data.errors?.description || response.data.errors?.message || 'Unknown Rozetka API error';
+      console.log(`❌ Rozetka API returned error for order ${orderId}:`, errorMessage);
+      return { error: errorMessage, data: null };
+    }
+    
     console.log(`✅ Rozetka receipt created successfully for order ${orderId}:`, response.data);
     return { error: null, data: response.data.content };
     

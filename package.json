@@ -1,5 +1,5 @@
 {
-  "name": "smm-system",
+  "name": "order-management-system",  
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -38,7 +38,7 @@
     "redis:local:start": "docker compose -f docker-compose.redis.yml up -d",
     "redis:local:stop": "docker compose -f docker-compose.redis.yml down",
     "redis:local:logs": "docker compose -f docker-compose.redis.yml logs -f",
-    "sync:rozetka-receipts": "tsx scripts/sync-rozetka-receipts.ts"
+    "sync:rozetka-receipts": "mv pocketbase pocketbase.bak && tsx scripts/sync-rozetka-receipts.ts ; mv pocketbase.bak pocketbase"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",

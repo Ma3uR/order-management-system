@@ -17,6 +17,7 @@ interface SyncStats {
   totalFiscalReceipts: number;
   rozetkaOrders: number;
   successful: number;
+  skipped: number;
   failed: number;
   errors: string[];
 }
@@ -68,7 +69,7 @@ async function syncReceiptToRozetka(
   orderWithReceipt: OrderWithReceipt,
   index: number,
   total: number
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; skipped?: boolean; error?: string }> {
   const { order } = orderWithReceipt;
   
   console.log(`📄 [${index + 1}/${total}] Syncing receipt for order ${order.orderNumber}...`);
@@ -77,11 +78,17 @@ async function syncReceiptToRozetka(
     const result = await createRozetkaReceipt(order.orderNumber);
     
     if (result.error) {
+      // Check if this is a "receipt already exists" type error
+      if (result.error.includes('непередбачуваної помилки') || result.error.includes('server_error')) {
+        console.log(`⚠️  Order ${order.orderNumber}: Receipt likely already exists on Rozetka`);
+        return { success: true, skipped: true };
+      }
+      
       console.log(`❌ Failed to sync order ${order.orderNumber}: ${result.error}`);
       return { success: false, error: result.error };
     }
     
-    console.log(`✅ Successfully synced order ${order.orderNumber}`);
+    console.log(`✅ Successfully created new receipt for order ${order.orderNumber}`);
     return { success: true };
     
   } catch (error) {
@@ -98,6 +105,7 @@ async function main() {
     totalFiscalReceipts: 0,
     rozetkaOrders: 0,
     successful: 0,
+    skipped: 0,
     failed: 0,
     errors: []
   };
@@ -133,7 +141,11 @@ async function main() {
       const result = await syncReceiptToRozetka(rozetkaOrders[i], i, rozetkaOrders.length);
       
       if (result.success) {
-        stats.successful++;
+        if (result.skipped) {
+          stats.skipped++;
+        } else {
+          stats.successful++;
+        }
       } else {
         stats.failed++;
         if (result.error) {
@@ -152,7 +164,8 @@ async function main() {
     console.log('================');
     console.log(`Total fiscal receipts found: ${stats.totalFiscalReceipts}`);
     console.log(`Rozetka orders to sync: ${stats.rozetkaOrders}`);
-    console.log(`Successfully synced: ${stats.successful}`);
+    console.log(`Successfully created new receipts: ${stats.successful}`);
+    console.log(`Already existed (skipped): ${stats.skipped}`);
     console.log(`Failed to sync: ${stats.failed}`);
 
     if (stats.errors.length > 0) {
@@ -163,7 +176,11 @@ async function main() {
     }
 
     if (stats.successful > 0) {
-      console.log(`\n🎉 Successfully synced ${stats.successful} receipts to Rozetka!`);
+      console.log(`\n🎉 Successfully created ${stats.successful} new receipts on Rozetka!`);
+    }
+    
+    if (stats.skipped > 0) {
+      console.log(`\n✅ ${stats.skipped} receipts were already present on Rozetka`);
     }
 
   } catch (error) {
@@ -173,16 +190,14 @@ async function main() {
 }
 
 // Run the script
-if (require.main === module) {
-  main()
-    .then(() => {
-      console.log('\n🏁 Sync script completed');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('\n💥 Sync script failed:', error);
-      process.exit(1);
-    });
-}
+main()
+  .then(() => {
+    console.log('\n🏁 Sync script completed');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('\n💥 Sync script failed:', error);
+    process.exit(1);
+  });
 
 export { main as syncRozetkaReceipts };
