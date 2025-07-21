@@ -43,12 +43,33 @@ export async function syncOrders() {
 }
 
 async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
-  console.log(rozetkaOrder);
+  appendFileSync(
+    'rozetka-orders.log',
+    `${new Date().toISOString()} - Order ${rozetkaOrder.id}:\n${JSON.stringify(rozetkaOrder, null, 2)}\n\n`
+  );
   const existingOrders = await pb.collection('orders').getList(1, 1, {
     filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
   });
 
   if (existingOrders.items.length > 0) {
+    // Update existing order with latest product prices
+    const existingOrder = existingOrders.items[0];
+    const updatedProducts = extractProductsFromRozetkaOrder(rozetkaOrder);
+    
+    // Only update if products data has changed
+    const currentProductsJson = JSON.stringify(existingOrder.products);
+    const updatedProductsJson = JSON.stringify(updatedProducts);
+    
+    if (currentProductsJson !== updatedProductsJson) {
+      await pb.collection('orders').update(existingOrder.id, {
+        products: updatedProducts,
+        amount: parseFloat(rozetkaOrder.amount_with_discount || rozetkaOrder.amount || '0'),
+        numberOfItems: rozetkaOrder.total_quantity || updatedProducts.reduce((sum, product) => sum + product.quantity, 0),
+      });
+      console.log(`✅ Updated existing order ${rozetkaOrder.id} with new product prices`);
+    } else {
+      console.log(`⚪ Order ${rozetkaOrder.id} already up to date`);
+    }
     return;
   }
   
