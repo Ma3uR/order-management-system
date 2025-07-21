@@ -7,9 +7,9 @@ import { RozetkaOrderResponse } from '@/app/types/orders';
 export function extractProductsFromRozetkaOrder(rozetkaOrder: RozetkaOrderResponse): Array<{title: string; quantity: number; price: number}> {
   if (rozetkaOrder.purchases && rozetkaOrder.purchases.length > 0) {
     return rozetkaOrder.purchases.map(purchase => ({
-      title: purchase.item.name,
+      title: purchase.item_name,
       quantity: purchase.quantity,
-      price: parseFloat(purchase.item.price)
+      price: parseFloat(purchase.price_with_discount)
     }));
   }
   
