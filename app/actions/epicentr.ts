@@ -149,7 +149,6 @@ class EpicentrAPI {
     }
     
     this.token = token;
-    console.log('Epicentr token', this.token);
   }
   
   static getInstance(): EpicentrAPI {

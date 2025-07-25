@@ -307,17 +307,14 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     if (statusResult.items.length > 0) {
       const newStatusId = statusResult.items[0].id;
       
-      // Check if status or prro_receipt_status has changed
-      const newPrroReceiptStatus = rozetkaOrder.prro_receipt_status || false;
+      // Check if status has changed
       const statusChanged = existingOrder.status !== newStatusId;
-      const prroStatusChanged = existingOrder.prro_receipt_status !== newPrroReceiptStatus;
       
-      if (statusChanged || prroStatusChanged) {
-        console.log(`Updating order ${rozetkaOrder.id}${statusChanged ? ` status from ${existingOrder.status} to ${newStatusId}` : ''}${prroStatusChanged ? ` prro_receipt_status to ${newPrroReceiptStatus}` : ''}`);
+      if (statusChanged) {
+        console.log(`Updating order ${rozetkaOrder.id} status from ${existingOrder.status} to ${newStatusId}`);
         
         await pb.collection('orders').update(existingOrder.id, {
           status: newStatusId,
-          prro_receipt_status: newPrroReceiptStatus,
           updated: new Date().toISOString()
         });
         
@@ -385,7 +382,6 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
     archived: false,
     productionCost: 0,
     created_at_marketplace: rozetkaOrder.created,
-    prro_receipt_status: rozetkaOrder.prro_receipt_status || false,
   };
 
   const validationResult = orderSchema.safeParse({
@@ -585,51 +581,6 @@ export async function getOrderStatuses() {
 
 export async function setOrderStatus(orderId: string, statusCode: string): Promise<{ error: string | null, data: boolean | null }> {
   return api.setOrderStatus(orderId, statusCode);
-}
-
-/**
- * Create receipt on Rozetka side after local fiscal receipt creation
- * Need to be removed completely
- */
-export async function createRozetkaReceipt(
-  orderId: string, 
-): Promise<{ error: string | null, data: boolean | null }> {
-  try {
-    const token = await api.ensureValidToken();
-      
-    const payload = {
-      order_id: parseInt(orderId),
-    };
-    
-    const response = await axios.post(
-      `${ROZETKA_API_BASE}/prro/create-receipt`,
-      payload,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    
-    // Check if Rozetka API returned success: false
-    if (response.data.success === false) {
-      const errorMessage = response.data.errors?.description || response.data.errors?.message || 'Unknown Rozetka API error';
-      console.log(`❌ Rozetka API returned error for order ${orderId}:`, errorMessage);
-      return { error: errorMessage, data: null };
-    }
-    
-    console.log(`✅ Rozetka receipt created successfully for order ${orderId}:`, response.data);
-    return { error: null, data: response.data.content };
-    
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(`❌ Failed to create Rozetka receipt for order ${orderId}:`, error.message);
-      return { error: error.message, data: null };
-    }
-    console.error(`❌ Failed to create Rozetka receipt for order ${orderId}:`, error);
-    return { error: 'Failed to create Rozetka receipt', data: null };
-  }
 }
 
 /**

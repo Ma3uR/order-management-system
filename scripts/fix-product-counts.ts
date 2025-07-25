@@ -14,7 +14,7 @@ interface MismatchedOrder {
   correctCount: number;
   customer: string;
   created: string;
-  products: any[];
+  products: OrdersResponse['products'];
 }
 
 interface FixResult {
@@ -54,8 +54,8 @@ async function findMismatchedOrders(): Promise<MismatchedOrder[]> {
         // Calculate correct item count from products array
         let correctCount = 0;
         if (Array.isArray(order.products)) {
-          correctCount = order.products.reduce((sum: number, product: any) => {
-            const quantity = parseInt(product.quantity) || 0;
+            correctCount = order.products.reduce((sum: number, product: unknown) => {
+            const quantity = parseInt((product as { quantity: string }).quantity) || 0;
             return sum + quantity;
           }, 0);
         }
@@ -69,7 +69,7 @@ async function findMismatchedOrders(): Promise<MismatchedOrder[]> {
             correctCount: correctCount,
             customer: order.fullName,
             created: order.created,
-            products: order.products || []
+            products: Array.isArray(order.products) ? order.products : []
           });
         }
       } catch (error) {

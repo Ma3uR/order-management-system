@@ -14,7 +14,6 @@ import {
 } from '@/app/types/casa-vchasno';
 import { OrdersResponse, FiscalReceiptsReceiptTypeOptions, FiscalReceiptsStatusOptions, FiscalShiftsStatusOptions, FiscalShiftsResponse } from '@/app/types/pocketbase-types';
 import pb, { authenticatedCall } from '@/app/lib/pocketbase';
-import { createRozetkaReceipt } from '@/app/actions/rozetka';
 
 export class CasaVchasnoService {
   private readonly baseUrl = 'https://kasa.vchasno.ua/api/v3';
@@ -409,17 +408,6 @@ export class CasaVchasnoService {
 
       if (!isRozetkaOrder) {
         console.log(`[Casa.vchasno] Skipping Rozetka receipt - not a Rozetka order (source: ${sourceId})`);
-        return;
-      }
-
-      console.log(`[Casa.vchasno] Creating Rozetka receipt for order ${orderWithSource.orderNumber}...`);
-      
-      // Create receipt on Rozetka side
-      const rozetkaResult = await createRozetkaReceipt(orderWithSource.orderNumber);
-      
-      if (rozetkaResult.error) {
-        console.error(`[Casa.vchasno] Failed to create Rozetka receipt for order ${orderWithSource.orderNumber}:`, rozetkaResult.error);
-        // Don't throw error - continue even if Rozetka API fails
         return;
       }
 
