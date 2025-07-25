@@ -92,6 +92,21 @@ export async function createSaleReceipt(
     // Handle successful receipt creation
     if (response && response.res === 0) {
       try {
+        // Ensure prro_receipt_status flag is set to true for successful receipts
+        await pb.collection('orders').update(orderId, {
+          prro_receipt_status: true,
+          updated: new Date().toISOString()
+        });
+
+        // Validate the flag was set correctly
+        const updatedOrder = await pb.collection('orders').getOne(orderId, { 
+          fields: 'prro_receipt_status,orderNumber' 
+        });
+        
+        if (updatedOrder.prro_receipt_status !== true) {
+          console.error(`⚠️ [Fiscal Receipts] Flag validation failed for order ${updatedOrder.orderNumber}: expected true, got ${updatedOrder.prro_receipt_status}`);
+        }
+
         console.log(`[Fiscal Receipts] Sending telegram notification for successful receipt: ${order.orderNumber}`);
         const telegramResult = await sendFiscalNotification(order, response);
         
@@ -674,6 +689,7 @@ export async function getFiscalStatistics(): Promise<{
 
 /**
  * Get completed orders without fiscal receipts
+ * Double-checks both prro_receipt_status flag AND actual fiscal_receipts table
  */
 export async function getCompletedOrdersWithoutReceipts(): Promise<{
   success: boolean;
@@ -684,47 +700,30 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
   try {
     console.log('🔍 Loading completed orders without receipts...');
     
-    // First, get all order IDs that already have successful fiscal receipts
+    // Get all completed orders (regardless of receipt status initially)
+    const completedCodes = ['6', 'completed', 'delivered'];
+    const statusFilter = completedCodes.map(code => `status.marketplace_code = "${code}"`).join(' || ');
+    
+    const orders = await pb.collection('orders').getList(1, 1000, {
+      filter: `archived = false && (${statusFilter})`,
+      expand: 'status,source',
+      sort: '-created_at_marketplace,-created'
+    });
+
+    console.log(`📊 Found ${orders.items.length} completed orders`);
+
+    // Get ALL order IDs that have successful fiscal receipts
     const existingReceipts = await pb.collection('fiscal_receipts').getList(1, 2000, {
       filter: `receipt_type = "sale" && status = "success"`,
       fields: 'order_id'
     });
     
     const receiptOrderIds = new Set(existingReceipts.items.map(r => r.order_id));
-    console.log(`📋 Found ${existingReceipts.items.length} existing successful fiscal receipts`);
+    console.log(`📋 Found ${existingReceipts.items.length} successful fiscal receipts`);
 
-    // Build exclusion filter for orders that already have receipts
-    let excludeFilter = '';
-    if (receiptOrderIds.size > 0) {
-      const orderIdsArray = Array.from(receiptOrderIds);
-      const excludeConditions = orderIdsArray.map(id => `id != "${id}"`);
-      excludeFilter = ` && (${excludeConditions.join(' && ')})`;
-    }
-
-    // Get all completed orders that don't have receipts
-    // Using completed marketplace codes directly in the filter for better performance
-    const completedCodes = ['6', 'completed', 'delivered'];
-    const statusFilter = completedCodes.map(code => `status.marketplace_code = "${code}"`).join(' || ');
-    
-    const orders = await pb.collection('orders').getList(1, 800, {
-      filter: `archived = false && (${statusFilter}) && (prro_receipt_status = false || prro_receipt_status = null)${excludeFilter}`,
-      expand: 'status,source',
-      sort: '-created_at_marketplace,-created'
-    });
-
-    console.log(`📊 Found ${orders.items.length} completed orders without receipts`);
-
-    // Additional validation - double-check each order doesn't have a receipt
-    const validatedOrders = [];
-    
-    for (const order of orders.items) {
-      // Skip if order already has a receipt (extra safety check)
-      if (receiptOrderIds.has(order.id)) {
-        console.log(`⚠️ Skipping order ${order.orderNumber} - has existing receipt (safety check)`);
-        continue;
-      }
-
-      // Validate the order status is indeed completed
+    // Filter orders: only those that DON'T have successful receipts
+    const ordersWithoutReceipts = orders.items.filter(order => {
+      // Check if order has completed status
       const statusFromExpand = (order.expand as Record<string, unknown>)?.status as { 
         name?: string; 
         marketplace_code?: string | number 
@@ -733,18 +732,22 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
       const marketplaceCode = statusFromExpand?.marketplace_code?.toString();
       const isCompleted = isCompletedMarketplaceCode(marketplaceCode);
       
-      if (isCompleted) {
-        validatedOrders.push(order);
-      } else {
-        console.log(`⚠️ Skipping order ${order.orderNumber} - status not completed (code: ${marketplaceCode})`);
-      }
-    }
+      // Only include if completed AND no successful receipt exists
+      return isCompleted && !receiptOrderIds.has(order.id);
+    });
 
-    console.log(`✅ Validated ${validatedOrders.length} completed orders truly without receipts`);
+    console.log(`✅ Found ${ordersWithoutReceipts.length} completed orders truly without receipts`);
+    
+    // Check for flag inconsistencies
+    const flagInconsistencies = ordersWithoutReceipts.filter(order => order.prro_receipt_status === true);
+    if (flagInconsistencies.length > 0) {
+      console.warn(`⚠️ Found ${flagInconsistencies.length} orders with prro_receipt_status=true but no actual receipts`);
+      console.log(`💡 Tip: Run 'npm run fiscal:fix' to fix flag inconsistencies`);
+    }
 
     return {
       success: true,
-      data: validatedOrders
+      data: ordersWithoutReceipts
     };
   } catch (error) {
     console.error('[Fiscal Receipts] Error getting completed orders without receipts:', error);

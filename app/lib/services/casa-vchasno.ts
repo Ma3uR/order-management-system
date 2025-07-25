@@ -411,7 +411,7 @@ export class CasaVchasnoService {
         return;
       }
 
-      // Update local order prro_receipt_status to true
+      // Update local order prro_receipt_status to true with validation
       await authenticatedCall(() =>
         pb.collection('orders').update(orderWithSource.id, {
           prro_receipt_status: true,
@@ -419,7 +419,20 @@ export class CasaVchasnoService {
         })
       );
 
-      console.log(`✅ [Casa.vchasno] Successfully created Rozetka receipt and updated local status for order ${orderWithSource.orderNumber}`);
+      // Validate the flag was set correctly (prevent future inconsistencies)
+      try {
+        const updatedOrder = await authenticatedCall(() => 
+          pb.collection('orders').getOne(orderWithSource.id, { fields: 'prro_receipt_status' })
+        );
+        
+        if (updatedOrder.prro_receipt_status !== true) {
+          console.error(`⚠️ [Casa.vchasno] Flag validation failed for order ${orderWithSource.orderNumber}: expected true, got ${updatedOrder.prro_receipt_status}`);
+        } else {
+          console.log(`✅ [Casa.vchasno] Successfully created Rozetka receipt and validated flag for order ${orderWithSource.orderNumber}`);
+        }
+      } catch (validationError) {
+        console.error(`⚠️ [Casa.vchasno] Could not validate flag update for order ${orderWithSource.orderNumber}:`, validationError);
+      }
       
     } catch (error) {
       console.error('[Casa.vchasno] Error handling Rozetka receipt creation:', error);

@@ -15,9 +15,11 @@ import {
   Loader2, 
   CheckCircle, 
   ExternalLink,
-  Filter
+  Filter,
+  Calendar,
+  X
 } from "lucide-react"
-import { format } from 'date-fns'
+import { format, parseISO, isValid } from 'date-fns'
 import { getCompletedOrdersWithoutReceipts, createSaleReceipt } from '@/app/[locale]/orders/actions/fiscal-receipts'
 import { toast } from "sonner"
 
@@ -53,6 +55,8 @@ export function CompletedOrdersTab(): JSX.Element {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [marketplaceFilter, setMarketplaceFilter] = useState<string>("all")
+  const [dateFromFilter, setDateFromFilter] = useState<string>("")
+  const [dateToFilter, setDateToFilter] = useState<string>("")
   const [generatingReceipts, setGeneratingReceipts] = useState(false)
   const [processingOrderIds, setProcessingOrderIds] = useState<Set<string>>(new Set())
 
@@ -76,7 +80,7 @@ export function CompletedOrdersTab(): JSX.Element {
     loadCompletedOrders()
   }, [])
 
-  // Filter orders based on search and marketplace
+  // Filter orders based on search, marketplace, and date
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
       order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -87,7 +91,23 @@ export function CompletedOrdersTab(): JSX.Element {
       marketplaceFilter === "all" ||
       order.expand?.status?.marketplace_code?.toString() === marketplaceFilter
 
-    return matchesSearch && matchesMarketplace
+    // Date filtering
+    let matchesDateRange = true
+    if (dateFromFilter || dateToFilter) {
+      const orderDate = parseISO(order.created_at_marketplace || order.created)
+      
+      if (dateFromFilter && isValid(parseISO(dateFromFilter))) {
+        const fromDate = parseISO(dateFromFilter)
+        matchesDateRange = matchesDateRange && orderDate >= fromDate
+      }
+      
+      if (dateToFilter && isValid(parseISO(dateToFilter))) {
+        const toDate = parseISO(dateToFilter + 'T23:59:59') // Include entire day
+        matchesDateRange = matchesDateRange && orderDate <= toDate
+      }
+    }
+
+    return matchesSearch && matchesMarketplace && matchesDateRange
   })
 
   // Handle individual order selection
@@ -108,6 +128,31 @@ export function CompletedOrdersTab(): JSX.Element {
     } else {
       setSelectedOrderIds(new Set())
     }
+  }
+
+  // Quick date filter helpers
+  const setDateFilterToToday = () => {
+    const today = format(new Date(), 'yyyy-MM-dd')
+    setDateFromFilter(today)
+    setDateToFilter(today)
+  }
+
+  const setDateFilterToApril20 = () => {
+    const april20 = '2025-04-20' // Current year 2025
+    setDateFromFilter(april20)
+    setDateToFilter(april20)
+  }
+
+  const clearDateFilters = () => {
+    setDateFromFilter("")
+    setDateToFilter("")
+  }
+
+  const clearAllFilters = () => {
+    setSearchTerm("")
+    setMarketplaceFilter("all")
+    setDateFromFilter("")
+    setDateToFilter("")
   }
 
   // Generate fiscal receipts for selected orders
@@ -213,32 +258,107 @@ export function CompletedOrdersTab(): JSX.Element {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters and Search */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex items-center gap-2 flex-1">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t('searchOrdersPlaceholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
+        <div className="flex flex-col gap-4">
+          {/* First row: Search and Marketplace */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t('searchOrdersPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={marketplaceFilter} onValueChange={setMarketplaceFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder={t('filterByMarketplace')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('allMarketplaces')}</SelectItem>
+                  <SelectItem value="6">{t('marketplaceCode', { code: 6 })}</SelectItem>
+                  <SelectItem value="1">{t('marketplaceCode', { code: 1 })}</SelectItem>
+                  <SelectItem value="2">{t('marketplaceCode', { code: 2 })}</SelectItem>
+                  <SelectItem value="3">{t('marketplaceCode', { code: 3 })}</SelectItem>
+                  <SelectItem value="4">{t('marketplaceCode', { code: 4 })}</SelectItem>
+                  <SelectItem value="5">{t('marketplaceCode', { code: 5 })}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={marketplaceFilter} onValueChange={setMarketplaceFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('filterByMarketplace')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('allMarketplaces')}</SelectItem>
-                <SelectItem value="6">{t('marketplaceCode', { code: 6 })}</SelectItem>
-                <SelectItem value="1">{t('marketplaceCode', { code: 1 })}</SelectItem>
-                <SelectItem value="2">{t('marketplaceCode', { code: 2 })}</SelectItem>
-                <SelectItem value="3">{t('marketplaceCode', { code: 3 })}</SelectItem>
-                <SelectItem value="4">{t('marketplaceCode', { code: 4 })}</SelectItem>
-                <SelectItem value="5">{t('marketplaceCode', { code: 5 })}</SelectItem>
-              </SelectContent>
-            </Select>
+
+          {/* Second row: Date filtering */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Date Range:</span>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">From:</span>
+                <Input
+                  type="date"
+                  value={dateFromFilter}
+                  onChange={(e) => setDateFromFilter(e.target.value)}
+                  className="w-40"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">To:</span>
+                <Input
+                  type="date"
+                  value={dateToFilter}
+                  onChange={(e) => setDateToFilter(e.target.value)}
+                  className="w-40"
+                />
+              </div>
+            </div>
+
+            {/* Quick filter buttons */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={setDateFilterToApril20}
+                className="text-xs"
+              >
+                April 20
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={setDateFilterToToday}
+                className="text-xs"
+              >
+                Today
+              </Button>
+              {(dateFromFilter || dateToFilter) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearDateFilters}
+                  className="text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear Dates
+                </Button>
+              )}
+              {(searchTerm || marketplaceFilter !== "all" || dateFromFilter || dateToFilter) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="text-xs text-red-600 hover:text-red-700"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -379,12 +499,25 @@ export function CompletedOrdersTab(): JSX.Element {
 
         {/* Summary */}
         {filteredOrders.length > 0 && (
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <span>
+                {filteredOrders.length === orders.length 
+                  ? `${filteredOrders.length} orders without receipts`
+                  : `${filteredOrders.length} of ${orders.length} orders (filtered)`
+                }
+              </span>
+              {(dateFromFilter || dateToFilter) && (
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                  📅 {dateFromFilter && dateToFilter && dateFromFilter === dateToFilter 
+                    ? `Date: ${dateFromFilter}`
+                    : `${dateFromFilter ? `From: ${dateFromFilter}` : ''} ${dateToFilter ? `To: ${dateToFilter}` : ''}`
+                  }
+                </span>
+              )}
+            </div>
             <span>
-              {t('ordersWithoutReceipts', { count: filteredOrders.length })}
-            </span>
-            <span>
-              {t('totalValue', { amount: filteredOrders.reduce((sum, order) => sum + order.amount, 0).toFixed(2) })}
+              Total: ₴{filteredOrders.reduce((sum, order) => sum + order.amount, 0).toFixed(2)}
             </span>
           </div>
         )}

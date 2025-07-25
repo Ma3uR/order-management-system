@@ -37,7 +37,13 @@
     "test:redis:simple": "node scripts/test-redis-connection.js",
     "redis:local:start": "docker compose -f docker-compose.redis.yml up -d",
     "redis:local:stop": "docker compose -f docker-compose.redis.yml down",
-    "redis:local:logs": "docker compose -f docker-compose.redis.yml logs -f"
+    "redis:local:logs": "docker compose -f docker-compose.redis.yml logs -f",
+    "fiscal:analyze": "tsx scripts/analyze-fiscal-data-inconsistency.ts",
+    "fiscal:fix": "tsx scripts/fix-fiscal-receipt-flags.ts",
+    "fiscal:fix:dry": "tsx scripts/fix-fiscal-receipt-flags.ts --dry-run",
+    "fiscal:fix:negatives": "tsx scripts/fix-fiscal-receipt-flags.ts --focus=false-negatives",
+    "sync:rozetka-receipts": "tsx scripts/sync-rozetka-receipt-status.ts",
+    "sync:rozetka-receipts:dry": "tsx scripts/sync-rozetka-receipt-status.ts --dry-run"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
