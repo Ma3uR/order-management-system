@@ -589,6 +589,7 @@ export async function setOrderStatus(orderId: string, statusCode: string): Promi
 
 /**
  * Create receipt on Rozetka side after local fiscal receipt creation
+ * Need to be removed completely
  */
 export async function createRozetkaReceipt(
   orderId: string, 
