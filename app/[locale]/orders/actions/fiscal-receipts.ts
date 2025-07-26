@@ -713,13 +713,13 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
     console.log(`📊 Found ${orders.items.length} completed orders`);
 
     // Get ALL order IDs that have successful fiscal receipts
-    const existingReceipts = await pb.collection('fiscal_receipts').getList(1, 2000, {
+    const existingReceipts = await pb.collection('fiscal_receipts').getFullList({
       filter: `receipt_type = "sale" && status = "success"`,
       fields: 'order_id'
     });
     
-    const receiptOrderIds = new Set(existingReceipts.items.map(r => r.order_id));
-    console.log(`📋 Found ${existingReceipts.items.length} successful fiscal receipts`);
+    const receiptOrderIds = new Set(existingReceipts.map(r => r.order_id));
+    console.log(`📋 Found ${existingReceipts.length} successful fiscal receipts`);
 
     // Filter orders: only those that DON'T have successful receipts
     const ordersWithoutReceipts = orders.items.filter(order => {
