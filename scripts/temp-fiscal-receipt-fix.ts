@@ -116,8 +116,8 @@ async function getOrdersWithAmountMismatches(): Promise<OrderMismatch[]> {
       const storedAmount = order.amount || 0;
       const mismatchAmount = Math.abs(storedAmount - calculatedAmount);
       
-      // Only include orders with significant mismatches (> 0.01 to handle floating point)
-      if (mismatchAmount > 0.01) {
+      // Only include orders with mismatches (> 0.001 to catch even small precision errors)
+      if (mismatchAmount > 0.001) {
         mismatches.push({
           id: order.id,
           orderNumber: order.orderNumber,
@@ -141,7 +141,7 @@ async function getOrdersWithAmountMismatches(): Promise<OrderMismatch[]> {
 }
 
 /**
- * Adjust product prices proportionally to match the order total
+ * Adjust product prices proportionally to match the order total with precision correction
  */
 function adjustProductPrices(products: ProductItem[], targetAmount: number): ProductItem[] {
   if (products.length === 0) {
@@ -168,6 +168,45 @@ function adjustProductPrices(products: ProductItem[], targetAmount: number): Pro
     price: Math.round((parseFloat(String(product.price || 0)) * adjustmentRatio) * 100) / 100
   }));
 
+  // Calculate total after rounding to check for precision errors
+  const adjustedTotal = adjustedProducts.reduce((sum, product) => {
+    const price = parseFloat(String(product.price || 0));
+    const quantity = parseInt(String(product.quantity || 0));
+    return sum + (price * quantity);
+  }, 0);
+
+  // Fix precision errors by adjusting the last product with the largest price
+  const difference = targetAmount - adjustedTotal;
+  if (Math.abs(difference) > 0.001) {
+    // Find the product with the largest total value to adjust
+    let maxValueIndex = 0;
+    let maxValue = 0;
+    
+    adjustedProducts.forEach((product, index) => {
+      const price = parseFloat(String(product.price || 0));
+      const quantity = parseInt(String(product.quantity || 0));
+      const totalValue = price * quantity;
+      
+      if (totalValue > maxValue) {
+        maxValue = totalValue;
+        maxValueIndex = index;
+      }
+    });
+
+    // Adjust the price of the product with the largest value
+    const targetProduct = adjustedProducts[maxValueIndex];
+    const currentPrice = parseFloat(String(targetProduct.price || 0));
+    const quantity = parseInt(String(targetProduct.quantity || 0));
+    
+    if (quantity > 0) {
+      const newPrice = Math.round((currentPrice + (difference / quantity)) * 100) / 100;
+      adjustedProducts[maxValueIndex] = {
+        ...targetProduct,
+        price: newPrice
+      };
+    }
+  }
+
   return adjustedProducts;
 }
 
@@ -182,7 +221,20 @@ async function fixOrder(orderMismatch: OrderMismatch): Promise<FixResult> {
       // In dry run, just calculate what would be adjusted
       const adjustedProducts = adjustProductPrices(products, storedAmount);
       
-      logMessage(`[DRY RUN] Would adjust order ${orderNumber}: ${orderMismatch.calculatedAmount.toFixed(2)} → ${storedAmount.toFixed(2)}`, 'INFO');
+      // Validate precision in dry run too
+      const finalCalculatedAmount = adjustedProducts.reduce((sum, product) => {
+        const price = parseFloat(String(product.price || 0));
+        const quantity = parseInt(String(product.quantity || 0));
+        return sum + (price * quantity);
+      }, 0);
+      
+      const precisionDifference = Math.abs(finalCalculatedAmount - storedAmount);
+      
+      logMessage(`[DRY RUN] Would adjust order ${orderNumber}: ${orderMismatch.calculatedAmount.toFixed(2)} → ${storedAmount.toFixed(2)} (precision: ${precisionDifference.toFixed(4)})`, 'INFO');
+      
+      if (precisionDifference > 0.001) {
+        logMessage(`[DRY RUN] ⚠️ Precision issue detected for order ${orderNumber}: difference ${precisionDifference.toFixed(4)}`, 'WARNING');
+      }
       
       return {
         orderId: id,
@@ -197,6 +249,18 @@ async function fixOrder(orderMismatch: OrderMismatch): Promise<FixResult> {
     // Calculate adjusted product prices
     const adjustedProducts = adjustProductPrices(products, storedAmount);
     
+    // Validate precision - ensure exact match
+    const finalCalculatedAmount = adjustedProducts.reduce((sum, product) => {
+      const price = parseFloat(String(product.price || 0));
+      const quantity = parseInt(String(product.quantity || 0));
+      return sum + (price * quantity);
+    }, 0);
+    
+    const precisionDifference = Math.abs(finalCalculatedAmount - storedAmount);
+    if (precisionDifference > 0.001) {
+      throw new Error(`Precision validation failed: calculated ${finalCalculatedAmount.toFixed(2)}, expected ${storedAmount.toFixed(2)}, difference: ${precisionDifference.toFixed(4)}`);
+    }
+    
     // Update the order with adjusted product prices
     await authenticatedCall(() =>
       pb.collection('orders').update(id, {
@@ -204,7 +268,7 @@ async function fixOrder(orderMismatch: OrderMismatch): Promise<FixResult> {
       })
     );
 
-    logMessage(`Fixed product prices for order ${orderNumber}: ${orderMismatch.calculatedAmount.toFixed(2)} → ${storedAmount.toFixed(2)}`, 'SUCCESS');
+    logMessage(`Fixed product prices for order ${orderNumber}: ${orderMismatch.calculatedAmount.toFixed(2)} → ${storedAmount.toFixed(2)} (precision: ${precisionDifference.toFixed(4)})`, 'SUCCESS');
 
     let receiptCreated = false;
     
