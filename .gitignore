@@ -5,6 +5,9 @@ node_modules
 /pb_data
 /pb_data_backup
 /pb_data_restore
+temp_pb
+pb_data_current
+
 pocketbase
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .vscode
