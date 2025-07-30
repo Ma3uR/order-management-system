@@ -263,12 +263,131 @@ async function syncRozetkaStatuses(): Promise<{ synced: number; failed: number }
   }
 }
 
+async function discoverMissingRozetkaStatuses(): Promise<{ synced: number; failed: number }> {
+  try {
+    console.log('🔍 Discovering missing Rozetka statuses from real orders...');
+    
+    // Import the getOrders function to fetch real orders
+    const { getOrders } = await import('@/app/actions/rozetka');
+    
+    let synced = 0;
+    let failed = 0;
+    const discoveredStatuses = new Set<number>();
+    
+    // Fetch recent orders to discover statuses
+    let page = 1;
+    const maxPages = 10; // Limit to avoid too many API calls
+    
+    while (page <= maxPages) {
+      console.log(`📄 Scanning page ${page} for status discovery...`);
+      
+      try {
+        const orders = await getOrders({ 
+          types: 1, // All orders
+          page 
+        });
+        
+        if (!orders || orders.length === 0) {
+          console.log(`📄 No more orders on page ${page}, stopping discovery`);
+          break;
+        }
+        
+        // Extract status codes from orders
+        orders.forEach((order: any) => {
+          if (order.status && typeof order.status === 'number') {
+            discoveredStatuses.add(order.status);
+          }
+          
+          // Also check status_available transitions for other possible statuses
+          if (order.status_available && Array.isArray(order.status_available)) {
+            order.status_available.forEach((transition: any) => {
+              if (transition.child_id && typeof transition.child_id === 'number') {
+                discoveredStatuses.add(transition.child_id);
+              }
+            });
+          }
+        });
+        
+        page++;
+      } catch (error) {
+        console.error(`❌ Failed to fetch orders on page ${page}:`, error);
+        break;
+      }
+    }
+    
+    console.log(`🔍 Discovered ${discoveredStatuses.size} unique status codes from orders:`, Array.from(discoveredStatuses).sort((a, b) => a - b));
+    
+    // Check which statuses are missing from database
+    for (const statusCode of Array.from(discoveredStatuses)) {
+      try {
+        const existingStatus = await authenticatedCall(() =>
+          pb.collection('status_options').getList(1, 10, {
+            filter: `source = "${MARKETPLACE_SOURCES.ROZETKA}" && marketplace_code = "${statusCode}"`
+          })
+        );
+        
+        if (existingStatus.items.length === 0) {
+          // Status is missing, try to get its name from a real order
+          console.log(`❓ Status ${statusCode} is missing, searching for name...`);
+          
+          let statusName = `Status ${statusCode}`;
+          let foundOrder = null;
+          
+          // Try to find an order with this status to get the name
+          page = 1;
+          const searchPages = 5; // Limit search
+          
+          while (page <= searchPages && !foundOrder) {
+            const orders = await getOrders({ types: 1, page });
+            if (!orders || orders.length === 0) break;
+            
+            foundOrder = orders.find((order: any) => order.status === statusCode);
+            if (foundOrder && foundOrder.status_data && foundOrder.status_data.name_uk) {
+              statusName = foundOrder.status_data.name_uk || foundOrder.status_data.name || statusName;
+              console.log(`✅ Found name for status ${statusCode}: "${statusName}"`);
+              break;
+            }
+            page++;
+          }
+          
+          // Create the missing status
+          await authenticatedCall(() =>
+            pb.collection('status_options').create({
+              name: statusName,
+              color: getColorForStatus(Array.from(discoveredStatuses).indexOf(statusCode)),
+              priority: 100 + statusCode, // High priority to sort after official statuses
+              marketplace_code: statusCode.toString(),
+              source: MARKETPLACE_SOURCES.ROZETKA
+            })
+          );
+          
+          console.log(`✅ Created missing Rozetka status ${statusCode}: "${statusName}"`);
+          synced++;
+        } else {
+          console.log(`✅ Status ${statusCode} already exists: "${existingStatus.items[0].name}"`);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to process discovered status ${statusCode}:`, error);
+        failed++;
+      }
+    }
+    
+    console.log(`🔍 Status discovery completed: ${synced} new statuses created, ${failed} failed`);
+    return { synced, failed };
+    
+  } catch (error) {
+    console.error('❌ Failed to discover missing Rozetka statuses:', error);
+    return { synced: 0, failed: 1 };
+  }
+}
+
 export async function syncAllMarketplaceStatuses(): Promise<{
   success: boolean;
   results: {
     epicentr: { synced: number; failed: number };
     promUa: { synced: number; failed: number };
     rozetka: { synced: number; failed: number };
+    discovery: { synced: number; failed: number };
   };
   totalSynced: number;
   totalFailed: number;
@@ -282,16 +401,20 @@ export async function syncAllMarketplaceStatuses(): Promise<{
     
     // Sync marketplaces sequentially to avoid auto-cancellation issues
     console.log('📝 Syncing marketplaces sequentially to avoid conflicts...');
-    const epicentrResult = await syncEpicentrStatuses();
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause between syncs
+    const epicentrResult = { synced: 0, failed: 0 }; // Placeholder since commented out
+    // await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause between syncs
     
-    const promResult = await syncPromStatuses();
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause between syncs
+    const promResult = { synced: 0, failed: 0 }; // Placeholder since commented out
+    // await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause between syncs
     
     const rozetkaResult = await syncRozetkaStatuses();
+    
+    // Discover missing statuses from actual orders
+    console.log('🔍 Running status discovery after official sync...');
+    const discoveryResult = await discoverMissingRozetkaStatuses();
 
-    const totalSynced = epicentrResult.synced + promResult.synced + rozetkaResult.synced;
-    const totalFailed = epicentrResult.failed + promResult.failed + rozetkaResult.failed;
+    const totalSynced = epicentrResult.synced + promResult.synced + rozetkaResult.synced + discoveryResult.synced;
+    const totalFailed = epicentrResult.failed + promResult.failed + rozetkaResult.failed + discoveryResult.failed;
 
     // Log sync record
     try {
@@ -313,7 +436,8 @@ export async function syncAllMarketplaceStatuses(): Promise<{
       results: {
         epicentr: epicentrResult,
         promUa: promResult,
-        rozetka: rozetkaResult
+        rozetka: rozetkaResult,
+        discovery: discoveryResult
       },
       totalSynced,
       totalFailed
@@ -325,7 +449,8 @@ export async function syncAllMarketplaceStatuses(): Promise<{
       results: {
         epicentr: { synced: 0, failed: 0 },
         promUa: { synced: 0, failed: 0 },
-        rozetka: { synced: 0, failed: 0 }
+        rozetka: { synced: 0, failed: 0 },
+        discovery: { synced: 0, failed: 0 }
       },
       totalSynced: 0,
       totalFailed: 1,
