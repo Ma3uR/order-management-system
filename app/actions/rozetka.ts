@@ -289,7 +289,6 @@ function buildRozetkaDeliveryAddress(delivery: RozetkaOrderResponse['delivery'])
 
 
 async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
-  console.log('rozetkaOrder', rozetkaOrder);
   const existingOrders = await pb.collection('orders').getList(1, 1, {
     filter: `source = "4tvf116a5aitwmb" && orderNumber = "${rozetkaOrder.id}"`
   });
@@ -438,10 +437,10 @@ export async function syncOrders() {
     while (page <= maxPages) {
       console.log(`📄 Fetching page ${page}...`);
       
-      // Use 21-day date range for more recent orders only
+      // Use 31-day date range for more recent orders only
       const today = new Date();
-      const twentyOneDaysAgo = new Date(today.getTime() - 21 * 24 * 60 * 60 * 1000);
-      const from = twentyOneDaysAgo.toISOString().split('T')[0];
+      const thirtyOneDaysAgo = new Date(today.getTime() - 31 * 24 * 60 * 60 * 1000);
+      const from = thirtyOneDaysAgo.toISOString().split('T')[0];
       const to = today.toISOString().split('T')[0];
       
       const pageOrders = await getOrders({ 
@@ -462,8 +461,8 @@ export async function syncOrders() {
       page++;
       
       // Safety check: if we already have more than 200 orders, that's probably enough
-      if (allOrders.length > 200) {
-        console.log(`⏹️ Reached 200+ orders, stopping to avoid processing too many old orders`);
+      if (allOrders.length > 400) {
+        console.log(`⏹️ Reached 400+ orders, stopping to avoid processing too many old orders`);
         break;
       }
     }
