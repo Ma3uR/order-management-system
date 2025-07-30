@@ -18,8 +18,14 @@ class CancellationNotificationService {
   private constructor() {
     this.enabled = process.env.ENABLE_STATUS_AUTOMATION === 'true';
     
+    console.log(`🔧 Cancellation notifications service initialization:`);
+    console.log(`   - ENABLE_STATUS_AUTOMATION: ${process.env.ENABLE_STATUS_AUTOMATION}`);
+    console.log(`   - Service enabled: ${this.enabled}`);
+    
     if (!this.enabled) {
-      console.log('🚫 Cancellation notifications disabled');
+      console.log('🚫 Cancellation notifications disabled - check ENABLE_STATUS_AUTOMATION environment variable');
+    } else {
+      console.log('✅ Cancellation notifications enabled');
     }
   }
 
@@ -42,25 +48,46 @@ class CancellationNotificationService {
   }
 
   private isCancelledStatus(status: StatusResponse): boolean {
-    if (!status) return false;
+    if (!status) {
+      console.log('🔍 Status is null/undefined, not cancelled');
+      return false;
+    }
     
     const statusName = status.name.toLowerCase();
+    const marketplaceCode = String(status.marketplace_code || ''); // Convert to string for comparison
     
-    console.log(`🔍 Checking cancellation status: "${status.name}" (marketplace_code: ${status.marketplace_code})`);
+    console.log(`🔍 Checking cancellation status:`);
+    console.log(`   - Status name: "${status.name}"`);
+    console.log(`   - Marketplace code (raw): ${status.marketplace_code} (type: ${typeof status.marketplace_code})`);
+    console.log(`   - Marketplace code (string): "${marketplaceCode}"`);
     
-    // Check for various cancellation status names
-    const isCancelled = (
-      //prom
-      status.marketplace_code === '4' || statusName.includes('отменён') ||
-      //epicentr
-      status.marketplace_code === 'canceled' || statusName.includes('скасован') ||
-      //rozetka
-      status.marketplace_code === '45' || statusName.includes('скасовано покупцем') ||
-      statusName.includes('скасовано') ||
-      statusName.includes('cancel')
-    );
+    // Check for various cancellation status names and codes
+    const checks = {
+      // Prom.ua cancellation
+      promCode: marketplaceCode === '4',
+      promName: statusName.includes('отменён'),
+      
+      // Epicentr cancellation
+      epicentrCode: marketplaceCode === 'canceled',
+      epicentrName: statusName.includes('скасован'),
+      
+      // Rozetka cancellation
+      rozetkaCode: marketplaceCode === '45',
+      rozetkaName: statusName.includes('скасовано покупцем'),
+      
+      // Generic cancellation indicators
+      genericCancelled: statusName.includes('скасовано'),
+      genericCancel: statusName.includes('cancel')
+    };
     
-    console.log(`🔍 Status "${status.name}" is cancelled: ${isCancelled}`);
+    console.log(`🔍 Cancellation checks for "${status.name}":`);
+    Object.entries(checks).forEach(([key, value]) => {
+      if (value) console.log(`   ✅ ${key}: ${value}`);
+    });
+    
+    const isCancelled = Object.values(checks).some(check => check);
+    
+    console.log(`🔍 Final result - Status "${status.name}" is cancelled: ${isCancelled}`);
     return isCancelled;
   }
 
@@ -134,11 +161,15 @@ class CancellationNotificationService {
     newStatusId: string,
     orderData: OrdersResponse
   ): Promise<CancellationNotificationResult> {
-    console.log(`🔍 Processing cancellation check for order ${orderData.orderNumber}`);
-    console.log(`🔍 Previous status ID: ${previousStatusId}, New status ID: ${newStatusId}`);
+    console.log(`🔍 ============= CANCELLATION CHECK START =============`);
+    console.log(`🔍 Processing cancellation check for order: ${orderData.orderNumber} (ID: ${orderId})`);
+    console.log(`🔍 Previous status ID: ${previousStatusId}`);
+    console.log(`🔍 New status ID: ${newStatusId}`);
+    console.log(`🔍 Service enabled: ${this.enabled}`);
     
     if (!this.enabled) {
       console.log(`🚫 Cancellation notifications disabled for order ${orderData.orderNumber}`);
+      console.log(`🔍 ============= CANCELLATION CHECK END (DISABLED) =============`);
       return { 
         success: true, 
         notificationSent: false, 
@@ -156,6 +187,7 @@ class CancellationNotificationService {
 
       if (!previousStatus || !newStatus) {
         console.error(`❌ Failed to fetch status information for order ${orderData.orderNumber}`);
+        console.log(`🔍 ============= CANCELLATION CHECK END (STATUS FETCH FAILED) =============`);
         return {
           success: false,
           error: 'Failed to fetch status information',
@@ -169,6 +201,7 @@ class CancellationNotificationService {
       // Check if new status is cancelled
       if (!this.isCancelledStatus(newStatus)) {
         console.log(`🔍 New status "${newStatus.name}" is not cancelled, skipping notification`);
+        console.log(`🔍 ============= CANCELLATION CHECK END (NOT CANCELLED) =============`);
         return {
           success: true,
           notificationSent: false,
@@ -176,17 +209,29 @@ class CancellationNotificationService {
         };
       }
 
-      // Check if previous status was processing (skip notification only for specific cases)
-      // This logic may be too restrictive for "Скасовано покупцем" - consider if this should apply to all cancellations
+      // Check if previous status was processing and should skip notification
+      // Note: Based on business requirements, we typically skip notifications when 
+      // admin cancels from processing status (intentional cancellations)
+      // but for customer-initiated cancellations (like marketplace code 45), we may want to notify
       if (this.isProcessingStatus(previousStatus)) {
-        console.log(`🚫 Previous status was processing (${previousStatus.name}), but proceeding with cancellation notification for order ${orderData.orderNumber}`);
-        console.log(`🔍 Consider if processing status skip should apply to "${newStatus.name}" cancellation type`);
-        // For now, we'll proceed with the notification instead of skipping
-        // return {
-        //   success: true,
-        //   notificationSent: false,
-        //   reason: 'Previous status was processing - notification skipped as requested'
-        // };
+        console.log(`🚫 Previous status was processing (${previousStatus.name}) for order ${orderData.orderNumber}`);
+        console.log(`🔍 Customer cancellation from marketplace (code: ${newStatus.marketplace_code}) - proceeding with notification`);
+        
+        // For marketplace code 45 (customer cancellation), we want notifications even from processing
+        const isCustomerCancellation = String(newStatus.marketplace_code || '') === '45' || 
+                                     newStatus.name.toLowerCase().includes('скасовано покупцем');
+        
+        if (!isCustomerCancellation) {
+          console.log(`🚫 Skipping notification - admin cancellation from processing status`);
+          console.log(`🔍 ============= CANCELLATION CHECK END (PROCESSING SKIP) =============`);
+          return {
+            success: true,
+            notificationSent: false,
+            reason: 'Previous status was processing - admin cancellation skipped'
+          };
+        }
+        
+        console.log(`✅ Proceeding with notification - customer initiated cancellation`);
       }
 
       console.log(`🚫 Order ${orderData.orderNumber} cancelled: ${previousStatus.name} → ${newStatus.name}`);
@@ -199,12 +244,14 @@ class CancellationNotificationService {
 
       if (notificationResult.success) {
         console.log(`📱 Cancellation notification sent for order ${orderData.orderNumber}`);
+        console.log(`🔍 ============= CANCELLATION CHECK END (SUCCESS) =============`);
         return {
           success: true,
           notificationSent: true
         };
       } else {
         console.warn(`⚠️ Failed to send cancellation notification for order ${orderData.orderNumber}:`, notificationResult.error);
+        console.log(`🔍 ============= CANCELLATION CHECK END (TELEGRAM FAILED) =============`);
         return {
           success: false,
           error: notificationResult.error,
@@ -215,6 +262,7 @@ class CancellationNotificationService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`❌ Cancellation notification processing failed for order ${orderId}:`, errorMessage);
+      console.log(`🔍 ============= CANCELLATION CHECK END (ERROR) =============`);
       
       return {
         success: false,
