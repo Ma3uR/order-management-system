@@ -49,8 +49,8 @@ async function bulkUpdateOrdersToCompleted() {
       throw new Error('❌ No status found with marketplace_code = 6');
     }
 
-    const processingStatus = processingStatusResult.items[0] as StatusRecord;
-    const completedStatus = completedStatusResult.items[0] as StatusRecord;
+    const processingStatus = processingStatusResult.items[0] as unknown as StatusRecord;
+    const completedStatus = completedStatusResult.items[0] as unknown as StatusRecord;
 
     console.log(`✅ Processing status found: "${processingStatus.name}" (ID: ${processingStatus.id})`);
     console.log(`✅ Completed status found: "${completedStatus.name}" (ID: ${completedStatus.id})`);
@@ -77,7 +77,7 @@ async function bulkUpdateOrdersToCompleted() {
     }
 
     // Filter orders by date (before July 30)
-    const ordersToUpdate = ordersResult.items.filter((order: OrderRecord) => {
+    const ordersToUpdate = ordersResult.items.filter((order: any) => {
       // Use created_at_marketplace if available, otherwise use created
       const orderDate = order.created_at_marketplace || order.created;
       const orderDateOnly = orderDate.split('T')[0]; // Get just the date part
@@ -100,7 +100,7 @@ async function bulkUpdateOrdersToCompleted() {
     // Step 3: Show sample of orders to be updated
     console.log('\n📋 Step 3: Sample of orders to be updated:');
     const sampleOrders = ordersToUpdate.slice(0, 5);
-    sampleOrders.forEach((order: OrderRecord, index) => {
+    sampleOrders.forEach((order: any, index) => {
       const orderDate = order.created_at_marketplace || order.created;
       console.log(`   ${index + 1}. Order ${order.orderNumber} (${orderDate.split('T')[0]})`);
     });
