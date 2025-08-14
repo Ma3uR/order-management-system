@@ -11,7 +11,7 @@ import {
   BreadcrumbPage,
 } from "@/app/components/shared/ui/breadcrumb";
 import { SidebarInset } from "@/app/components/shared/ui/sidebar";
-import { default as BlacklistManagement } from '@/app/components/features/blacklist/index';
+import BlacklistManager from '@/app/components/features/blacklist/BlacklistManager';
 import { Toaster } from 'sonner';
 import { motion } from 'framer-motion';
 import LanguageToggle from '@/app/components/shared/ui/LanguageSwitcher';
@@ -45,7 +45,7 @@ export default function BlacklistPageClient({}: BlacklistPageClientProps) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <SidebarProvider defaultOpen>
         <AppSidebar />
-        <SidebarInset className="h-screen flex flex-col overflow-hidden">
+        <SidebarInset className="h-screen flex flex-col overflow-hidden w-full">
           <header className="sticky top-0 flex h-10 sm:h-14 shrink-0 items-center gap-1 bg-background overflow-hidden z-10">
             <div className="flex flex-1 items-center gap-1 px-1 sm:px-2 overflow-hidden">
               <div className="md:hidden">
@@ -67,7 +67,7 @@ export default function BlacklistPageClient({}: BlacklistPageClientProps) {
               <ThemeToggle />
             </div>
           </header>
-          <main className="flex-1 px-1 py-1 sm:px-3 sm:py-3 md:p-4 overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 px-2 py-4 sm:px-4 sm:py-6 overflow-y-auto overflow-x-hidden">
             <motion.div 
               className="w-full space-y-3 sm:space-y-6"
               initial="initial"
@@ -89,7 +89,7 @@ export default function BlacklistPageClient({}: BlacklistPageClientProps) {
                 variants={fadeIn}
                 className="w-full"
               >
-                <BlacklistManagement />
+                <BlacklistManager />
               </motion.div>
             </motion.div>
           </main>

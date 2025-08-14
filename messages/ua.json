@@ -75,6 +75,32 @@
       "perOrder": "на замовлення",
       "totalOrders": "Всього замовлень",
       "totalAmount": "Загальна сума"
+    },
+    "ai-tools": {
+      "products": {
+        "assembled": {
+          "title": "Замовлення в процесі збирання",
+          "description": "Замовлення, що потребують збирання товарів",
+          "searchPlaceholder": "Пошук замовлень, клієнтів або товарів...",
+          "ordersTab": "Замовлення",
+          "productsTab": "Товари",
+          "showingOrders": "Показано {{count}} замовлень",
+          "showingProducts": "Показано {{count}} товарів",
+          "exportOrders": "Експорт замовлень",
+          "exportProducts": "Експорт товарів",
+          "noOrdersFound": "Замовлень не знайдено за вашим запитом",
+          "noProductsFound": "Товарів не знайдено за вашим запитом",
+          "items": "одиниць",
+          "products": "Товари",
+          "totalQuantity": "Всього потрібно",
+          "regularProducts": "Товари",
+          "mineralSoils": "Грунт мінеральний",
+          "organicSoils": "Грунт органічний",
+          "viewOrder": "Переглянути замовлення",
+          "source": "Джерело",
+          "status": "Статус"
+        }
+      }
     }
   },
   "Orders": {
@@ -265,7 +291,27 @@
     "blacklistDescription": "Керуйте записами чорного списку та переглядайте деталі заблокованих клієнтів.",
     "removeFromBlacklist": "Видалити з чорного списку",
     "blockedCustomers": "Заблоковані клієнти",
-    "blockedItems": "Заблоковані товари"
+    "blockedItems": "Заблоковані товари",
+    "addToBlacklistDescription": "Заповніть форму, щоб додати клієнта до чорного списку",
+    "enterFullName": "Введіть повне ім'я",
+    "enterCity": "Введіть місто",
+    "enterReason": "Введіть причину блокування",
+    "cancel": "Скасувати",
+    "name": "Ім'я",
+    "phone": "Телефон",
+    "city": "Місто",
+    "notes": "Примітки",
+    "noName": "Без імені",
+    "noPhone": "Без телефону",
+    "filters": "Фільтри",
+    "sortByDateDesc": "За датою (нові)",
+    "sortByDateAsc": "За датою (старі)",
+    "sortByNameAsc": "За ім'ям (А-Я)",
+    "sortByNameDesc": "За ім'ям (Я-А)",
+    "sortByOrderSumDesc": "За сумою (більше)",
+    "sortByOrderSumAsc": "За сумою (менше)",
+    "notesDescription": "Додайте детальну причину блокування",
+    "orderSumDescription": "Вкажіть загальну суму замовлень клієнта"
   },
   "AiChat": {
     "title": "AI Асистент",

@@ -392,7 +392,7 @@ export async function getOrdersBeingAssembled() {
     // Get orders with "being assembled" status
     const orders = await 
       await pb.collection('orders').getList(1, 100, { 
-        filter: `(status = "oni6s9oxdnlimzt" || status = "oivyo1td64r4qsd" || status = "0a3jmekr5xi0xqt" || status = "kw542bs057znpp7") && (archived = false || archived = null)`,
+        filter: `(status = "oivyo1td64r4qsd" || status = "0a3jmekr5xi0xqt" || status = "kw542bs057znpp7") && (archived = false || archived = null)`,
         expand: 'status',
         fields: 'id,orderNumber,created,fullName,phoneNumber,products'
       });

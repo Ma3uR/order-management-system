@@ -2,7 +2,6 @@ import React from "react";
 import { OrderTool } from "./ai-tools-components/orders";
 import { ProductsTool } from "./ai-tools-components/products/assembled";
 import { type AiOrder } from "./ai-tools-components/orders/order-list";
-import { type Product } from "./ai-tools-components/products/assembled/product-collection";
 import { FinancialBalanceDisplay } from "./ai-tools-components/finances/financial-balance-display";
 import { SalaryCalculationDisplay } from "./ai-tools-components/finances/salary-calculation-display";
 import { PopularityTool } from "./ai-tools-components/products/popularity/index";
@@ -57,8 +56,20 @@ interface OrderToolResult {
 }
 
 interface ProductsToolResult {
-  products: Product[];
-  ordersCount?: number;
+  ordersCount: number;
+  orders: Array<{
+    id: string;
+    orderNumber: string;
+    createdAt: string;
+    customer: string;
+    phoneNumber: string;
+    products: Array<{ name: string; quantity: number; price?: number }>;
+  }>;
+  productsCount: number;
+  products: Array<{
+    name: string;
+    quantity: number;
+  }>;
 }
 
 interface FinancialBalanceResult {
@@ -83,11 +94,10 @@ export function AiToolRenderer({ tool, result }: ToolRendererProps) {
   }
   
   // Products being assembled display logic
-  if (tool === "getProductsBeingAssembled" && "products" in result) {
+  if (tool === "getProductsBeingAssembled" && "products" in result && "orders" in result) {
     return (
       <ProductsTool 
-        products={result.products as Product[]} 
-        ordersCount={"ordersCount" in result ? result.ordersCount as number || 0 : 0} 
+        data={result as ProductsToolResult}
       />
     );
   }

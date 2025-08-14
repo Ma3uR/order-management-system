@@ -66,6 +66,32 @@
       "perOrder": "per order",
       "totalOrders": "Total Orders",
       "totalAmount": "Total Amount"
+    },
+    "ai-tools": {
+      "products": {
+        "assembled": {
+          "title": "Orders Being Assembled",
+          "description": "Orders requiring product assembly",
+          "searchPlaceholder": "Search orders, customers or products...",
+          "ordersTab": "Orders",
+          "productsTab": "Products",
+          "showingOrders": "Showing {{count}} orders",
+          "showingProducts": "Showing {{count}} products",
+          "exportOrders": "Export Orders",
+          "exportProducts": "Export Products",
+          "noOrdersFound": "No orders found matching your search",
+          "noProductsFound": "No products found matching your search",
+          "items": "items",
+          "products": "Products",
+          "totalQuantity": "Total needed",
+          "regularProducts": "Products",
+          "mineralSoils": "Mineral Soils",
+          "organicSoils": "Organic Soils",
+          "viewOrder": "View Order",
+          "source": "Source",
+          "status": "Status"
+        }
+      }
     }
   },
   "Orders": {
@@ -239,7 +265,8 @@
     "search": "Search",
     "addNewItem": "Add New Item",
     "blacklistItems": "Blacklist Items",
-    "blacklistDescription": "Manage your blacklisted customers and view their details."
+    "blacklistDescription": "Manage your blacklisted customers and view their details.",
+    "totalEntries": "{count} Blacklist.totalEntries"
   },
   "AiChat": {
     "title": "AI Assistant",

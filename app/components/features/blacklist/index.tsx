@@ -246,7 +246,12 @@ export default function BlacklistManagement() {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-3 sm:space-y-4">
                   <div className="rounded-md">
-                    <BlacklistForm onSubmit={handleAddItem} isLoading={isLoading} />
+                    <BlacklistForm 
+                      onSubmit={handleAddItem} 
+                      isLoading={isLoading}
+                      isOpen={isFormOpen}
+                      onClose={() => setIsFormOpen(false)}
+                    />
                   </div>
                 </CollapsibleContent>
               </Collapsible>
