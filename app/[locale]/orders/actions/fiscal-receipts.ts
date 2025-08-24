@@ -700,6 +700,17 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
   try {
     console.log('🔍 Loading completed orders without receipts...');
     
+    // rozetka source id 4tvf116a5aitwmb
+    // prom source id gfzk8nxfokgu9ku
+    // epicentr source id pj9sejm9vqtu8xq
+
+    // rozetka completed status code = 6 
+    // prom completed status code = delivered
+    // epicentr completed status code = completed
+
+    // but i have epicentr code "delivered" that i need to skip. becouse for epicentr delivered is not completed status.
+    // so i need to skip all orders with status code "delivered" and source id "pj9sejm9vqtu8xq"
+
     // Get all completed orders (regardless of receipt status initially)
     const completedCodes = ['6', 'completed', 'delivered'];
     const statusFilter = completedCodes.map(code => `status.marketplace_code = "${code}"`).join(' || ');
@@ -729,7 +740,19 @@ export async function getCompletedOrdersWithoutReceipts(): Promise<{
         marketplace_code?: string | number 
       } | undefined;
       
+      const sourceFromExpand = (order.expand as Record<string, unknown>)?.source as {
+        id?: string;
+        name?: string;
+      } | undefined;
+      
       const marketplaceCode = statusFromExpand?.marketplace_code?.toString();
+      const sourceId = sourceFromExpand?.id;
+      
+      // Skip Epicentr orders with "delivered" status (not completed for Epicentr)
+      if (sourceId === 'pj9sejm9vqtu8xq' && marketplaceCode === 'delivered') {
+        return false;
+      }
+      
       const isCompleted = isCompletedMarketplaceCode(marketplaceCode);
       
       // Only include if completed AND no successful receipt exists
