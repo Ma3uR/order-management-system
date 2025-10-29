@@ -10,8 +10,10 @@ import { Label } from "@/app/components/shared/ui/label"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/app/components/shared/ui/select"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/shared/ui/table"
 import { Phone, MessageSquare, Send, Copy, PlusCircle, Trash2, Edit3, Save, Truck, Package, Search, ChevronsUpDown, AlertCircle, X, Loader2, Receipt, RotateCcw } from "lucide-react"
-import { format } from "date-fns"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/app/components/shared/ui/accordion"
+import { formatDateShortKyiv, formatDateLongKyiv } from "@/app/lib/utils/dateFormatter"
+import { getDeliveryMethodName, getPaymentMethodName } from "@/app/lib/utils/entityFormatters"
+import { format } from "date-fns"
 import { useEntities } from '@/app/hooks/useEntities'
 import { NovaPoshtaModal } from "@/app/components/features/orders/components/nova-poshta-modal"
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
@@ -645,10 +647,19 @@ ${productsText}
               <DialogTitle className="text-2xl font-bold text-foreground">
                 Order #{order.orderNumber}
               </DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => copyToClipboard(order.orderNumber)}
+                title="Copy order number"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
               {(() => {
                 const sourceName = sources.find(s => s.id === order.source)?.name;
                 return sourceName ? (
-                  <Badge 
+                  <Badge
                     className="text-white text-xs"
                     style={{
                       backgroundColor: getSourceColor(order.source || ''),
@@ -671,7 +682,7 @@ ${productsText}
             </div>
             <div className="flex items-center gap-3">
               {currentStatus && (
-                <Badge 
+                <Badge
                   className="text-white text-xs"
                   style={{
                     backgroundColor: currentStatus.color,
@@ -682,7 +693,7 @@ ${productsText}
                 </Badge>
               )}
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {format(new Date(order.created_at_marketplace || order.created), "MMM d, yyyy HH:mm")}
+                {formatDateShortKyiv(order.created_at_marketplace || order.created)}
               </span>
             </div>
           </div>
@@ -789,25 +800,6 @@ ${productsText}
             <section>
               <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Order Information</h3>
               <div className="space-y-3">
-                <div className="flex items-center">
-                  <Label htmlFor="orderNumberModal" className="text-xs text-gray-600 dark:text-gray-400 w-28">
-                    Order #
-                  </Label>
-                  <Input
-                    id="orderNumberModal"
-                    value={order.orderNumber}
-                    onChange={(e) => handleInputChange("orderNumber", e.target.value)}
-                    className="text-base flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-2 h-8 w-8"
-                    onClick={() => copyToClipboard(order.orderNumber)}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
                 <div>
                   <Label htmlFor="statusModal" className="text-xs text-gray-600 dark:text-gray-400">
                     Status {isRozetkaOrder && (
@@ -923,7 +915,7 @@ ${productsText}
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   Created:{" "}
                   <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {format(new Date(order.created_at_marketplace || order.created), "PPPp")}
+                    {formatDateLongKyiv(order.created_at_marketplace || order.created)}
                   </span>
                 </p>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -950,7 +942,9 @@ ${productsText}
                     onValueChange={(value) => handleInputChange("deliveryMethod", value)}
                   >
                     <SelectTrigger className="w-full mt-1 text-base">
-                      <SelectValue placeholder="Select delivery method" />
+                      <SelectValue placeholder="Select delivery method">
+                        {getDeliveryMethodName(order.deliveryMethod, deliveryMethods)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {deliveryMethods.map((method) => (
@@ -1154,7 +1148,9 @@ ${productsText}
                     onValueChange={(value) => handleInputChange("paymentMethod", value)}
                   >
                     <SelectTrigger className="w-full mt-1 text-base">
-                      <SelectValue placeholder="Select payment method" />
+                      <SelectValue placeholder="Select payment method">
+                        {getPaymentMethodName(order.paymentMethod, paymentMethods)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {paymentMethods.map((method) => (
