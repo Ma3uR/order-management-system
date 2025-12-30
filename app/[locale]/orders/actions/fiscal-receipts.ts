@@ -6,6 +6,7 @@ import { CasaVchasnoResponse, ShiftStatusInfo } from '@/app/types/casa-vchasno';
 import { OrdersResponse } from '@/app/types/pocketbase-types';
 import { sendFiscalNotification } from '@/app/lib/services/telegram';
 import { isCompletedMarketplaceCode } from '@/app/lib/utils/order-status';
+import { fiscalDebouncer } from '@/app/lib/utils/rate-limiter';
 
 export interface FiscalReceiptResult {
   success: boolean;
@@ -27,107 +28,122 @@ export interface ShiftResult {
 
 /**
  * Create sale receipt for order
+ * Protected with debouncing to prevent rapid double-clicks
  */
 export async function createSaleReceipt(
   orderId: string,
   cashierName: string,
 ): Promise<FiscalReceiptResult> {
-  try {
-    // Validate input parameters
-    if (!orderId || orderId.trim() === '') {
-      return {
-        success: false,
-        error: 'Order ID is required'
-      };
-    }
-
-    if (!cashierName || cashierName.trim() === '') {
-      return {
-        success: false,
-        error: 'Cashier name is required'
-      };
-    }
-
-    // Get order details
-    const order = await pb.collection('orders').getOne<OrdersResponse>(orderId, {
-      expand: 'paymentMethod,deliveryMethod,status,currency'
-    });
-
-    if (!order) {
-      return {
-        success: false,
-        error: 'Order not found'
-      };
-    }
-
-    // Check if order already has a successful receipt
-    const existingReceipts = await pb.collection('fiscal_receipts').getList(1, 10, {
-      filter: `order_id = "${orderId}" && receipt_type = "sale" && status = "success"`,
-      sort: '-created'
-    });
-
-    if (existingReceipts.items.length > 0) {
-      console.log(`[Fiscal Receipts] Order ${order.orderNumber} already has a successful receipt, exiting silently`);
-      return {
-        success: true,
-        data: undefined // Return success but no new receipt created
-      };
-    }
-
-    // Check prro_receipt_status flag (alternative check)
-    if (order.prro_receipt_status === true) {
-      console.log(`[Fiscal Receipts] Order ${order.orderNumber} marked as having receipt (prro_receipt_status=true), exiting silently`);
-      return {
-        success: true,
-        data: undefined // Return success but no new receipt created
-      };
-    }
-
-    // Create sale receipt using Casa.vchasno service
-    const response = await casaVchasnoService.createSaleReceipt(
-      order,
-      cashierName,
-    );
-
-    // Handle successful receipt creation
-    if (response && response.res === 0) {
-      try {
-        // Ensure prro_receipt_status flag is set to true for successful receipts
-        await pb.collection('orders').update(orderId, {
-          prro_receipt_status: true,
-          updated: new Date().toISOString()
-        });
-
-        // Validate the flag was set correctly
-        const updatedOrder = await pb.collection('orders').getOne(orderId, { 
-          fields: 'prro_receipt_status,orderNumber' 
-        });
-        
-        if (updatedOrder.prro_receipt_status !== true) {
-          console.error(`⚠️ [Fiscal Receipts] Flag validation failed for order ${updatedOrder.orderNumber}: expected true, got ${updatedOrder.prro_receipt_status}`);
-        }
-
-        console.log(`[Fiscal Receipts] Sending telegram notification for successful receipt: ${order.orderNumber}`);
-        const telegramResult = await sendFiscalNotification(order, response);
-        
-        if (telegramResult.success) {
-          console.log(`[Fiscal Receipts] ✅ Telegram notification sent successfully for order ${order.orderNumber}`);
-        } else {
-          console.warn(`[Fiscal Receipts] ⚠️ Telegram notification failed for order ${order.orderNumber}:`, telegramResult.error);
-        }
-      } catch (telegramError) {
-        console.warn(`[Fiscal Receipts] ⚠️ Error in post-receipt processing for order ${order.orderNumber}:`, telegramError);
-        // Don't fail the main operation if post-processing fails
-      }
-    } else {
-      console.log(`[Fiscal Receipts] Skipping post-processing - receipt creation failed for order ${order.orderNumber}`);
-    }
-
+  // Validate input parameters first (before debounce check)
+  if (!orderId || orderId.trim() === '') {
     return {
-      success: true,
-      data: response
+      success: false,
+      error: 'Order ID is required'
     };
+  }
+
+  if (!cashierName || cashierName.trim() === '') {
+    return {
+      success: false,
+      error: 'Cashier name is required'
+    };
+  }
+
+  // Use debouncer to prevent rapid repeated calls for the same order
+  const dedupeKey = `sale-receipt-${orderId}`;
+
+  try {
+    return await fiscalDebouncer.dedupe(dedupeKey, async () => {
+      // Get order details
+      const order = await pb.collection('orders').getOne<OrdersResponse>(orderId, {
+        expand: 'paymentMethod,deliveryMethod,status,currency'
+      });
+
+      if (!order) {
+        return {
+          success: false,
+          error: 'Order not found'
+        };
+      }
+
+      // Check if order already has a successful receipt
+      const existingReceipts = await pb.collection('fiscal_receipts').getList(1, 10, {
+        filter: `order_id = "${orderId}" && receipt_type = "sale" && status = "success"`,
+        sort: '-created'
+      });
+
+      if (existingReceipts.items.length > 0) {
+        console.log(`[Fiscal Receipts] Order ${order.orderNumber} already has a successful receipt, exiting silently`);
+        return {
+          success: true,
+          data: undefined // Return success but no new receipt created
+        };
+      }
+
+      // Check prro_receipt_status flag (alternative check)
+      if (order.prro_receipt_status === true) {
+        console.log(`[Fiscal Receipts] Order ${order.orderNumber} marked as having receipt (prro_receipt_status=true), exiting silently`);
+        return {
+          success: true,
+          data: undefined // Return success but no new receipt created
+        };
+      }
+
+      // Create sale receipt using Casa.vchasno service
+      const response = await casaVchasnoService.createSaleReceipt(
+        order,
+        cashierName,
+      );
+
+      // Handle successful receipt creation
+      if (response && response.res === 0) {
+        try {
+          // Ensure prro_receipt_status flag is set to true for successful receipts
+          await pb.collection('orders').update(orderId, {
+            prro_receipt_status: true,
+            updated: new Date().toISOString()
+          });
+
+          // Validate the flag was set correctly
+          const updatedOrder = await pb.collection('orders').getOne(orderId, {
+            fields: 'prro_receipt_status,orderNumber'
+          });
+
+          if (updatedOrder.prro_receipt_status !== true) {
+            console.error(`[Fiscal Receipts] Flag validation failed for order ${updatedOrder.orderNumber}: expected true, got ${updatedOrder.prro_receipt_status}`);
+          }
+
+          console.log(`[Fiscal Receipts] Sending telegram notification for successful receipt: ${order.orderNumber}`);
+          const telegramResult = await sendFiscalNotification(order, response);
+
+          if (telegramResult.success) {
+            console.log(`[Fiscal Receipts] Telegram notification sent successfully for order ${order.orderNumber}`);
+          } else {
+            console.warn(`[Fiscal Receipts] Telegram notification failed for order ${order.orderNumber}:`, telegramResult.error);
+          }
+        } catch (telegramError) {
+          console.warn(`[Fiscal Receipts] Error in post-receipt processing for order ${order.orderNumber}:`, telegramError);
+          // Don't fail the main operation if post-processing fails
+        }
+      } else {
+        console.log(`[Fiscal Receipts] Skipping post-processing - receipt creation failed for order ${order.orderNumber}`);
+      }
+
+      return {
+        success: true,
+        data: response
+      };
+    }); // End of fiscalDebouncer.dedupe
   } catch (error) {
+    // Handle debounce rejection (rapid repeated calls)
+    if (error instanceof Error && error.message.includes('please wait')) {
+      console.log(`[Fiscal Receipts] Request debounced for order ${orderId}`);
+      return {
+        success: false,
+        error: 'Please wait before retrying. A receipt request is already being processed.'
+      };
+    }
+
     console.error('[Fiscal Receipts] Error creating sale receipt:', error);
     return {
       success: false,

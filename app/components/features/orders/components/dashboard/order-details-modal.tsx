@@ -16,6 +16,7 @@ import { getDeliveryMethodName, getPaymentMethodName } from "@/app/lib/utils/ent
 import { format } from "date-fns"
 import { useEntities } from '@/app/hooks/useEntities'
 import { NovaPoshtaModal } from "@/app/components/features/orders/components/nova-poshta-modal"
+import { RozetkaTTNModal } from "@/app/components/features/orders/components/rozetka-ttn-modal"
 import { ScrollArea } from "@/app/components/shared/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { orderSchema } from "@/app/lib/validations/orders"
@@ -104,6 +105,7 @@ export function OrderDetailsModal({
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isNovaPoshtaModalOpen, setIsNovaPoshtaModalOpen] = useState(false)
+  const [isRozetkaTTNModalOpen, setIsRozetkaTTNModalOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [statusSearchValue, setStatusSearchValue] = useState("")
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
@@ -997,6 +999,34 @@ ${productsText}
                   ) : null}
                 </div>
 
+                {/* Rozetka TTN Section - Only for Rozetka orders */}
+                {isRozetkaOrder && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-gray-600 dark:text-gray-400">Rozetka TTN</Label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsRozetkaTTNModalOpen(true)}
+                        className="h-8 px-3 text-xs"
+                      >
+                        <Truck className="h-4 w-4 mr-1" />
+                        {order.deliveryPostNumber ? 'Управління ТТН' : 'Створити ТТН'}
+                      </Button>
+                    </div>
+                    {order.deliveryPostNumber ? (
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-3">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                            ТТН: {order.deliveryPostNumber}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
                 {/* Fiscal Receipts Section - Admin Only */}
                 <PermissionGate permission={PERMISSIONS.FISCAL_MANAGE}>
                   <div className="space-y-2">
@@ -1322,6 +1352,21 @@ ${productsText}
           number: (order.invoice_data as NovaPoshtaInvoiceData).IntDocNumber,
           documentRef: (order.invoice_data as NovaPoshtaInvoiceData).Ref
         } : undefined}
+      />
+    )}
+
+    {/* Rozetka TTN Modal */}
+    {order && isRozetkaOrder && order.marketplaceIds && (
+      <RozetkaTTNModal
+        open={isRozetkaTTNModalOpen}
+        onOpenChange={setIsRozetkaTTNModalOpen}
+        orderId={order.id}
+        rozetkaOrderId={Number.parseInt(order.marketplaceIds)}
+        orderAmount={order.amount}
+        onTtnCreated={(ttnNumber, ttnData) => {
+          setOrder((prev) => prev ? { ...prev, deliveryPostNumber: ttnNumber, invoice_data: ttnData } : null);
+          toast.success(`ТТН створено: ${ttnNumber}`);
+        }}
       />
     )}
 

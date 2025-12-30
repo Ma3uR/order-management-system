@@ -6,6 +6,7 @@ import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { orderSchema } from '@/app/lib/validations/orders';
 import { appendFileSync } from 'fs';
 import { getDefaultDeliveryMethod } from '../[locale]/settings/actions/delivery-methods';
+import { rateLimiters, withRetry, sleep } from '@/app/lib/utils/rate-limiter';
 
 dotenv.config();
 
@@ -156,23 +157,37 @@ class PromUaAPI {
   }
 
   async getOrders() {
+    // Apply rate limiting before making request
+    await rateLimiters.promua.throttle();
+
     try {
-      const response = await axios.get<PromOrdersResponse>(`${process.env.PROMUA_API_URL}/orders/list`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
+      const result = await withRetry(
+        async () => {
+          const response = await axios.get<PromOrdersResponse>(`${process.env.PROMUA_API_URL}/orders/list`, {
+            headers: {
+              'Authorization': `Bearer ${this.token}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000 // 30 second timeout
+          });
+
+          if (!response.data.orders) {
+            throw new Error('Failed to fetch orders from Prom.ua');
+          }
+
+          if (!Array.isArray(response.data.orders)) {
+            throw new Error('Invalid response format from Prom.ua API');
+          }
+
+          return response.data.orders;
+        },
+        { maxRetries: 3, initialDelayMs: 2000 },
+        (attempt, error, delayMs) => {
+          console.log(`[Prom.ua] Retry ${attempt}/3: ${error.message}. Waiting ${Math.round(delayMs)}ms...`);
         }
-      });
+      );
 
-      if (!response.data.orders) {
-        throw new Error('Failed to fetch orders from Prom.ua');
-      }
-
-      if (!Array.isArray(response.data.orders)) {
-        throw new Error('Invalid response format from Prom.ua API');
-      }
-
-      return { error: undefined, data: response.data.orders };
+      return { error: undefined, data: result };
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error('Failed to fetch Prom.ua orders:', error.message);
@@ -520,36 +535,46 @@ async function processOrder(promOrder: PromOrderResponse) {
 export async function syncOrders() {
   try {
     console.log('🔄 [syncOrders] Starting Prom.ua orders sync...');
-    
+
+    // Reset rate limiter at start of sync
+    rateLimiters.promua.reset();
+
     // Check API configuration
     const apiUrl = process.env.PROMUA_API_URL;
     const token = process.env.PROM_UA_TOKEN;
     console.log(`🔧 [syncOrders] API URL: ${apiUrl}`);
     console.log(`🔧 [syncOrders] Token exists: ${!!token}`);
-    
+
     const promOrders = await getOrders();
     if (promOrders.error) {
       console.error('❌ [syncOrders] Error fetching orders:', promOrders.error);
       throw new Error(`Failed to fetch Prom.ua orders: ${promOrders.error}`);
     }
-    
+
     if (!promOrders.data) {
       console.error('❌ [syncOrders] No data returned from getOrders');
       throw new Error('Failed to fetch Prom.ua orders: No data returned');
     }
-    
+
     console.log(`📥 [syncOrders] Retrieved ${promOrders.data.length} orders from Prom.ua`);
-    
+
     let syncedOrders = 0;
     let failedOrders = 0;
 
-    // Process orders sequentially to avoid cancellation issues
-    for (const order of promOrders.data) {
+    // Process orders sequentially with delays to avoid cancellation issues
+    for (let i = 0; i < promOrders.data.length; i++) {
+      const order = promOrders.data[i];
       try {
         console.log(`⏳ [syncOrders] Processing order ${order.id}...`);
         await processOrder(order);
         syncedOrders++;
         console.log(`✅ [syncOrders] Successfully processed order ${order.id}`);
+
+        // Add delay between processing orders to avoid network abuse detection
+        if (i < promOrders.data.length - 1) {
+          const orderDelay = 500 + Math.random() * 500; // 0.5-1 second between orders
+          await sleep(orderDelay);
+        }
       } catch (error) {
         console.error(`❌ [syncOrders] Failed to process order ${order.id}:`, error);
         if (error instanceof Error) {
@@ -559,13 +584,14 @@ export async function syncOrders() {
         failedOrders++;
       }
     }
-    
+
     await pb.collection('sync_records').create({
       source: 'gfzk8nxfokgu9ku',
       orders_processed: syncedOrders,
       orders_failures: failedOrders
     });
-    
+
+    console.log(`✅ Prom.ua sync completed: ${syncedOrders} synced, ${failedOrders} failed`);
     return { success: true, syncedOrders, failedOrders };
   } catch (error) {
     console.error('Failed to sync orders:', error);

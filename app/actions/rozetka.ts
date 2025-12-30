@@ -9,6 +9,7 @@ import { appendFileSync } from 'fs';
 import { getDefaultDeliveryMethod } from '../[locale]/settings/actions/delivery-methods';
 import { processOrderAutomation, type AutomationResult } from '@/app/lib/services/status-automation';
 import { extractProductsFromRozetkaOrder } from '@/app/lib/utils/rozetka';
+import { rateLimiters, withRetry, sleep } from '@/app/lib/utils/rate-limiter';
 
 dotenv.config();
 
@@ -41,13 +42,13 @@ class RozetkaAPI {
   private static instance: RozetkaAPI;
   private token: string | null = null;
   private tokenExpiry: Date | null = null;
-  
+
   private constructor() {
     if (typeof window !== 'undefined') {
       throw new Error('RozetkaAPI can only be used on the server side');
     }
   }
-  
+
   static getInstance(): RozetkaAPI {
     if (!RozetkaAPI.instance) {
       RozetkaAPI.instance = new RozetkaAPI();
@@ -89,48 +90,55 @@ class RozetkaAPI {
     return this.token;
   }
 
-  async getOrders(params?: { 
-    from?: string; 
+  async getOrders(params?: {
+    from?: string;
     to?: string;
     page?: number;
     types?: number;
   }) {
-    try {
-      const token = await this.ensureValidToken();
-      
-      // Calculate dates for the last 30 days
-      const today = new Date();
-      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
-      const defaultFrom = thirtyDaysAgo.toISOString().split('T')[0];
-      const defaultTo = today.toISOString().split('T')[0];
-      
-      const response = await axios.get<RozetkaOrdersResponse>(`${ROZETKA_API_BASE}/orders/search`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept-Validate-Exception': '1',
-          'Content-Language': 'uk'
-        },
-        params: {
-          page: params?.page || 1,
-          sort: '-id',
-          types: params?.types || 1,
-          created_from: params?.from || defaultFrom,
-          created_to: params?.to || defaultTo,
-          expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed, prro_receipt_status,purchases'
+    // Apply rate limiting before making request
+    await rateLimiters.rozetka.throttle();
+
+    return withRetry(
+      async () => {
+        const token = await this.ensureValidToken();
+
+        // Calculate dates for the last 30 days
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        const defaultFrom = thirtyDaysAgo.toISOString().split('T')[0];
+        const defaultTo = today.toISOString().split('T')[0];
+
+        const response = await axios.get<RozetkaOrdersResponse>(`${ROZETKA_API_BASE}/orders/search`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept-Validate-Exception': '1',
+            'Content-Language': 'uk'
+          },
+          params: {
+            page: params?.page || 1,
+            sort: '-id',
+            types: params?.types || 1,
+            created_from: params?.from || defaultFrom,
+            created_to: params?.to || defaultTo,
+            expand: 'delivery,user,status_data,payment_method_id,status_available, is_payed, prro_receipt_status,purchases'
+          },
+          timeout: 30000 // 30 second timeout
+        });
+
+        if (!response.data.success) {
+          throw new Error(response.data.errors?.description || 'Failed to fetch orders');
         }
-      });
 
-      if (!response.data.success) {
-        throw new Error(response.data.errors?.description || 'Failed to fetch orders');
+        return response.data.content.orders || [];
+      },
+      { maxRetries: 3, initialDelayMs: 2000 },
+      (attempt, error, delayMs) => {
+        console.log(`[Rozetka] Retry ${attempt}/3: ${error.message}. Waiting ${Math.round(delayMs)}ms...`);
       }
-
-      return response.data.content.orders || [];
-    } catch (error) {
-      console.error('Failed to fetch Rozetka orders:', error);
-      throw error;
-    }
+    );
   }
 
   async getPaymentMethods() {
@@ -427,39 +435,49 @@ async function processOrder(rozetkaOrder: RozetkaOrderResponse) {
 export async function syncOrders() {
   try {
     console.log('🔄 Starting Rozetka orders sync with pagination...');
-    
+
+    // Reset rate limiter at start of sync
+    rateLimiters.rozetka.reset();
+
     // Fetch all orders across all pages
     const allOrders: RozetkaOrderResponse[] = [];
     let page = 1;
     let totalPagesProcessed = 0;
     const maxPages = 50; // Safety limit
-    
+
     while (page <= maxPages) {
       console.log(`📄 Fetching page ${page}...`);
-      
+
       // Use 21-day date range for more recent orders only
       const today = new Date();
       const twentyOneDaysAgo = new Date(today.getTime() - 21 * 24 * 60 * 60 * 1000);
       const from = twentyOneDaysAgo.toISOString().split('T')[0];
       const to = today.toISOString().split('T')[0];
-      
-      const pageOrders = await getOrders({ 
-        types: 1, 
+
+      const pageOrders = await getOrders({
+        types: 1,
         page,
         from: from,
         to: to
       });
-      
+
       if (!pageOrders || !Array.isArray(pageOrders) || pageOrders.length === 0) {
         console.log(`✅ No more orders on page ${page}, stopping pagination`);
         break;
       }
-      
+
       console.log(`✅ Page ${page}: Found ${pageOrders.length} orders`);
       allOrders.push(...pageOrders);
       totalPagesProcessed++;
       page++;
-      
+
+      // Add delay between pages to avoid network abuse detection
+      if (page <= maxPages) {
+        const pageDelay = 1000 + Math.random() * 1000; // 1-2 seconds between pages
+        console.log(`⏳ Waiting ${Math.round(pageDelay)}ms before next page...`);
+        await sleep(pageDelay);
+      }
+
       // Safety check: if we already have more than 200 orders, that's probably enough
       if (allOrders.length > 200) {
         console.log(`⏹️ Reached 200+ orders, stopping to avoid processing too many old orders`);

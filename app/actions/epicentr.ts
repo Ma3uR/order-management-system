@@ -6,6 +6,7 @@ import pb, { authenticatedCall } from '@/app/lib/pocketbase';
 import { orderSchema } from '@/app/lib/validations/orders';
 import { appendFileSync } from 'fs';
 import { getDefaultDeliveryMethod } from '../[locale]/settings/actions/delivery-methods';
+import { rateLimiters, withRetry, sleep } from '@/app/lib/utils/rate-limiter';
 
 dotenv.config();
 
@@ -179,26 +180,40 @@ class EpicentrAPI {
   }
 
   async getOrders() {
+    // Apply rate limiting before making request
+    await rateLimiters.epicentr.throttle();
+
     try {
-      const baseUrl = process.env.EPICENTR_API_URL?.replace(/\/$/, '');
-      const fullUrl = `${baseUrl}/v3/oms/orders`;
-      console.log('Attempting to fetch from:', fullUrl);
-      const response = await axios.get<EpicentrOrdersResponse>(fullUrl, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
+      const result = await withRetry(
+        async () => {
+          const baseUrl = process.env.EPICENTR_API_URL?.replace(/\/$/, '');
+          const fullUrl = `${baseUrl}/v3/oms/orders`;
+          console.log('Attempting to fetch from:', fullUrl);
+          const response = await axios.get<EpicentrOrdersResponse>(fullUrl, {
+            headers: {
+              'Authorization': `Bearer ${this.token}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000 // 30 second timeout
+          });
+
+          if (!response.data.items) {
+            throw new Error('Failed to fetch orders from Epicentr');
+          }
+
+          if (!Array.isArray(response.data.items)) {
+            throw new Error('Invalid response format from Epicentr API');
+          }
+
+          return response.data.items;
+        },
+        { maxRetries: 3, initialDelayMs: 2000 },
+        (attempt, error, delayMs) => {
+          console.log(`[Epicentr] Retry ${attempt}/3: ${error.message}. Waiting ${Math.round(delayMs)}ms...`);
         }
-      });
+      );
 
-      if (!response.data.items) {
-        throw new Error('Failed to fetch orders from Epicentr');
-      }
-
-      if (!Array.isArray(response.data.items)) {
-        throw new Error('Invalid response format from Epicentr API');
-      }
-
-      return { error: undefined, data: response.data.items };
+      return { error: undefined, data: result };
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error('Failed to fetch Epicentr orders:', error.message);
@@ -536,30 +551,45 @@ async function processOrder(epicentrOrder: EpicentrOrder) {
 
 export async function syncOrders() {
   try {
+    console.log('🔄 Starting Epicentr orders sync...');
+
+    // Reset rate limiter at start of sync
+    rateLimiters.epicentr.reset();
+
     const epicentrOrders = await getOrders();
     if (!epicentrOrders.data) {
       throw new Error('Failed to fetch Epicentr orders');
     }
-    
+
+    console.log(`📊 Found ${epicentrOrders.data.length} orders to process`);
+
     let syncedOrders = 0;
     let failedOrders = 0;
 
-    for (const order of epicentrOrders.data) {
+    for (let i = 0; i < epicentrOrders.data.length; i++) {
+      const order = epicentrOrders.data[i];
       try {
         await processOrder(order);
         syncedOrders++;
+
+        // Add delay between processing orders to avoid network abuse detection
+        if (i < epicentrOrders.data.length - 1) {
+          const orderDelay = 500 + Math.random() * 500; // 0.5-1 second between orders
+          await sleep(orderDelay);
+        }
       } catch (error) {
         console.error(`Failed to process epicentr order ${order.id}:`, error);
         failedOrders++;
       }
     }
-    
+
     await pb.collection('sync_records').create({
       source: 'pj9sejm9vqtu8xq',
       orders_processed: syncedOrders,
       orders_failures: failedOrders
     });
-    
+
+    console.log(`✅ Epicentr sync completed: ${syncedOrders} synced, ${failedOrders} failed`);
     return { success: true, syncedOrders, failedOrders };
   } catch (error) {
     console.error('Failed to sync orders:', error);
