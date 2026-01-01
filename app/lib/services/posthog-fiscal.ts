@@ -73,20 +73,10 @@ export class PostHogFiscalService {
   }
   
   private initializePostHog(): void {
-    this.projectApiKey = process.env.POSTHOG_API_KEY || '';
-    this.host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
-    this.isEnabled = !!this.projectApiKey;
-
-    if (this.isEnabled && !this.posthog) {
-      this.posthog = new PostHog(this.projectApiKey, {
-        host: this.host,
-        flushAt: 1, // Send events immediately in server environment
-        flushInterval: 0, // Disable batching for server usage
-      });
-      console.log('[PostHogFiscal] PostHog initialized successfully');
-    } else if (!this.isEnabled) {
-      console.warn('[PostHogFiscal] PostHog disabled - POSTHOG_API_KEY not provided');
-    }
+    // PostHog completely disabled to prevent excessive outbound connections
+    this.isEnabled = false;
+    this.posthog = null;
+    console.log('[PostHogFiscal] PostHog disabled');
   }
 
   static getInstance(): PostHogFiscalService {

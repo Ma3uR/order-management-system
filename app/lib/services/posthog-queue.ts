@@ -31,8 +31,9 @@ export class PostHogQueueService {
   private currentQueueSize: number = 0;
 
   private constructor() {
-    this.enabled = !!process.env.POSTHOG_API_KEY;
-    console.log(`[PostHogQueue] Queue service ${this.enabled ? 'enabled' : 'disabled'}`);
+    // PostHog completely disabled to prevent excessive outbound connections
+    this.enabled = false;
+    console.log('[PostHogQueue] Queue service disabled');
   }
 
   static getInstance(): PostHogQueueService {
