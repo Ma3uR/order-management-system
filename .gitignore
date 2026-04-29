@@ -65,5 +65,11 @@ node_modules/
 
 # Task files
 tasks.json
-tasks/ 
+tasks/
 prd.md
+
+# Cleanup hygiene (added 2026-04-30)
+pb_data_*/
+playwright-report/
+test-results/
+.env.local.*
