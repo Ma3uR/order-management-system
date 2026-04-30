@@ -16,13 +16,15 @@ A modern web application built with Next.js for managing orders, customers, and 
 
 ## Tech Stack
 
-- **Framework**: Next.js 13+
-- **Database**: Prisma with SQL database
-- **Authentication**: NextAuth.js
-- **UI Components**: Custom components with Tailwind CSS
-- **Charts**: React-based charting libraries
+- **Framework**: Next.js 14+ (App Router)
+- **Database**: [PocketBase](https://pocketbase.io/) — self-hosted backend (SQLite + auth + realtime)
+- **Authentication**: Custom PocketBase auth with role-based access
+- **UI Components**: [shadcn/ui](https://ui.shadcn.com/) (Radix UI primitives) + Tailwind CSS
+- **Internationalization**: next-intl (English, Ukrainian)
+- **AI**: OpenAI integration for order management assistance
+- **Charts**: Chart.js via react-chartjs-2
 - **State Management**: React hooks and context
-- **API**: RESTful endpoints with Next.js API routes
+- **API**: Primarily Next.js Server Actions; a small set of route handlers under `/api`
 
 ## Getting Started
 
@@ -37,28 +39,42 @@ npm install
 cp .env.example .env.local
 ```
 Configure the following environment variables in the `.env.local` file:
+- `NEXT_PUBLIC_POCKETBASE_URL`: URL of your PocketBase instance (default: `http://localhost:8090`).
 - `ENABLE_AUTO_FISCAL`: Set to `true` to enable auto-fiscal feature.
 - `CASA_VCHASNO_TOKEN`: Your Casa Vchasno API token for fiscal receipt generation.
 
-4. Initialize the database:
+4. Start PocketBase (the application's backend):
 ```bash
-npx prisma migrate dev
+# Download PocketBase from https://pocketbase.io/docs/ and run it
+./pocketbase serve
+```
+Then open the admin UI at `http://localhost:8090/_/` to create the first admin user and apply the collection schema (see `app/types/pocketbase-types.ts` for the expected shape).
+
+5. (Optional) Regenerate PocketBase TypeScript types after schema changes:
+```bash
+npx pocketbase-typegen --url $NEXT_PUBLIC_POCKETBASE_URL --email <admin> --password <admin-password>
 ```
 
-5. Run the development server:
+6. Run the development server:
 ```bash
 npm run dev
 ```
 
 ## Project Structure
 
-- `/app` - Next.js application routes and pages
-- `/components` - Reusable React components
-- `/lib` - Utility functions and shared logic
-- `/prisma` - Database schema and migrations
-- `/public` - Static assets
-- `/styles` - Global styles and CSS
-- `/messages` - Internationalization files
+- `/app` - Next.js App Router routes, pages, server actions, components, and shared libs
+  - `/app/[locale]` - Internationalized routes (orders, settings, dashboard, fiscal, blacklist, profile, etc.)
+  - `/app/[locale]/*/actions` - Next.js Server Actions used by the UI
+  - `/app/api` - The few Next.js route handlers (`chat`, `queue`, `test`)
+  - `/app/lib` - Shared utilities, PocketBase client, services, AI tools
+  - `/app/components/features` - Business-domain components grouped by feature
+- `/components/ui` - shadcn/ui primitive components (root)
+- `/hooks` - Shared React hooks (root)
+- `/lib` - Root-level shared utilities (`utils.ts`)
+- `/styles` - Root global stylesheet
+- `/messages` - Internationalization JSON files (`en.json`, `ua.json`, …)
+- `/scripts` - One-off TypeScript scripts for marketplace sync, status sync, and data migrations
+- `/__tests__`, `/tests` - Jest unit/integration tests and Playwright e2e
 
 ## Environment Variables
 
@@ -66,7 +82,7 @@ npm run dev
 ```bash
 # Application
 NEXT_PUBLIC_POCKETBASE_URL=http://localhost:8090  # PocketBase database URL
-NEXTAUTH_SECRET=your_nextauth_secret_here         # Authentication secret
+POCKETBASE_URL=http://localhost:8090              # Server-side PocketBase URL
 
 # Auto-Fiscal Feature
 ENABLE_AUTO_FISCAL=false                          # Enable automatic fiscal receipt generation
@@ -112,18 +128,28 @@ Generated receipts include:
 - QR code for verification
 - Document code for tracking
 
-## API Routes
+## Server Actions & API Routes
 
-- `/api/auth/*` - Authentication endpoints
-- `/api/orders/*` - Order management
-- `/api/blacklist/*` - Blacklist operations
-- `/api/currencies/*` - Currency settings
-- `/api/delivery-methods/*` - Delivery options
-- `/api/payment-methods/*` - Payment settings
-- `/api/sources/*` - Order sources
-- `/api/statuses/*` - Order status management
-- `/api/user/*` - User settings
-- `/api/fiscal/*` - Fiscal receipt management
+The bulk of the backend logic lives in **Next.js Server Actions** colocated with the routes that use them, not in REST endpoints. The few HTTP route handlers exist where streaming or external callers are needed.
+
+### HTTP Route Handlers (`app/api`)
+
+- `/api/chat` - Streaming chat endpoint for the AI assistant
+- `/api/chat/debug/[id]` - Inspect a single chat trace
+- `/api/chat/debug/clear/[userId]` - Clear stored chat traces for a user
+- `/api/chat/debug/user` - Look up the current user's chat traces
+- `/api/queue` - Background job queue endpoint (e.g. fiscal automation)
+- `/api/test` - Internal test/health endpoint
+
+### Server Actions (selected)
+
+- `app/[locale]/orders/actions/` - `orders`, `sync`, `nova-poshta`, `rozetka-delivery`, `fiscal-queue`, `fiscal-receipts`, `fiscal-scheduler`, `translations`
+- `app/[locale]/settings/actions/` - `connection`, `currencies`, `delivery-methods`, `payment-methods`, `sources`, `statuses`, `sync`, `sync-marketplace-statuses`
+- `app/[locale]/blacklist/actions/black-list.ts`
+- `app/[locale]/expenses/actions/expenses.ts`
+- `app/[locale]/profile/actions/profile.ts`
+- `app/[locale]/chat/actions/chat.ts`
+- `app/actions/` - Marketplace integrations: `epicentr`, `prom-ua`, `rozetka`, `marketplace-status-sync`
 
 ## Troubleshooting
 
